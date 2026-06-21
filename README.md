@@ -1,17 +1,138 @@
-# cleanai
+# CleanAI - Frontend Mobile Application
 
-A new Flutter project.
+## Introduction
 
-## Getting Started
+CleanAI is a Flutter-based mobile application for an AI-powered cleaning service booking platform.
 
-This project is a starting point for a Flutter application.
+The application connects customers, cleaning workers, and administrators through a modern and user-friendly interface.
 
-A few resources to get you started if this is your first Flutter project:
+Frontend communicates with ASP.NET Core Backend APIs and PostgreSQL Database.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Main Features
+
+### Client
+
+- Register and login
+- Manage profile
+- Manage addresses
+- Browse services
+- Create bookings
+- Track booking status
+- Online payments
+- Rate completed services
+- Chat with AI Assistant
+
+### Worker
+
+- Receive job notifications
+- View assigned jobs
+- Update job status
+- Track earnings
+- Update GPS location
+- Manage profile
+
+### Admin
+
+- Manage users
+- Manage services
+- Manage bookings
+- Manage workers
+- View system statistics
+
+---
+
+## Project Structure
+
+```text
+lib/
+├── core/
+│   ├── constants/
+│   ├── theme/
+│   ├── routes/
+│   └── network/
+│
+├── data/
+│   ├── models/
+│   ├── repositories/
+│   └── services/
+│
+├── ui/
+│   ├── auth/
+│   ├── home/
+│   ├── booking/
+│   ├── service/
+│   ├── chat/
+│   ├── notification/
+│   ├── profile/
+│   ├── worker/
+│   ├── admin/
+│   └── widgets/
+│
+└── main.dart
+```
+
+---
+
+## Technology Stack
+
+- Flutter
+- Dart
+- Dio
+- SignalR
+- JWT Authentication
+- OAuth2
+- Google Maps
+- PostgreSQL
+- ASP.NET Core Backend
+
+---
+
+## Installation
+
+Clone repository:
+
+```bash
+git clone <repository-url>
+```
+
+Install dependencies:
+
+```bash
+flutter pub get
+```
+
+Run application:
+
+```bash
+flutter run
+```
+
+Build APK:
+
+```bash
+flutter build apk
+```
+
+Build App Bundle:
+
+```bash
+flutter build appbundle
+```
+
+---
+
+## Security
+
+- JWT Authentication
+- Refresh Token
+- OAuth Login
+- OTP Verification
+- Role-Based Authorization
+
+---
+
+## Team
+
+CleanAI Development Team
