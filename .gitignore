@@ -1,18 +1,50 @@
+# ==========================================
+# 1. Thư mục rác / Tạm thời của project bạn
+# ==========================================
+.antigravity/
+.build-outputs/
+
+# ==========================================
+# 2. Cấu hình IDE (Android Studio / VS Code)
+# ==========================================
+.idea/
+.vscode/
 *.iml
-.gradle
-.kotlin
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.ipr
+*.iws
+
+# ==========================================
+# 3. Flutter & Dart
+# ==========================================
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# ==========================================
+# 4. Android & Gradle
+# ==========================================
+.gradle/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+/captures/
 local.properties
+
+# ==========================================
+# 5. Môi trường & Bảo mật (Secrets)
+# ==========================================
 .env
+# Lưu ý: Không ignore .env.example để thành viên khác biết cấu trúc biến môi trường
+*.keystore
+*.jks
+key.properties
 debug.keystore
+
+# ==========================================
+# 6. Hệ điều hành (macOS / Windows rác)
+# ==========================================
+.DS_Store
+Thumbs.db
