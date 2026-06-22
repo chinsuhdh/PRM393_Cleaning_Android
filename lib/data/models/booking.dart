@@ -35,8 +35,10 @@ class Booking {
     if (rawScheduled != null && rawScheduled.isNotEmpty) {
       final dt = DateTime.tryParse(rawScheduled)?.toLocal();
       if (dt != null) {
-        date = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-        time = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        date =
+            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+        time =
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       } else {
         date = rawScheduled;
       }
@@ -45,8 +47,16 @@ class Booking {
     String statusStr;
     final rawStatus = json['status'];
     if (rawStatus is int) {
-      const statusNames = ['Pending', 'Accepted', 'InProgress', 'Completed', 'Cancelled'];
-      statusStr = (rawStatus >= 0 && rawStatus < statusNames.length) ? statusNames[rawStatus] : rawStatus.toString();
+      const statusNames = [
+        'Pending',
+        'Accepted',
+        'InProgress',
+        'Completed',
+        'Cancelled',
+      ];
+      statusStr = (rawStatus >= 0 && rawStatus < statusNames.length)
+          ? statusNames[rawStatus]
+          : rawStatus.toString();
     } else {
       statusStr = (rawStatus as String?) ?? 'Unknown';
     }
@@ -54,7 +64,9 @@ class Booking {
     String serviceName = (json['serviceName'] as String?) ?? '';
     if (serviceName.isEmpty) {
       final serviceObj = json['service'] as Map<String, dynamic>?;
-      serviceName = (serviceObj?['name'] as String?) ?? 'Dịch vụ #${json['serviceId'].toString().substring(0, 8)}';
+      serviceName =
+          (serviceObj?['name'] as String?) ??
+          'Dịch vụ #${json['serviceId'].toString().substring(0, 8)}';
     }
 
     return Booking(
@@ -64,7 +76,9 @@ class Booking {
       time: time,
       price: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
       status: statusStr,
-      worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
+      worker: json['worker'] != null
+          ? Worker.fromJson(json['worker'] as Map<String, dynamic>)
+          : null,
 
       // MỚI THÊM: Parse dữ liệu tọa độ từ BE trả về
       addressText: json['addressText'] as String?,

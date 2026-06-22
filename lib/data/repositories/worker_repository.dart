@@ -45,7 +45,9 @@ class ApiWorkerRepository implements WorkerRepository {
   @override
   Future<List<Worker>> getRecommendedWorkers(String bookingId) async {
     try {
-      final response = await DioClient.instance.get('/Ai/recommended-workers/$bookingId');
+      final response = await DioClient.instance.get(
+        '/Ai/recommended-workers/$bookingId',
+      );
 
       final raw = response.data;
       if (raw is List) {
@@ -70,13 +72,12 @@ class ApiWorkerRepository implements WorkerRepository {
       // Backend sẽ mapping dữ liệu vào bảng worker_profiles và worker_skills
       await DioClient.instance.post(
         '/Workers/register',
-        data: {
-          'identityCardNumber': identityCardNumber,
-          'skills': skills,
-        },
+        data: {'identityCardNumber': identityCardNumber, 'skills': skills},
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi đăng ký thông tin thợ.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Lỗi khi đăng ký thông tin thợ.',
+      );
     }
   }
 }
@@ -89,7 +90,10 @@ final workerProfileProvider = FutureProvider<Worker?>((ref) async {
   return ref.read(workerRepositoryProvider).getMyWorkerProfile();
 });
 
-final recommendedWorkersProvider = FutureProvider.family<List<Worker>, String>((ref, bookingId) async {
+final recommendedWorkersProvider = FutureProvider.family<List<Worker>, String>((
+  ref,
+  bookingId,
+) async {
   final repo = ref.read(workerRepositoryProvider);
   return repo.getRecommendedWorkers(bookingId);
 });

@@ -23,12 +23,15 @@ class LocationHelper {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('Quyền vị trí bị từ chối vĩnh viễn, không thể yêu cầu lại.');
+      return Future.error(
+        'Quyền vị trí bị từ chối vĩnh viễn, không thể yêu cầu lại.',
+      );
     }
 
     // 3. Lấy tọa độ GPS hiện tại
     Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+      desiredAccuracy: LocationAccuracy.high,
+    );
 
     // 4. Dịch tọa độ (Reverse Geocoding) sang chuỗi địa chỉ
     try {
@@ -40,7 +43,8 @@ class LocationHelper {
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         // Ghép các thành phần địa chỉ (Số nhà, đường, phường, quận, thành phố)
-        String addressText = '${place.street}, ${place.subAdministrativeArea}, ${place.administrativeArea}';
+        String addressText =
+            '${place.street}, ${place.subAdministrativeArea}, ${place.administrativeArea}';
 
         return {
           'latitude': position.latitude,

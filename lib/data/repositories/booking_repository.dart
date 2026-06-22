@@ -101,7 +101,9 @@ class ApiBookingRepository implements BookingRepository {
         data: {'newStatus': newStatus},
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi cập nhật trạng thái');
+      throw Exception(
+        e.response?.data['message'] ?? 'Lỗi khi cập nhật trạng thái',
+      );
     }
   }
 }
@@ -116,10 +118,14 @@ final bookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
 });
 
 // Cho Worker
-final workerBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
+final workerBookingsProvider = FutureProvider.autoDispose<List<Booking>>((
+  ref,
+) async {
   return ref.read(bookingRepositoryProvider).getWorkerBookings();
 });
 
-final availableBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
+final availableBookingsProvider = FutureProvider.autoDispose<List<Booking>>((
+  ref,
+) async {
   return ref.read(bookingRepositoryProvider).getAvailableBookings();
 });

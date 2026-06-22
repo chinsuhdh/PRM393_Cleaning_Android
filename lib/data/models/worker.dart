@@ -57,13 +57,13 @@ class Worker {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'rating': rating,
-        'distance': distance,
-        'experience': experience,
-        'avatarUrl': avatarUrl,
-        'matchPercentage': matchPercentage,
-        'reviews': reviews,
-      };
+    'id': id,
+    'name': name,
+    'rating': rating,
+    'distance': distance,
+    'experience': experience,
+    'avatarUrl': avatarUrl,
+    'matchPercentage': matchPercentage,
+    'reviews': reviews,
+  };
 }

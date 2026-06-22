@@ -7,15 +7,14 @@ class AiRepository {
     try {
       final response = await DioClient.instance.post(
         '/Ai/chat',
-        data: {
-          "sessionId": sessionId,
-          "message": message,
-        },
+        data: {"sessionId": sessionId, "message": message},
       );
       // Backend trả về: { "reply": "...", "latencyMs": ... }
       return response.data['reply']?.toString() ?? "AI không có phản hồi.";
     } on DioException catch (e) {
-      throw Exception(e.response?.data['error'] ?? 'Lỗi kết nối đến AI Server.');
+      throw Exception(
+        e.response?.data['error'] ?? 'Lỗi kết nối đến AI Server.',
+      );
     }
   }
 }

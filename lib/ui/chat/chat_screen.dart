@@ -11,7 +11,11 @@ class ChatState {
   final bool isAiTyping;
   final String sessionId;
 
-  ChatState({required this.messages, this.isAiTyping = false, required this.sessionId});
+  ChatState({
+    required this.messages,
+    this.isAiTyping = false,
+    required this.sessionId,
+  });
 
   ChatState copyWith({List<ChatMessage>? messages, bool? isAiTyping}) {
     return ChatState(
@@ -26,37 +30,62 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final AiRepository _aiRepo;
 
   ChatNotifier(this._aiRepo)
-      : super(ChatState(
-    messages: [
-      ChatMessage(
-        id: '0',
-        text: "Xin chào! Mình là CleanAI trợ lý ảo. Bạn cần giúp gì hôm nay? 😊",
-        isUser: false,
-      ),
-    ],
-    sessionId: _generateSessionId(),
-  ));
+    : super(
+        ChatState(
+          messages: [
+            ChatMessage(
+              id: '0',
+              text:
+                  "Xin chào! Mình là CleanAI trợ lý ảo. Bạn cần giúp gì hôm nay? 😊",
+              isUser: false,
+            ),
+          ],
+          sessionId: _generateSessionId(),
+        ),
+      );
 
   static String _generateSessionId() {
-    return DateTime.now().millisecondsSinceEpoch.toString() + Random().nextInt(1000).toString();
+    return DateTime.now().millisecondsSinceEpoch.toString() +
+        Random().nextInt(1000).toString();
   }
 
   Future<void> sendMessage(String text) async {
     // 1. Thêm tin nhắn của User
-    final userMsg = ChatMessage(id: DateTime.now().toString(), text: text, isUser: true);
-    state = state.copyWith(messages: [...state.messages, userMsg], isAiTyping: true);
+    final userMsg = ChatMessage(
+      id: DateTime.now().toString(),
+      text: text,
+      isUser: true,
+    );
+    state = state.copyWith(
+      messages: [...state.messages, userMsg],
+      isAiTyping: true,
+    );
 
     try {
       // 2. Gọi API đến .NET (chờ Ollama trả lời)
       final replyText = await _aiRepo.chatWithBot(state.sessionId, text);
 
       // 3. Cập nhật tin nhắn của AI
-      final aiMsg = ChatMessage(id: DateTime.now().toString(), text: replyText, isUser: false);
-      state = state.copyWith(messages: [...state.messages, aiMsg], isAiTyping: false);
+      final aiMsg = ChatMessage(
+        id: DateTime.now().toString(),
+        text: replyText,
+        isUser: false,
+      );
+      state = state.copyWith(
+        messages: [...state.messages, aiMsg],
+        isAiTyping: false,
+      );
     } catch (e) {
       // Báo lỗi nếu rớt mạng
-      final errorMsg = ChatMessage(id: DateTime.now().toString(), text: "Lỗi kết nối: ${e.toString()}", isUser: false);
-      state = state.copyWith(messages: [...state.messages, errorMsg], isAiTyping: false);
+      final errorMsg = ChatMessage(
+        id: DateTime.now().toString(),
+        text: "Lỗi kết nối: ${e.toString()}",
+        isUser: false,
+      );
+      state = state.copyWith(
+        messages: [...state.messages, errorMsg],
+        isAiTyping: false,
+      );
     }
   }
 }
@@ -126,14 +155,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 color: kPrimaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded, color: kPrimary, size: 20),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: kPrimary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('CleanAI Assistant', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                Text('Powered by Qwen 2.5', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400)),
+                Text(
+                  'CleanAI Assistant',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+                Text(
+                  'Powered by Qwen 2.5',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+                ),
               ],
             ),
           ],
@@ -145,7 +184,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              itemCount: chatState.messages.length + (chatState.isAiTyping ? 1 : 0),
+              itemCount:
+                  chatState.messages.length + (chatState.isAiTyping ? 1 : 0),
               itemBuilder: (context, i) {
                 if (i == chatState.messages.length) {
                   return const Align(
@@ -180,14 +220,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     controller: _controller,
                     enabled: !chatState.isAiTyping, // Khóa input khi AI đang gõ
                     decoration: InputDecoration(
-                      hintText: chatState.isAiTyping ? 'AI đang suy nghĩ...' : 'Ask anything...',
+                      hintText: chatState.isAiTyping
+                          ? 'AI đang suy nghĩ...'
+                          : 'Ask anything...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
                       fillColor: theme.colorScheme.surfaceContainerHighest,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
                     onSubmitted: (_) => _send(),
                   ),
@@ -202,7 +247,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       color: chatState.isAiTyping ? Colors.grey : kPrimary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
               ],
@@ -226,25 +275,41 @@ class _MessageBubble extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
             Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(color: kPrimaryContainer, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: kPrimaryContainer,
+                shape: BoxShape.circle,
+              ),
               child: const Center(
-                child: Text('AI', style: TextStyle(color: kOnPrimaryContainer, fontWeight: FontWeight.w700, fontSize: 11)),
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: kOnPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isUser ? kPrimary : theme.colorScheme.surfaceContainerHighest,
+                color: isUser
+                    ? kPrimary
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),

@@ -5,8 +5,9 @@ import '../models/service_category.dart';
 class ServiceCatalogRepository {
   Future<List<ServiceCategory>> getCategories() async {
     try {
-      final response =
-          await DioClient.instance.get('/ServiceCatalog/categories');
+      final response = await DioClient.instance.get(
+        '/ServiceCatalog/categories',
+      );
       final raw = response.data;
       if (raw is List) {
         return raw
@@ -21,8 +22,9 @@ class ServiceCatalogRepository {
   }
 }
 
-final serviceCatalogRepositoryProvider =
-    Provider<ServiceCatalogRepository>((ref) {
+final serviceCatalogRepositoryProvider = Provider<ServiceCatalogRepository>((
+  ref,
+) {
   return ServiceCatalogRepository();
 });
 

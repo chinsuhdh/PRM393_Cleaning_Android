@@ -38,7 +38,9 @@ class WorkerDashboardScreen extends ConsumerWidget {
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Đăng xuất'),
-                      content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?'),
+                      content: const Text(
+                        'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?',
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -46,7 +48,9 @@ class WorkerDashboardScreen extends ConsumerWidget {
                         ),
                         FilledButton(
                           onPressed: () => Navigator.pop(context, true),
-                          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
                           child: const Text('Đăng xuất'),
                         ),
                       ],
@@ -55,7 +59,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
 
                   if (confirm == true) {
                     // Gọi hàm logout từ AuthProvider
-                     ref.read(authProvider.notifier).logout();
+                    ref.read(authProvider.notifier).logout();
 
                     // Chuyển hướng về trang Đăng nhập
                     // (Lưu ý: Đảm bảo GoRouter của bạn có cấu hình route '/login')
@@ -85,31 +89,42 @@ class WorkerDashboardScreen extends ConsumerWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Good Morning,',
-                                style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.85),
-                                    fontSize: 14)),
-                            Text(userName, // Hiển thị tên thật
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800)),
+                            Text(
+                              'Good Morning,',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              userName, // Hiển thị tên thật
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ],
                         ),
                         CircleAvatar(
                           radius: 24,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          child: Text(initials, // Chữ cái đầu thật
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700)),
+                          child: Text(
+                            initials, // Chữ cái đầu thật
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -119,11 +134,14 @@ class WorkerDashboardScreen extends ConsumerWidget {
                         children: const [
                           Icon(Icons.circle, color: kSecondary, size: 10),
                           SizedBox(width: 6),
-                          Text('Available',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12)),
+                          Text(
+                            'Available',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -141,54 +159,67 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                        child: _StatCard(
-                            icon: Icons.attach_money_rounded,
-                            label: "Today's Earn",
-                            value: '\$0',
-                            color: kSecondary)),
+                      child: _StatCard(
+                        icon: Icons.attach_money_rounded,
+                        label: "Today's Earn",
+                        value: '\$0',
+                        color: kSecondary,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _StatCard(
-                            icon: Icons.work_rounded,
-                            label: 'Jobs Today',
-                            value: '0',
-                            color: kPrimary)),
+                      child: _StatCard(
+                        icon: Icons.work_rounded,
+                        label: 'Jobs Today',
+                        value: '0',
+                        color: kPrimary,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _StatCard(
-                            icon: Icons.star_rounded,
-                            label: 'Rating',
-                            value: '0.0',
-                            color: kTertiary)),
+                      child: _StatCard(
+                        icon: Icons.star_rounded,
+                        label: 'Rating',
+                        value: '0.0',
+                        color: kTertiary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 // Quick actions
-                Text('Quick Actions',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  'Quick Actions',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     _QuickAction(
-                        icon: Icons.work_rounded,
-                        label: 'My Jobs',
-                        onTap: () => context.push('/worker/jobs')),
+                      icon: Icons.work_rounded,
+                      label: 'My Jobs',
+                      onTap: () => context.push('/worker/jobs'),
+                    ),
                     const SizedBox(width: 12),
                     _QuickAction(
-                        icon: Icons.account_balance_wallet_rounded,
-                        label: 'Wallet',
-                        onTap: () => context.push('/worker/wallet')),
+                      icon: Icons.account_balance_wallet_rounded,
+                      label: 'Wallet',
+                      onTap: () => context.push('/worker/wallet'),
+                    ),
                     const SizedBox(width: 12),
                     _QuickAction(
-                        icon: Icons.schedule_rounded,
-                        label: 'Schedule',
-                        onTap: () {}),
+                      icon: Icons.schedule_rounded,
+                      label: 'Schedule',
+                      onTap: () {},
+                    ),
                     const SizedBox(width: 12),
                     _QuickAction(
-                        icon: Icons.support_agent_rounded,
-                        label: 'Support',
-                        onTap: () {}),
+                      icon: Icons.support_agent_rounded,
+                      label: 'Support',
+                      onTap: () {},
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -197,12 +228,15 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Available Jobs',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      'Available Jobs',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     TextButton(
-                        onPressed: () => ref.refresh(availableBookingsProvider),
-                        child: const Text('Refresh')
+                      onPressed: () => ref.refresh(availableBookingsProvider),
+                      child: const Text('Refresh'),
                     ),
                   ],
                 ),
@@ -219,7 +253,10 @@ class WorkerDashboardScreen extends ConsumerWidget {
                   error: (err, stack) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: Text('Lỗi tải đơn hàng: $err', style: const TextStyle(color: Colors.red)),
+                      child: Text(
+                        'Lỗi tải đơn hàng: $err',
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
                   ),
                   data: (jobs) {
@@ -227,13 +264,19 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       return Center(
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
-                          child: Text('Hiện không có đơn đặt lịch nào khả dụng.',
-                              style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                          child: Text(
+                            'Hiện không có đơn đặt lịch nào khả dụng.',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       );
                     }
                     return Column(
-                      children: jobs.map((job) => _JobMiniCard(job: job)).toList(),
+                      children: jobs
+                          .map((job) => _JobMiniCard(job: job))
+                          .toList(),
                     );
                   },
                 ),
@@ -251,7 +294,12 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _StatCard({required this.icon, required this.label, required this.value, required this.color});
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -266,12 +314,21 @@ class _StatCard extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(height: 8),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11, color: color.withValues(alpha: 0.8))),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
           ],
         ),
       ),
@@ -283,7 +340,11 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -303,10 +364,11 @@ class _QuickAction extends StatelessWidget {
               child: Icon(icon, color: kPrimary),
             ),
             const SizedBox(height: 6),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -330,7 +392,9 @@ class _JobMiniCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Lấy ký tự đầu tiên của tên dịch vụ để làm Avatar
-    final initial = job.serviceName.isNotEmpty ? job.serviceName[0].toUpperCase() : 'J';
+    final initial = job.serviceName.isNotEmpty
+        ? job.serviceName[0].toUpperCase()
+        : 'J';
 
     return Card(
       elevation: 0,
@@ -345,19 +409,27 @@ class _JobMiniCard extends StatelessWidget {
           child: Text(
             initial,
             style: const TextStyle(
-                color: kOnPrimaryContainer, fontWeight: FontWeight.w700),
+              color: kOnPrimaryContainer,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-        title: Text(job.serviceName,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          job.serviceName,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: Text('${job.date} · ${job.time}'),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('${job.price} VND',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: kPrimary)),
+            Text(
+              '${job.price} VND',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: kPrimary,
+              ),
+            ),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -368,9 +440,10 @@ class _JobMiniCard extends StatelessWidget {
               child: Text(
                 job.status,
                 style: TextStyle(
-                    fontSize: 10,
-                    color: _statusColor(job.status),
-                    fontWeight: FontWeight.w700),
+                  fontSize: 10,
+                  color: _statusColor(job.status),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

@@ -12,8 +12,10 @@ class WorkerWalletScreen extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wallet',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Wallet',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
       body: CustomScrollView(
         slivers: [
@@ -44,27 +46,29 @@ class WorkerWalletScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Available Balance',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontSize: 14)),
+                        Text(
+                          'Available Balance',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
                         const SizedBox(height: 8),
-                        const Text('\$0.00',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 40,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -1)),
+                        const Text(
+                          '\$0.00',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            _BalanceStat(
-                                label: 'This Month',
-                                value: '\$0'),
+                            _BalanceStat(label: 'This Month', value: '\$0'),
                             const SizedBox(width: 24),
-                            _BalanceStat(
-                                label: 'Total Earned',
-                                value: '\$0'),
+                            _BalanceStat(label: 'Total Earned', value: '\$0'),
                           ],
                         ),
                       ],
@@ -80,8 +84,9 @@ class WorkerWalletScreen extends StatelessWidget {
                           icon: const Icon(Icons.arrow_upward_rounded),
                           label: const Text('Withdraw'),
                           style: FilledButton.styleFrom(
-                              backgroundColor: kSecondary,
-                              minimumSize: const Size.fromHeight(50)),
+                            backgroundColor: kSecondary,
+                            minimumSize: const Size.fromHeight(50),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -91,9 +96,11 @@ class WorkerWalletScreen extends StatelessWidget {
                           icon: const Icon(Icons.history_rounded),
                           label: const Text('Full History'),
                           style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(50),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12))),
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -102,12 +109,16 @@ class WorkerWalletScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Transactions',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        'Transactions',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       TextButton(
-                          onPressed: () {},
-                          child: const Text('See All')),
+                        onPressed: () {},
+                        child: const Text('See All'),
+                      ),
                     ],
                   ),
                 ],
@@ -117,53 +128,54 @@ class WorkerWalletScreen extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final tx = _transactions[i];
-                  final isCredit = tx['type'] == 'credit';
-                  return Card(
-                    elevation: 0,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    child: ListTile(
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: isCredit
-                              ? kSecondaryContainer
-                              : const Color(0xFFFFDAD6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          isCredit
-                              ? Icons.arrow_downward_rounded
-                              : Icons.arrow_upward_rounded,
-                          color:
-                              isCredit ? kSecondary : Colors.red,
-                        ),
+              delegate: SliverChildBuilderDelegate((context, i) {
+                final tx = _transactions[i];
+                final isCredit = tx['type'] == 'credit';
+                return Card(
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isCredit
+                            ? kSecondaryContainer
+                            : const Color(0xFFFFDAD6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      title: Text(tx['title']!,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w500, fontSize: 14),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      subtitle: Text(tx['date']!),
-                      trailing: Text(
-                        tx['amount']!,
-                        style: TextStyle(
-                          color: isCredit ? kSecondary : Colors.red,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
+                      child: Icon(
+                        isCredit
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded,
+                        color: isCredit ? kSecondary : Colors.red,
                       ),
                     ),
-                  );
-                },
-                childCount: _transactions.length,
-              ),
+                    title: Text(
+                      tx['title']!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(tx['date']!),
+                    trailing: Text(
+                      tx['amount']!,
+                      style: TextStyle(
+                        color: isCredit ? kSecondary : Colors.red,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                );
+              }, childCount: _transactions.length),
             ),
           ),
         ],
@@ -182,14 +194,21 @@ class _BalanceStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 11,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
       ],
     );
   }

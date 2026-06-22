@@ -8,10 +8,12 @@ class WorkerOnboardingScreen extends ConsumerStatefulWidget {
   const WorkerOnboardingScreen({super.key});
 
   @override
-  ConsumerState<WorkerOnboardingScreen> createState() => _WorkerOnboardingScreenState();
+  ConsumerState<WorkerOnboardingScreen> createState() =>
+      _WorkerOnboardingScreenState();
 }
 
-class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen> {
+class _WorkerOnboardingScreenState
+    extends ConsumerState<WorkerOnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _cccdController = TextEditingController();
 
@@ -31,7 +33,8 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
   void _toggleSkill(String serviceId, bool? isSelected) {
     setState(() {
       if (isSelected == true) {
-        _selectedSkills[serviceId] = 0; // Mặc định 0 tháng kinh nghiệm khi mới tick
+        _selectedSkills[serviceId] =
+            0; // Mặc định 0 tháng kinh nghiệm khi mới tick
       } else {
         _selectedSkills.remove(serviceId);
       }
@@ -48,7 +51,9 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
 
     if (_selectedSkills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn ít nhất 1 kỹ năng chuyên môn!')),
+        const SnackBar(
+          content: Text('Vui lòng chọn ít nhất 1 kỹ năng chuyên môn!'),
+        ),
       );
       return;
     }
@@ -57,20 +62,24 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
 
     try {
       // Chuyển đổi Map thành List<Map> theo đúng format Backend yêu cầu
-      final skillsPayload = _selectedSkills.entries.map((e) => {
-        'serviceId': e.key,
-        'experienceMonths': e.value,
-      }).toList();
+      final skillsPayload = _selectedSkills.entries
+          .map((e) => {'serviceId': e.key, 'experienceMonths': e.value})
+          .toList();
 
       // Gọi API
-      await ref.read(workerRepositoryProvider).registerAsWorker(
-        identityCardNumber: _cccdController.text.trim(),
-        skills: skillsPayload,
-      );
+      await ref
+          .read(workerRepositoryProvider)
+          .registerAsWorker(
+            identityCardNumber: _cccdController.text.trim(),
+            skills: skillsPayload,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng ký hồ sơ thợ thành công! 🎉'), backgroundColor: kSecondary),
+          const SnackBar(
+            content: Text('Đăng ký hồ sơ thợ thành công! 🎉'),
+            backgroundColor: kSecondary,
+          ),
         );
         // Đẩy thợ vào Dashboard
         context.go('/worker');
@@ -98,7 +107,10 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Worker Registration', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Worker Registration',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -111,10 +123,20 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Step 1: Identity Verification', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Step 1: Identity Verification',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Theo quy định, bạn cần cung cấp số CCCD chính xác để bảo vệ an toàn cho khách hàng.',
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+              Text(
+                'Theo quy định, bạn cần cung cấp số CCCD chính xác để bảo vệ an toàn cho khách hàng.',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cccdController,
@@ -123,10 +145,13 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
                 decoration: InputDecoration(
                   labelText: 'Identity Card Number (CCCD)',
                   prefixIcon: const Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 validator: (value) {
-                  if (value == null || value.length != 12) return 'CCCD phải bao gồm đúng 12 số';
+                  if (value == null || value.length != 12)
+                    return 'CCCD phải bao gồm đúng 12 số';
                   return null;
                 },
               ),
@@ -143,10 +168,20 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
               const Divider(),
               const SizedBox(height: 24),
 
-              Text('Step 2: Professional Skills', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Step 2: Professional Skills',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Chọn các dịch vụ bạn có thể thực hiện và số tháng kinh nghiệm tương ứng.',
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+              Text(
+                'Chọn các dịch vụ bạn có thể thực hiện và số tháng kinh nghiệm tương ứng.',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
               const SizedBox(height: 16),
 
               // Render danh sách Skills
@@ -156,17 +191,32 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: 0,
-                  color: isSelected ? kPrimaryContainer : theme.colorScheme.surfaceContainerHighest,
+                  color: isSelected
+                      ? kPrimaryContainer
+                      : theme.colorScheme.surfaceContainerHighest,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: isSelected ? kPrimary : Colors.transparent, width: 1.5),
+                    side: BorderSide(
+                      color: isSelected ? kPrimary : Colors.transparent,
+                      width: 1.5,
+                    ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Column(
                       children: [
                         CheckboxListTile(
-                          title: Text(service['name'], style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                          title: Text(
+                            service['name'],
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
                           value: isSelected,
                           activeColor: kPrimary,
                           onChanged: (val) => _toggleSkill(service['id'], val),
@@ -176,19 +226,27 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
                         // Nếu được chọn, hiện thêm ô nhập số tháng kinh nghiệm
                         if (isSelected)
                           Padding(
-                            padding: const EdgeInsets.only(left: 48, right: 16, bottom: 16),
+                            padding: const EdgeInsets.only(
+                              left: 48,
+                              right: 16,
+                              bottom: 16,
+                            ),
                             child: TextFormField(
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
                                 labelText: 'Experience (Months)',
                                 isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 filled: true,
                                 fillColor: theme.colorScheme.surface,
                               ),
-                              onChanged: (val) => _updateExperience(service['id'], val),
+                              onChanged: (val) =>
+                                  _updateExperience(service['id'], val),
                               validator: (val) {
-                                if (isSelected && (val == null || val.isEmpty)) return 'Bắt buộc nhập';
+                                if (isSelected && (val == null || val.isEmpty))
+                                  return 'Bắt buộc nhập';
                                 return null;
                               },
                             ),
@@ -209,11 +267,23 @@ class _WorkerOnboardingScreenState extends ConsumerState<WorkerOnboardingScreen>
             onPressed: _isLoading ? null : _submit,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: _isLoading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Submit Application', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Submit Application',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
           ),
         ),
       ),
@@ -233,14 +303,24 @@ class _ImageUploadBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.3), style: BorderStyle.solid),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.3),
+          style: BorderStyle.solid,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.add_a_photo_outlined, color: Colors.grey),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
