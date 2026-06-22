@@ -20,8 +20,10 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -55,21 +57,30 @@ class AdminDashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Welcome, Admin',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontSize: 13)),
+                        Text(
+                          'Welcome, Admin',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        const Text('Platform Overview',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800)),
+                        const Text(
+                          'Platform Overview',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(DateTime.now().toString().split(' ')[0],
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 12)),
+                        Text(
+                          DateTime.now().toString().split(' ')[0],
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -81,9 +92,10 @@ class AdminDashboardScreen extends ConsumerWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                        Icons.admin_panel_settings_rounded,
-                        color: Colors.white,
-                        size: 30),
+                      Icons.admin_panel_settings_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
                 ],
               ),
@@ -104,8 +116,13 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text('Lỗi tải thống kê: $err',
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Lỗi tải thống kê: $err',
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -117,28 +134,28 @@ class AdminDashboardScreen extends ConsumerWidget {
                   'label': 'Total Clients',
                   'value': data['totalClients']?.toString() ?? '0',
                   'change': 'Live',
-                  'color': kPrimary
+                  'color': kPrimary,
                 },
                 {
                   'icon': Icons.engineering_rounded,
                   'label': 'Total Workers',
                   'value': data['totalWorkers']?.toString() ?? '0',
                   'change': 'Live',
-                  'color': kSecondary
+                  'color': kSecondary,
                 },
                 {
                   'icon': Icons.list_alt_rounded,
                   'label': 'Total Bookings',
                   'value': data['totalBookings']?.toString() ?? '0',
                   'change': 'Live',
-                  'color': kTertiary
+                  'color': kTertiary,
                 },
                 {
                   'icon': Icons.attach_money_rounded,
                   'label': 'Total Revenue',
                   'value': '\$${data['totalRevenue']?.toString() ?? '0.00'}',
                   'change': 'Done',
-                  'color': Colors.green
+                  'color': Colors.green,
                 },
               ];
 
@@ -166,19 +183,46 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Management',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    'Management',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _ManageButton(icon: Icons.people_rounded, label: 'Users', onTap: () {})),
+                      Expanded(
+                        child: _ManageButton(
+                          icon: Icons.people_rounded,
+                          label: 'Users',
+                          onTap: () {},
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.engineering_rounded, label: 'Workers', onTap: () {})),
+                      Expanded(
+                        child: _ManageButton(
+                          icon: Icons.engineering_rounded,
+                          label: 'Workers',
+                          onTap: () {},
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.list_alt_rounded, label: 'Bookings', onTap: () {})),
+                      Expanded(
+                        child: _ManageButton(
+                          icon: Icons.list_alt_rounded,
+                          label: 'Bookings',
+                          onTap: () {},
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.bar_chart_rounded, label: 'Reports', onTap: () {})),
+                      Expanded(
+                        child: _ManageButton(
+                          icon: Icons.bar_chart_rounded,
+                          label: 'Reports',
+                          onTap: () {},
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -190,9 +234,12 @@ class AdminDashboardScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text('Recent Activity',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+              child: Text(
+                'Recent Activity',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
           SliverPadding(
@@ -201,14 +248,19 @@ class AdminDashboardScreen extends ConsumerWidget {
               delegate: SliverChildListDelegate(
                 _activity.isEmpty
                     ? [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Center(
-                      child: Text('Chưa có hoạt động nào gần đây.',
-                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
-                    ),
-                  )
-                ]
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text(
+                              'Chưa có hoạt động nào gần đây.',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ]
                     : _activity.map((a) => _ActivityRow(activity: a)).toList(),
               ),
             ),
@@ -240,28 +292,41 @@ class _StatCard extends StatelessWidget {
               children: [
                 Icon(stat['icon'] as IconData, color: color, size: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(stat['change']!,
-                      style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10)),
+                  child: Text(
+                    stat['change']!,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
               ],
             ),
             const Spacer(),
-            Text(stat['value']!,
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: color)),
-            Text(stat['label']!,
-                style: TextStyle(
-                    fontSize: 11, color: color.withValues(alpha: 0.8))),
+            Text(
+              stat['value']!,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
+            Text(
+              stat['label']!,
+              style: TextStyle(
+                fontSize: 11,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
           ],
         ),
       ),
@@ -273,7 +338,11 @@ class _ManageButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _ManageButton({required this.icon, required this.label, required this.onTap});
+  const _ManageButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -292,8 +361,10 @@ class _ManageButton extends StatelessWidget {
             child: Icon(icon, color: kPrimary),
           ),
           const SizedBox(height: 6),
-          Text(label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
@@ -306,23 +377,35 @@ class _ActivityRow extends StatelessWidget {
 
   IconData _icon(String type) {
     switch (type) {
-      case 'booking': return Icons.event_available_rounded;
-      case 'user': return Icons.person_add_rounded;
-      case 'worker': return Icons.verified_rounded;
-      case 'cancel': return Icons.cancel_rounded;
-      case 'revenue': return Icons.trending_up_rounded;
-      default: return Icons.info_rounded;
+      case 'booking':
+        return Icons.event_available_rounded;
+      case 'user':
+        return Icons.person_add_rounded;
+      case 'worker':
+        return Icons.verified_rounded;
+      case 'cancel':
+        return Icons.cancel_rounded;
+      case 'revenue':
+        return Icons.trending_up_rounded;
+      default:
+        return Icons.info_rounded;
     }
   }
 
   Color _color(String type) {
     switch (type) {
-      case 'booking': return kPrimary;
-      case 'user': return kSecondary;
-      case 'worker': return kTertiary;
-      case 'cancel': return Colors.red;
-      case 'revenue': return const Color(0xFF8B5CF6);
-      default: return Colors.grey;
+      case 'booking':
+        return kPrimary;
+      case 'user':
+        return kSecondary;
+      case 'worker':
+        return kTertiary;
+      case 'cancel':
+        return Colors.red;
+      case 'revenue':
+        return const Color(0xFF8B5CF6);
+      default:
+        return Colors.grey;
     }
   }
 
@@ -348,12 +431,18 @@ class _ActivityRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(activity['title']!,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-                Text(activity['subtitle']!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  activity['title']!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  activity['subtitle']!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),

@@ -20,7 +20,10 @@ class NotificationsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Notifications',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           TextButton(
             onPressed: () async {
@@ -43,12 +46,20 @@ class NotificationsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none_rounded,
-                      size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                  Icon(
+                    Icons.notifications_none_rounded,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.4,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  Text('No notifications yet',
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    'No notifications yet',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -64,7 +75,9 @@ class NotificationsScreen extends ConsumerWidget {
                 onTap: () async {
                   if (notif.isUnread) {
                     try {
-                      await ref.read(notificationRepositoryProvider).markAsRead(notif.id);
+                      await ref
+                          .read(notificationRepositoryProvider)
+                          .markAsRead(notif.id);
                       ref.invalidate(notificationsProvider); // Cập nhật lại UI
                     } catch (e) {
                       // ignore
@@ -120,7 +133,9 @@ class _NotificationRow extends StatelessWidget {
             ),
             child: Icon(
               _icon(notification.title),
-              color: notification.isUnread ? kPrimary : theme.colorScheme.onSurfaceVariant,
+              color: notification.isUnread
+                  ? kPrimary
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 12),
@@ -134,7 +149,9 @@ class _NotificationRow extends StatelessWidget {
                       child: Text(
                         notification.title,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: notification.isUnread ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: notification.isUnread
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -142,7 +159,10 @@ class _NotificationRow extends StatelessWidget {
                       Container(
                         width: 10,
                         height: 10,
-                        decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
+                        decoration: const BoxDecoration(
+                          color: kPrimary,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                   ],
                 ),

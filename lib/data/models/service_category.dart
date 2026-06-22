@@ -3,11 +3,7 @@ class ServiceCategory {
   final String name;
   final String? iconName;
 
-  const ServiceCategory({
-    required this.id,
-    required this.name,
-    this.iconName,
-  });
+  const ServiceCategory({required this.id, required this.name, this.iconName});
 
   ServiceCategory copyWith({String? id, String? name, String? iconName}) {
     return ServiceCategory(
@@ -26,8 +22,8 @@ class ServiceCategory {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'iconName': iconName,
-      };
+    'id': id,
+    'name': name,
+    'iconName': iconName,
+  };
 }
