@@ -87,10 +87,12 @@ class _SearchSection extends StatelessWidget {
         hintText: 'Search services...',
         leading: const Icon(Icons.search_rounded),
         padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
         elevation: const WidgetStatePropertyAll(0),
         backgroundColor: WidgetStatePropertyAll(
-            Theme.of(context).colorScheme.surfaceContainerHighest),
+          Theme.of(context).colorScheme.surfaceContainerHighest,
+        ),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
@@ -169,15 +171,20 @@ class _PromoBanner extends StatelessWidget {
                       backgroundColor: kTertiary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: const Text(
                       'Book Now',
-                      style:
-                      TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -209,9 +216,7 @@ class _CategoriesSection extends ConsumerWidget {
           child: categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) {
-                return const Center(
-                  child: Text('No categories available'),
-                );
+                return const Center(child: Text('No categories available'));
               }
               return ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -227,7 +232,8 @@ class _CategoriesSection extends ConsumerWidget {
               child: Text(
                 'Could not load categories',
                 style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -318,11 +324,8 @@ class _SectionTitle extends StatelessWidget {
           ),
           if (onSeeAll != null) ...[
             const SizedBox(width: 16),
-            TextButton(
-              onPressed: onSeeAll,
-              child: const Text('See All'),
-            ),
-          ]
+            TextButton(onPressed: onSeeAll, child: const Text('See All')),
+          ],
         ],
       ),
     );

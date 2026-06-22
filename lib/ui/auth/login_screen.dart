@@ -33,7 +33,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final success = await ref
           .read(authProvider.notifier)
-          .login(_emailController.text.trim(), _passwordController.text, _selectedRole);
+          .login(
+            _emailController.text.trim(),
+            _passwordController.text,
+            _selectedRole,
+          );
 
       if (success && mounted) {
         switch (_selectedRole) {
@@ -148,7 +152,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter your email' : null,
+                      v == null || v.isEmpty ? 'Please enter your email' : null,
                 ),
                 const SizedBox(height: 16),
                 // Password
@@ -159,9 +163,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
-                      icon: Icon(_passwordVisible
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded),
+                      icon: Icon(
+                        _passwordVisible
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                      ),
                       onPressed: () =>
                           setState(() => _passwordVisible = !_passwordVisible),
                     ),
@@ -190,18 +196,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text(
-                    'Login',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -210,7 +218,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       "Don't have an account?",
                       style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     TextButton(
                       onPressed: () => context.push('/register'),

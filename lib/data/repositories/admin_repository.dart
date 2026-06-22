@@ -7,7 +7,9 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
 });
 
 // Provider tự động gọi API và quản lý state (Loading, Data, Error) cho giao diện
-final adminStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final adminStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
+  ref,
+) async {
   final repo = ref.read(adminRepositoryProvider);
   return repo.getDashboardStats();
 });

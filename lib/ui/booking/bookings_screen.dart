@@ -35,8 +35,10 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Bookings',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'My Bookings',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: _tabs.map((t) => Tab(text: t)).toList(),
@@ -49,11 +51,15 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
         data: (bookings) => TabBarView(
           controller: _tabController,
           children: _tabs.map((tabStatus) {
-
             // ĐÃ SỬA: Gom nhóm các status đang xử lý vào tab 'Upcoming'
             final filtered = bookings.where((b) {
               if (tabStatus == 'Upcoming') {
-                return ['Pending', 'Confirmed', 'InProgress', 'Upcoming'].contains(b.status);
+                return [
+                  'Pending',
+                  'Confirmed',
+                  'InProgress',
+                  'Upcoming',
+                ].contains(b.status);
               }
               return b.status == tabStatus;
             }).toList();
@@ -63,10 +69,13 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.inbox_rounded,
-                        size: 64,
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.4)),
+                    Icon(
+                      Icons.inbox_rounded,
+                      size: 64,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.4,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'No $tabStatus bookings',
@@ -156,7 +165,9 @@ class BookingCard extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusBgColor(booking.status),
                     borderRadius: BorderRadius.circular(8),
@@ -175,13 +186,19 @@ class BookingCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.calendar_today_rounded,
-                    size: 16, color: kPrimary),
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: kPrimary,
+                ),
                 const SizedBox(width: 6),
                 Text(booking.date, style: theme.textTheme.bodyMedium),
                 const SizedBox(width: 16),
-                const Icon(Icons.access_time_rounded,
-                    size: 16, color: kPrimary),
+                const Icon(
+                  Icons.access_time_rounded,
+                  size: 16,
+                  color: kPrimary,
+                ),
                 const SizedBox(width: 6),
                 Text(booking.time, style: theme.textTheme.bodyMedium),
               ],

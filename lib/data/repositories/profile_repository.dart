@@ -35,7 +35,9 @@ class ProfileRepository {
       }
       throw Exception('Format dữ liệu trả về không đúng');
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi cập nhật Profile');
+      throw Exception(
+        e.response?.data['message'] ?? 'Lỗi khi cập nhật Profile',
+      );
     }
   }
 }

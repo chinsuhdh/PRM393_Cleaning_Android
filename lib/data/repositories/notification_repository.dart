@@ -38,6 +38,7 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository();
 });
 
-final notificationsProvider = FutureProvider.autoDispose<List<NotificationItem>>((ref) async {
-  return ref.read(notificationRepositoryProvider).getNotifications();
-});
+final notificationsProvider =
+    FutureProvider.autoDispose<List<NotificationItem>>((ref) async {
+      return ref.read(notificationRepositoryProvider).getNotifications();
+    });

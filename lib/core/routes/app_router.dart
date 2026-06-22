@@ -6,7 +6,7 @@ import '../../ui/auth/onboarding_screen.dart';
 import '../../ui/auth/login_screen.dart';
 import '../../ui/auth/register_screen.dart';
 import '../../ui/auth/forgot_password_screen.dart'; // [ĐÃ THÊM] Import màn hình Quên mật khẩu
-import '../../ui/auth/verify_otp_screen.dart';      // [ĐÃ THÊM] Import màn hình Nhập OTP
+import '../../ui/auth/verify_otp_screen.dart'; // [ĐÃ THÊM] Import màn hình Nhập OTP
 
 import '../../ui/home/client_shell.dart';
 import '../../ui/home/home_screen.dart';
@@ -58,24 +58,52 @@ class AppRoutes {
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final _shellNavigatorHomeKey = GlobalKey<NavigatorState>(debugLabel: 'shellHome');
-final _shellNavigatorBookingsKey = GlobalKey<NavigatorState>(debugLabel: 'shellBookings');
-final _shellNavigatorChatKey = GlobalKey<NavigatorState>(debugLabel: 'shellChat');
-final _shellNavigatorNotificationsKey = GlobalKey<NavigatorState>(debugLabel: 'shellNotifications');
-final _shellNavigatorProfileKey = GlobalKey<NavigatorState>(debugLabel: 'shellProfile');
+final _shellNavigatorHomeKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellHome',
+);
+final _shellNavigatorBookingsKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellBookings',
+);
+final _shellNavigatorChatKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellChat',
+);
+final _shellNavigatorNotificationsKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellNotifications',
+);
+final _shellNavigatorProfileKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellProfile',
+);
 
-final _workerShellHomeKey = GlobalKey<NavigatorState>(debugLabel: 'workerShellHome');
-final _workerShellJobsKey = GlobalKey<NavigatorState>(debugLabel: 'workerShellJobs');
-final _workerShellWalletKey = GlobalKey<NavigatorState>(debugLabel: 'workerShellWallet');
+final _workerShellHomeKey = GlobalKey<NavigatorState>(
+  debugLabel: 'workerShellHome',
+);
+final _workerShellJobsKey = GlobalKey<NavigatorState>(
+  debugLabel: 'workerShellJobs',
+);
+final _workerShellWalletKey = GlobalKey<NavigatorState>(
+  debugLabel: 'workerShellWallet',
+);
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AppRoutes.splash,
   routes: [
-    GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
-    GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
-    GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
-    GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
+    GoRoute(
+      path: AppRoutes.splash,
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.onboarding,
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.login,
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.register,
+      builder: (context, state) => const RegisterScreen(),
+    ),
 
     // [ĐÃ SỬA] Trỏ tới màn hình VerifyOtpScreen thay vì Scaffold Text
     GoRoute(
@@ -96,7 +124,8 @@ final GoRouter appRouter = GoRouter(
       // ĐÃ SỬA: Bắt đúng đường dẫn /category/:id thay vì /service/:id
       path: '/category/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => ServiceDetailScreen(serviceId: state.pathParameters['id'] ?? ''),
+      builder: (context, state) =>
+          ServiceDetailScreen(serviceId: state.pathParameters['id'] ?? ''),
     ),
 
     GoRoute(
@@ -111,7 +140,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/booking/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => BookingDetailScreen(bookingId: state.pathParameters['id'] ?? ''),
+      builder: (context, state) =>
+          BookingDetailScreen(bookingId: state.pathParameters['id'] ?? ''),
     ),
 
     GoRoute(
@@ -124,52 +154,130 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-        path: AppRoutes.addressManagement,
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AddressManagementScreen()
+      path: AppRoutes.addressManagement,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AddressManagementScreen(),
     ),
 
     GoRoute(
       path: AppRoutes.editProfile,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Edit Profile')), body: const Center(child: Text('EditProfileScreen'))),
+      builder: (context, state) => Scaffold(
+        appBar: AppBar(title: const Text('Edit Profile')),
+        body: const Center(child: Text('EditProfileScreen')),
+      ),
     ),
 
     GoRoute(
       path: '/payment/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Payment')), body: const Center(child: Text('PaymentScreen'))),
+      builder: (context, state) => Scaffold(
+        appBar: AppBar(title: const Text('Payment')),
+        body: const Center(child: Text('PaymentScreen')),
+      ),
     ),
 
     GoRoute(
       path: '/review/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Write a Review')), body: const Center(child: Text('ReviewScreen'))),
+      builder: (context, state) => Scaffold(
+        appBar: AppBar(title: const Text('Write a Review')),
+        body: const Center(child: Text('ReviewScreen')),
+      ),
     ),
 
     // =========================================================
     // SHELL ROUTES (CÁC TRANG CÓ BOTTOM NAV BAR)
     // =========================================================
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => ClientShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) =>
+          ClientShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(navigatorKey: _shellNavigatorHomeKey, routes: [GoRoute(path: AppRoutes.clientShell, builder: (context, state) => const HomeScreen())]),
-        StatefulShellBranch(navigatorKey: _shellNavigatorBookingsKey, routes: [GoRoute(path: '/bookings', builder: (context, state) => const BookingsScreen())]),
-        StatefulShellBranch(navigatorKey: _shellNavigatorChatKey, routes: [GoRoute(path: '/chat', builder: (context, state) => const ChatScreen())]),
-        StatefulShellBranch(navigatorKey: _shellNavigatorNotificationsKey, routes: [GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen())]),
-        StatefulShellBranch(navigatorKey: _shellNavigatorProfileKey, routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorHomeKey,
+          routes: [
+            GoRoute(
+              path: AppRoutes.clientShell,
+              builder: (context, state) => const HomeScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorBookingsKey,
+          routes: [
+            GoRoute(
+              path: '/bookings',
+              builder: (context, state) => const BookingsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorChatKey,
+          routes: [
+            GoRoute(
+              path: '/chat',
+              builder: (context, state) => const ChatScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorNotificationsKey,
+          routes: [
+            GoRoute(
+              path: '/notifications',
+              builder: (context, state) => const NotificationsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorProfileKey,
+          routes: [
+            GoRoute(
+              path: '/profile',
+              builder: (context, state) => const ProfileScreen(),
+            ),
+          ],
+        ),
       ],
     ),
 
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => WorkerShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) =>
+          WorkerShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(navigatorKey: _workerShellHomeKey, routes: [GoRoute(path: AppRoutes.workerShell, builder: (context, state) => const WorkerDashboardScreen())]),
-        StatefulShellBranch(navigatorKey: _workerShellJobsKey, routes: [GoRoute(path: '/worker/jobs', builder: (context, state) => const WorkerJobsScreen())]),
-        StatefulShellBranch(navigatorKey: _workerShellWalletKey, routes: [GoRoute(path: '/worker/wallet', builder: (context, state) => const WorkerWalletScreen())]),
+        StatefulShellBranch(
+          navigatorKey: _workerShellHomeKey,
+          routes: [
+            GoRoute(
+              path: AppRoutes.workerShell,
+              builder: (context, state) => const WorkerDashboardScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _workerShellJobsKey,
+          routes: [
+            GoRoute(
+              path: '/worker/jobs',
+              builder: (context, state) => const WorkerJobsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _workerShellWalletKey,
+          routes: [
+            GoRoute(
+              path: '/worker/wallet',
+              builder: (context, state) => const WorkerWalletScreen(),
+            ),
+          ],
+        ),
       ],
     ),
 
-    GoRoute(path: AppRoutes.admin, builder: (context, state) => const AdminDashboardScreen()),
+    GoRoute(
+      path: AppRoutes.admin,
+      builder: (context, state) => const AdminDashboardScreen(),
+    ),
   ],
 );

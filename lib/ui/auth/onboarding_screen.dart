@@ -158,11 +158,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   minimumSize: const Size.fromHeight(56),
                 ),
                 child: Text(
-                  _currentPage == _pages.length - 1
-                      ? 'Get Started'
-                      : 'Next',
+                  _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
