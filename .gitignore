@@ -48,3 +48,6 @@ debug.keystore
 # ==========================================
 .DS_Store
 Thumbs.db
+
+
+.code-review-graph
