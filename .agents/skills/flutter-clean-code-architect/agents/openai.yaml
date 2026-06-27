@@ -1,4 +1,0 @@
-interface:
-  display_name: "Flutter Clean Code Architect"
-  short_description: "Clean-code rules for CleanAI Flutter."
-  default_prompt: "Use this skill when changing, reviewing, or refactoring the CleanAI Flutter codebase."

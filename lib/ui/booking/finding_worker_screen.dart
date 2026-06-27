@@ -18,10 +18,7 @@ class FindingWorkerScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'AI Matched Workers',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('AI Matched Workers', style: TextStyle(fontWeight: FontWeight.w800)),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => context.go('/home'), // Đóng về trang chủ
@@ -34,11 +31,7 @@ class FindingWorkerScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  Icon(Icons.search_off_rounded, size: 64, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
                   Text(
                     'No suitable workers found yet.\nWe are expanding our network!',
@@ -54,8 +47,7 @@ class FindingWorkerScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             itemCount: workers.length,
             separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, i) =>
-                _MatchedWorkerCard(worker: workers[i], bookingId: bookingId),
+            itemBuilder: (context, i) => _MatchedWorkerCard(worker: workers[i], bookingId: bookingId),
           );
         },
         loading: () => Center(
@@ -64,12 +56,8 @@ class FindingWorkerScreen extends ConsumerWidget {
             children: [
               const CircularProgressIndicator(),
               const SizedBox(height: 24),
-              Text(
-                'AI is analyzing the best matches...',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              Text('AI is analyzing the best matches...',
+                  style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -110,11 +98,7 @@ class _MatchedWorkerCard extends StatelessWidget {
                 backgroundColor: kPrimaryContainer,
                 child: Text(
                   worker.initials,
-                  style: const TextStyle(
-                    color: kOnPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
+                  style: const TextStyle(color: kOnPrimaryContainer, fontWeight: FontWeight.w700, fontSize: 18),
                 ),
               ),
               const SizedBox(width: 16),
@@ -124,17 +108,11 @@ class _MatchedWorkerCard extends StatelessWidget {
                   children: [
                     Text(
                       worker.name,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: kTertiary,
-                          size: 18,
-                        ),
+                        const Icon(Icons.star_rounded, color: kTertiary, size: 18),
                         const SizedBox(width: 4),
                         Text(
                           '${worker.rating} (${worker.reviews} jobs)',
@@ -146,10 +124,7 @@ class _MatchedWorkerCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: kSecondaryContainer,
                   borderRadius: BorderRadius.circular(20),
@@ -169,15 +144,11 @@ class _MatchedWorkerCard extends StatelessWidget {
             onPressed: () {
               // Bấm vào để xác nhận chọn thợ này cho Booking
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Selected ${worker.name} for your booking!'),
-                ),
+                SnackBar(content: Text('Selected ${worker.name} for your booking!')),
               );
               context.go('/home');
             },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             child: const Text('Select this Worker'),
           ),
         ],

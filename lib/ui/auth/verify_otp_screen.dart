@@ -20,9 +20,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     final otp = _otpController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập Email')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập Email')),
+      );
       return;
     }
 
@@ -43,9 +43,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Xác thực thành công! Vui lòng đăng nhập.'),
-          ),
+          const SnackBar(content: Text('Xác thực thành công! Vui lòng đăng nhập.')),
         );
         // Xác thực xong thì đẩy về trang Đăng nhập
         context.go('/login');
@@ -115,11 +113,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               TextField(
                 controller: _otpController,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  letterSpacing: 8,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.w700),
                 maxLength: 6,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
@@ -142,20 +136,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
                     : const Text(
-                        'Xác thực',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                  'Xác thực',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),

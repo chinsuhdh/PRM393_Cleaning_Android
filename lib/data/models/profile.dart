@@ -4,6 +4,7 @@ class Profile {
   final String? avatarUrl;
   final String? email;
   final String? phoneNumber;
+  final bool? isPhoneVerified; // [THÊM MỚI]
 
   Profile({
     required this.id,
@@ -11,9 +12,9 @@ class Profile {
     this.avatarUrl,
     this.email,
     this.phoneNumber,
+    this.isPhoneVerified, // [THÊM MỚI]
   });
 
-  // Getter tự động lấy chữ cái đầu của tên để làm Avatar
   String get initials {
     if (fullName.trim().isEmpty) return '?';
     return fullName.trim()[0].toUpperCase();
@@ -24,9 +25,9 @@ class Profile {
       id: json['id']?.toString() ?? '',
       fullName: json['fullName']?.toString() ?? 'Người dùng',
       avatarUrl: json['avatarUrl']?.toString(),
-      // Lấy thêm email và sđt (nếu backend có trả về)
       email: json['email']?.toString(),
       phoneNumber: json['phoneNumber']?.toString(),
+      isPhoneVerified: json['isPhoneVerified'] as bool? ?? false, // [THÊM MỚI] Đọc từ JSON
     );
   }
 
@@ -36,5 +37,6 @@ class Profile {
     'avatarUrl': avatarUrl,
     'email': email,
     'phoneNumber': phoneNumber,
+    'isPhoneVerified': isPhoneVerified,
   };
 }

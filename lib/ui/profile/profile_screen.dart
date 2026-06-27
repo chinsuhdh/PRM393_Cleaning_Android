@@ -15,10 +15,8 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('Profile',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -82,9 +80,8 @@ class _ProfileBody extends StatelessWidget {
         Card(
           elevation: 0,
           color: kPrimaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -95,13 +92,13 @@ class _ProfileBody extends StatelessWidget {
                   backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
                   child: !hasAvatar
                       ? Text(
-                          initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 24,
-                          ),
-                        )
+                    initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 24,
+                    ),
+                  )
                       : null,
                 ),
                 const SizedBox(width: 16),
@@ -145,26 +142,26 @@ class _ProfileBody extends StatelessWidget {
         // Stats row
         Row(
           children: [
-            Expanded(
-              child: _StatCard(value: '—', label: 'Bookings'),
-            ),
+            Expanded(child: _StatCard(value: '—', label: 'Bookings')),
             const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(value: '—', label: 'Rating'),
-            ),
+            Expanded(child: _StatCard(value: '—', label: 'Rating')),
             const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(value: '—', label: 'Saved'),
-            ),
+            Expanded(child: _StatCard(value: '—', label: 'Saved')),
           ],
         ),
         const SizedBox(height: 20),
         // Menu section
+        // Tìm đoạn code:
         _SectionHeader(title: 'Account'),
         _ProfileMenuItem(
           icon: Icons.person_outline_rounded,
           title: 'Edit Profile',
-          onTap: () {},
+          onTap: () => context.push('/profile/edit'), // ĐÃ CẬP NHẬT: Trỏ đến màn hình edit vừa sửa
+        ),
+        _ProfileMenuItem(
+          icon: Icons.lock_outline_rounded,
+          title: 'Change Password',
+          onTap: () => context.push('/profile/change-password'), // ĐÃ THÊM: Trỏ tới trang đổi mật khẩu mới tạo
         ),
         _ProfileMenuItem(
           icon: Icons.location_on_outlined,
@@ -221,9 +218,8 @@ class _ProfileBody extends StatelessWidget {
             minimumSize: const Size.fromHeight(52),
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 32),
@@ -248,20 +244,16 @@ class _StatCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           children: [
-            Text(
-              value,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: kPrimary,
-              ),
-            ),
+            Text(value,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: kPrimary,
+                )),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                )),
           ],
         ),
       ),
@@ -313,22 +305,18 @@ class _ProfileMenuItem extends StatelessWidget {
           color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 22),
+        child: Icon(icon,
+            color: theme.colorScheme.onSurfaceVariant, size: 22),
       ),
-      title: Text(
-        title,
-        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      ),
+      title: Text(title,
+          style: theme.textTheme.bodyLarge
+              ?.copyWith(fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            )
+          ? Text(subtitle!,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
           : null,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
+      trailing:
+      Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

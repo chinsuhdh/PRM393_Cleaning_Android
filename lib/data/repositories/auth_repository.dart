@@ -39,15 +39,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ==========================================
   // 1. LOGIN API
   // ==========================================
-  Future<bool> login(
-    String emailOrPhone,
-    String password,
-    UserRole role,
-  ) async {
+  Future<bool> login(String emailOrPhone, String password, UserRole role) async {
     try {
       final response = await DioClient.instance.post(
         '/Auth/login',
-        data: {"emailOrPhone": emailOrPhone, "password": password},
+        data: {
+          "emailOrPhone": emailOrPhone,
+          "password": password
+        },
       );
 
       final data = response.data;
@@ -131,6 +130,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return true;
       }
       return false;
+
     } on DioException catch (e) {
       print("Registration Error: ${e.response?.data ?? e.message}");
       return false;
@@ -157,7 +157,10 @@ Future<bool> verifyAccount(String email, String otpCode) async {
   try {
     final response = await DioClient.instance.post(
       '/Auth/verify',
-      data: {"email": email, "otpCode": otpCode},
+      data: {
+        "email": email,
+        "otpCode": otpCode,
+      },
     );
     return response.statusCode == 200;
   } on DioException catch (e) {
@@ -173,7 +176,7 @@ Future<bool> forgotPassword(String email) async {
   try {
     final response = await DioClient.instance.post(
       '/Auth/forgot-password',
-      data: {"email": email},
+      data: { "email": email },
     );
     return response.statusCode == 200;
   } on DioException catch (e) {
@@ -185,15 +188,15 @@ Future<bool> forgotPassword(String email) async {
 // ==========================================
 // ĐẶT LẠI MẬT KHẨU
 // ==========================================
-Future<bool> resetPassword(
-  String email,
-  String otpCode,
-  String newPassword,
-) async {
+Future<bool> resetPassword(String email, String otpCode, String newPassword) async {
   try {
     final response = await DioClient.instance.post(
       '/Auth/reset-password',
-      data: {"email": email, "otpCode": otpCode, "newPassword": newPassword},
+      data: {
+        "email": email,
+        "otpCode": otpCode,
+        "newPassword": newPassword
+      },
     );
     return response.statusCode == 200;
   } on DioException catch (e) {

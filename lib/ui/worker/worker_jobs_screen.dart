@@ -12,8 +12,7 @@ class WorkerJobsScreen extends ConsumerStatefulWidget {
   ConsumerState<WorkerJobsScreen> createState() => _WorkerJobsScreenState();
 }
 
-class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
-    with SingleTickerProviderStateMixin {
+class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -25,19 +24,12 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
   @override
   Widget build(BuildContext context) {
     // Gọi 2 nguồn dữ liệu khác biệt
-    final myBookingsAsync = ref.watch(
-      workerBookingsProvider,
-    ); // Đơn của tôi (Active, Completed)
-    final availableBookingsAsync = ref.watch(
-      availableBookingsProvider,
-    ); // Đơn đang trống chờ nhận (Pending)
+    final myBookingsAsync = ref.watch(workerBookingsProvider); // Đơn của tôi (Active, Completed)
+    final availableBookingsAsync = ref.watch(availableBookingsProvider); // Đơn đang trống chờ nhận (Pending)
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Jobs',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('My Jobs', style: TextStyle(fontWeight: FontWeight.w800)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: kPrimary,
@@ -46,7 +38,7 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
           tabs: const [
             Tab(text: 'Active'),
             Tab(text: 'Available'),
-            Tab(text: 'Completed'),
+            Tab(text: 'Completed')
           ],
         ),
       ),
@@ -58,11 +50,7 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
             data: (bookings) => _buildJobList(
-              bookings
-                  .where(
-                    (b) => b.status == 'Accepted' || b.status == 'InProgress',
-                  )
-                  .toList(),
+              bookings.where((b) => b.status == 'Accepted' || b.status == 'InProgress').toList(),
               isAvailableTab: false,
             ),
           ),
@@ -95,9 +83,7 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
     if (list.isEmpty) {
       return Center(
         child: Text(
-          isAvailableTab
-              ? 'Không có đơn đặt lịch mới nào.'
-              : 'Chưa có đơn hàng nào trong mục này.',
+          isAvailableTab ? 'Không có đơn đặt lịch mới nào.' : 'Chưa có đơn hàng nào trong mục này.',
           style: TextStyle(color: Colors.grey.shade600),
         ),
       );
@@ -107,8 +93,7 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen>
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) =>
-          _RealJobCard(booking: list[i], isAvailableJob: isAvailableTab),
+      itemBuilder: (context, i) => _RealJobCard(booking: list[i], isAvailableJob: isAvailableTab),
     );
   }
 }
@@ -121,20 +106,14 @@ class _RealJobCard extends ConsumerWidget {
   // ==========================================
   // HÀM MỞ GOOGLE MAPS (PHIÊN BẢN CHUẨN)
   // ==========================================
-  Future<void> _openGoogleMaps(
-    BuildContext context,
-    double? lat,
-    double? lng,
-  ) async {
+  Future<void> _openGoogleMaps(BuildContext context, double? lat, double? lng) async {
     if (lat == null || lng == null) return;
 
     // 1. Link gọi thẳng App Bản đồ
     final Uri geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
 
     // 2. Link web xịn của Google Maps (phòng hờ)
-    final Uri webUrl = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
-    );
+    final Uri webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
 
     try {
       if (await canLaunchUrl(geoUrl)) {
@@ -144,11 +123,7 @@ class _RealJobCard extends ConsumerWidget {
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Không thể mở bản đồ. Vui lòng kiểm tra lại điện thoại.',
-              ),
-            ),
+            const SnackBar(content: Text('Không thể mở bản đồ. Vui lòng kiểm tra lại điện thoại.')),
           );
         }
       }
@@ -163,9 +138,7 @@ class _RealJobCard extends ConsumerWidget {
 
     return Card(
       elevation: 0,
-      color: isAvailableJob
-          ? kPrimaryContainer
-          : theme.colorScheme.surfaceContainerHighest,
+      color: isAvailableJob ? kPrimaryContainer : theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -177,50 +150,32 @@ class _RealJobCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    booking.serviceName ?? 'Dịch vụ',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: isAvailableJob
-                          ? kOnPrimaryContainer
-                          : theme.colorScheme.onSurface,
-                    ),
+                      booking.serviceName ?? 'Dịch vụ',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: isAvailableJob ? kOnPrimaryContainer : theme.colorScheme.onSurface,
+                      )
                   ),
                 ),
-                Text(
-                  '\$${booking.price.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: kPrimary,
-                  ),
+                Text('\$${booking.price.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800, color: kPrimary
+                    )
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: 16,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                Icon(Icons.calendar_today_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 // Format ngày tuỳ theo format bạn cấu hình
-                Text(
-                  booking.date,
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                ),
+                Text(booking.date, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
                 const SizedBox(width: 16),
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 16,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                Icon(Icons.access_time_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 // Format giờ tuỳ theo format bạn cấu hình
-                Text(
-                  booking.time,
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                ),
+                Text(booking.time, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
 
@@ -234,19 +189,12 @@ class _RealJobCard extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    color: Colors.redAccent,
-                    size: 20,
-                  ),
+                  const Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       booking.addressText ?? 'Chưa xác định địa chỉ',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -255,11 +203,7 @@ class _RealJobCard extends ConsumerWidget {
                     IconButton(
                       icon: const Icon(Icons.map_rounded, color: kPrimary),
                       tooltip: 'Chỉ đường',
-                      onPressed: () => _openGoogleMaps(
-                        context,
-                        booking.latitude,
-                        booking.longitude,
-                      ),
+                      onPressed: () => _openGoogleMaps(context, booking.latitude, booking.longitude),
                     ),
                 ],
               ),
@@ -271,31 +215,20 @@ class _RealJobCard extends ConsumerWidget {
               FilledButton(
                 onPressed: () async {
                   try {
-                    await ref
-                        .read(bookingRepositoryProvider)
-                        .acceptBooking(booking.id);
+                    await ref.read(bookingRepositoryProvider).acceptBooking(booking.id);
                     ref.invalidate(availableBookingsProvider);
                     ref.invalidate(workerBookingsProvider);
 
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nhận đơn thành công!')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nhận đơn thành công!')));
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Lỗi: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
                     }
                   }
                 },
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
                 child: const Text('Accept Job'),
               )
             else
@@ -303,22 +236,18 @@ class _RealJobCard extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: booking.status == 'Completed'
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : kPrimary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                    color: booking.status == 'Completed' ? Colors.green.withValues(alpha: 0.1) : kPrimary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8)
                 ),
                 child: Text(
                   booking.status.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: booking.status == 'Completed'
-                        ? Colors.green
-                        : kPrimary,
+                    color: booking.status == 'Completed' ? Colors.green : kPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+              )
           ],
         ),
       ),
