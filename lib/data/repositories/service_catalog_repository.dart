@@ -1,13 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../../core/network/dio_client.dart';
 import '../models/service_category.dart';
 
 class ServiceCatalogRepository {
+  ServiceCatalogRepository(this._dio);
+
+  final Dio _dio;
+
   Future<List<ServiceCategory>> getCategories() async {
     try {
-      final response = await DioClient.instance.get(
-        '/ServiceCatalog/categories',
-      );
+      final response = await _dio.get('/ServiceCatalog/categories');
       final raw = response.data;
       if (raw is List) {
         return raw
@@ -25,7 +28,7 @@ class ServiceCatalogRepository {
 final serviceCatalogRepositoryProvider = Provider<ServiceCatalogRepository>((
   ref,
 ) {
-  return ServiceCatalogRepository();
+  return ServiceCatalogRepository(ref.read(dioProvider));
 });
 
 /// FutureProvider that fetches categories from GET /api/ServiceCatalog/categories

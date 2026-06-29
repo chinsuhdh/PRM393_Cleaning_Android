@@ -1,6 +1,8 @@
 name: Flutter Build CI
 
 on:
+  pull_request:
+    branches: [ "main", "master" ]
   push:
     branches: [ "main", "master" ]
 
@@ -26,11 +28,17 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build APK Release
-        run: flutter build apk --release
+      - name: Analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Run unit and widget tests
+        run: flutter test --coverage
+
+      - name: Build APK Debug
+        run: flutter build apk --debug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
