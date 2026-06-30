@@ -3,22 +3,30 @@
 ## Commands
 
 ```powershell
-flutter analyze --no-fatal-warnings --no-fatal-infos
+# Run every unit, widget, and headless integration test
 flutter test
-flutter test test\unit
+
+# Run individual checks
+flutter analyze --no-fatal-warnings --no-fatal-infos
+flutter test test\unit --coverage
 flutter test test\widget
-.\tool\run-e2e.ps1
+flutter test test\integration
 ```
 
-The E2E command requires Docker and a running Android emulator. It creates an isolated PostgreSQL database and starts the backend on port `5001`; Android reaches it through `10.0.2.2`.
+Flutter integration tests run headlessly. They combine screens, Riverpod providers, repositories, models, mocked HTTP, and test platform adapters without an Android emulator or a live backend.
 
 The analyzer currently reports legacy warnings, so CI fails on analyzer errors while existing warnings are paid down incrementally.
 
 ## Adding a test
 
 - Put model, formatter, repository, and Riverpod logic tests in `test/unit`.
-- Put screen rendering and interaction tests in `test/widget`.
-- Put device-level flows in `integration_test`.
+- Put isolated screen rendering and interaction tests in `test/widget`.
+- Put multi-layer headless application flows in `test/integration`.
+- Put reusable JSON responses in `test/fixtures` and shared fakes or harnesses in `test/support`.
 - Inject `dioProvider` or construct repositories with a test `Dio`; do not add new calls to the deprecated `DioClient.instance` accessor.
-- Store reusable JSON responses in `test/fixtures` and helpers in `test/support`.
-- Write test descriptions in Vietnamese and prefix them with IDs such as `[UT-FE-SERVICE-001-01]` or `[WT-FE-BOOK-001-01]`.
+- Replace GPS, image picker, secure storage, notifications, and other platform dependencies with test adapters.
+- Write test descriptions in Vietnamese and prefix them with IDs such as `[UT-FE-SERVICE-001-01]`, `[WT-FE-BOOK-001-01]`, or `[IT-FE-AUTH-001-01]`.
+
+## CI
+
+Pull requests and default-branch pushes run analysis and `flutter test` as separate checks. The debug APK is built only after both checks pass.
