@@ -17,10 +17,14 @@ abstract class WorkerRepository {
 }
 
 class ApiWorkerRepository implements WorkerRepository {
+  ApiWorkerRepository(this._dio);
+
+  final Dio _dio;
+
   @override
   Future<Worker?> getMyWorkerProfile() async {
     try {
-      final response = await DioClient.instance.get('/Workers/me');
+      final response = await _dio.get('/Workers/me');
       if (response.data != null) {
         return Worker.fromJson(response.data as Map<String, dynamic>);
       }
@@ -33,7 +37,7 @@ class ApiWorkerRepository implements WorkerRepository {
   @override
   Future<void> updateLocation(double lat, double lng) async {
     try {
-      await DioClient.instance.patch(
+      await _dio.patch(
         '/Workers/location',
         data: {'latitude': lat, 'longitude': lng},
       );
@@ -45,9 +49,7 @@ class ApiWorkerRepository implements WorkerRepository {
   @override
   Future<List<Worker>> getRecommendedWorkers(String bookingId) async {
     try {
-      final response = await DioClient.instance.get(
-        '/Ai/recommended-workers/$bookingId',
-      );
+      final response = await _dio.get('/Ai/recommended-workers/$bookingId');
 
       final raw = response.data;
       if (raw is List) {
@@ -70,7 +72,7 @@ class ApiWorkerRepository implements WorkerRepository {
   }) async {
     try {
       // Backend sẽ mapping dữ liệu vào bảng worker_profiles và worker_skills
-      await DioClient.instance.post(
+      await _dio.post(
         '/Workers/register',
         data: {'identityCardNumber': identityCardNumber, 'skills': skills},
       );
@@ -83,7 +85,7 @@ class ApiWorkerRepository implements WorkerRepository {
 }
 
 final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
-  return ApiWorkerRepository();
+  return ApiWorkerRepository(ref.read(dioProvider));
 });
 
 final workerProfileProvider = FutureProvider<Worker?>((ref) async {

@@ -4,9 +4,13 @@ import '../../core/network/dio_client.dart';
 import '../models/profile.dart';
 
 class ProfileRepository {
+  ProfileRepository(this._dio);
+
+  final Dio _dio;
+
   Future<Profile> getMyProfile() async {
     try {
-      final response = await DioClient.instance.get('/Profiles/me');
+      final response = await _dio.get('/Profiles/me');
       final data = response.data;
       if (data is Map<String, dynamic>) {
         return Profile.fromJson(data);
@@ -22,7 +26,7 @@ class ProfileRepository {
     String? avatarUrl,
   }) async {
     try {
-      final response = await DioClient.instance.put(
+      final response = await _dio.put(
         '/Profiles/me',
         data: {
           'fullName': fullName,
@@ -43,7 +47,7 @@ class ProfileRepository {
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepository();
+  return ProfileRepository(ref.read(dioProvider));
 });
 
 final myProfileProvider = FutureProvider<Profile>((ref) async {

@@ -14,10 +14,14 @@ abstract class BookingRepository {
 }
 
 class ApiBookingRepository implements BookingRepository {
+  ApiBookingRepository(this._dio);
+
+  final Dio _dio;
+
   @override
   Future<List<Booking>> getClientBookings() async {
     try {
-      final response = await DioClient.instance.get('/Bookings/client');
+      final response = await _dio.get('/Bookings/client');
       final raw = response.data;
       if (raw is List) {
         return raw
@@ -34,7 +38,7 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<List<Booking>> getWorkerBookings() async {
     try {
-      final response = await DioClient.instance.get('/Bookings/worker');
+      final response = await _dio.get('/Bookings/worker');
       final raw = response.data;
       if (raw is List) {
         return raw
@@ -51,7 +55,7 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<List<Booking>> getAvailableBookings() async {
     try {
-      final response = await DioClient.instance.get('/Bookings/available');
+      final response = await _dio.get('/Bookings/available');
       final raw = response.data;
       if (raw is List) {
         return raw
@@ -68,7 +72,7 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<Booking> createBooking(Map<String, dynamic> data) async {
     try {
-      final response = await DioClient.instance.post('/Bookings', data: data);
+      final response = await _dio.post('/Bookings', data: data);
       return Booking.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Lỗi khi tạo Booking');
@@ -87,7 +91,7 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<void> acceptBooking(String bookingId) async {
     try {
-      await DioClient.instance.patch('/Bookings/$bookingId/accept');
+      await _dio.patch('/Bookings/$bookingId/accept');
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Lỗi khi nhận đơn');
     }
@@ -96,18 +100,20 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<void> updateBookingStatus(String bookingId, int newStatus) async {
     try {
-      await DioClient.instance.patch(
+      await _dio.patch(
         '/Bookings/$bookingId/status',
         data: {'newStatus': newStatus},
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi cập nhật trạng thái');
+      throw Exception(
+        e.response?.data['message'] ?? 'Lỗi khi cập nhật trạng thái',
+      );
     }
   }
 }
 
 final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
-  return ApiBookingRepository();
+  return ApiBookingRepository(ref.read(dioProvider));
 });
 
 // Cho Client
@@ -116,10 +122,14 @@ final bookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
 });
 
 // Cho Worker
-final workerBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
+final workerBookingsProvider = FutureProvider.autoDispose<List<Booking>>((
+  ref,
+) async {
   return ref.read(bookingRepositoryProvider).getWorkerBookings();
 });
 
-final availableBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
+final availableBookingsProvider = FutureProvider.autoDispose<List<Booking>>((
+  ref,
+) async {
   return ref.read(bookingRepositoryProvider).getAvailableBookings();
 });

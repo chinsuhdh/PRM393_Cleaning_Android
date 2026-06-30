@@ -4,9 +4,13 @@ import '../../core/network/dio_client.dart';
 import '../models/notification_item.dart';
 
 class NotificationRepository {
+  NotificationRepository(this._dio);
+
+  final Dio _dio;
+
   Future<List<NotificationItem>> getNotifications() async {
     try {
-      final response = await DioClient.instance.get('/Notifications');
+      final response = await _dio.get('/Notifications');
       // Giả sử API trả về list trực tiếp, nếu bọc trong 'data' thì đổi thành response.data['data']
       final raw = response.data;
       if (raw is List) {
@@ -27,7 +31,7 @@ class NotificationRepository {
 
   Future<void> markAsRead(String notificationId) async {
     try {
-      await DioClient.instance.patch('/Notifications/$notificationId/read');
+      await _dio.patch('/Notifications/$notificationId/read');
     } catch (e) {
       // Ignore
     }
@@ -35,7 +39,7 @@ class NotificationRepository {
 }
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository();
+  return NotificationRepository(ref.read(dioProvider));
 });
 
 final notificationsProvider =
