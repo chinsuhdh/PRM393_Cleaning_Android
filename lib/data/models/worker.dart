@@ -7,6 +7,8 @@ class Worker {
   final String? avatarUrl;
   final int matchPercentage;
   final int reviews;
+  final double? latitude;
+  final double? longitude;
 
   const Worker({
     required this.id,
@@ -17,6 +19,8 @@ class Worker {
     this.avatarUrl,
     this.matchPercentage = 0,
     this.reviews = 0,
+    this.latitude,
+    this.longitude,
   });
 
   String get initials => name.isNotEmpty ? name[0].toUpperCase() : '?';
@@ -30,6 +34,8 @@ class Worker {
     String? avatarUrl,
     int? matchPercentage,
     int? reviews,
+    double? latitude,
+    double? longitude,
   }) {
     return Worker(
       id: id ?? this.id,
@@ -40,6 +46,8 @@ class Worker {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       matchPercentage: matchPercentage ?? this.matchPercentage,
       reviews: reviews ?? this.reviews,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -47,12 +55,14 @@ class Worker {
     return Worker(
       id: json['id'] as String,
       name: json['name'] as String,
-      rating: (json['rating'] as num).toDouble(),
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
       distance: json['distance'] as String? ?? '',
       experience: json['experience'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String?,
       matchPercentage: json['matchPercentage'] as int? ?? 0,
       reviews: json['reviews'] as int? ?? 0,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -65,5 +75,7 @@ class Worker {
     'avatarUrl': avatarUrl,
     'matchPercentage': matchPercentage,
     'reviews': reviews,
+    'latitude': latitude,
+    'longitude': longitude,
   };
 }

@@ -55,13 +55,14 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
             ),
           ),
 
-          // TAB 2: AVAILABLE
+          // TAB 2: AVAILABLE — incoming tasks offered by dispatch (server already filters to
+          // unassigned jobs this worker is eligible for), ready to accept.
           availableBookingsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
-            data: (bookings) => _buildJobList(
-              bookings.where((b) => b.status == 'Pending').toList(),
-              isAvailableTab: true,
+            data: (bookings) => RefreshIndicator(
+              onRefresh: () async => ref.invalidate(availableBookingsProvider),
+              child: _buildJobList(bookings, isAvailableTab: true),
             ),
           ),
 
@@ -150,7 +151,7 @@ class _RealJobCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                      booking.serviceName ?? 'Dịch vụ',
+                      booking.serviceName,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: isAvailableJob ? kOnPrimaryContainer : theme.colorScheme.onSurface,

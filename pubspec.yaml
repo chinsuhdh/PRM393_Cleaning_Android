@@ -28,6 +28,7 @@ dependencies:
   intl: ^0.20.2
   geolocator: ^14.0.2
   geocoding: ^4.0.0
+  google_maps_flutter: ^2.12.3
   url_launcher: ^6.3.2
 
   # Image Picker

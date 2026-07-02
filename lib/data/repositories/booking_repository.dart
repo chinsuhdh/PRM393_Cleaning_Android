@@ -1,5 +1,7 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking.dart';
 
@@ -7,10 +9,29 @@ abstract class BookingRepository {
   Future<List<Booking>> getClientBookings();
   Future<List<Booking>> getWorkerBookings();
   Future<List<Booking>> getAvailableBookings();
-  Future<Booking> createBooking(Map<String, dynamic> data);
+  Future<Booking?> getBookingById(String bookingId);
+  Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data);
+  Future<Booking> createBooking(
+    Map<String, dynamic> data, {
+    required String idempotencyKey,
+  });
   Future<void> cancelBooking(String bookingId);
   Future<void> acceptBooking(String bookingId);
   Future<void> updateBookingStatus(String bookingId, int newStatus);
+}
+
+class BookingStatusCode {
+  const BookingStatusCode._();
+
+  static const int pendingPayment = 0;
+  static const int paidPendingWorker = 1;
+  static const int accepted = 2;
+  static const int rescheduleRequested = 3;
+  static const int inProgress = 4;
+  static const int completed = 5;
+  static const int cancelled = 6;
+  static const int refunded = 7;
+  static const int awaitingWorker = 8;
 }
 
 class ApiBookingRepository implements BookingRepository {
@@ -30,7 +51,7 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (e) {
+    } catch (_) {
       return [];
     }
   }
@@ -47,7 +68,7 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (e) {
+    } catch (_) {
       return [];
     }
   }
@@ -64,27 +85,88 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (e) {
+    } catch (_) {
       return [];
     }
   }
 
   @override
-  Future<Booking> createBooking(Map<String, dynamic> data) async {
+  Future<Booking?> getBookingById(String bookingId) async {
     try {
-      final response = await _dio.post('/Bookings', data: data);
+      final response = await _dio.get('/Bookings/$bookingId');
+      if (response.data is Map<String, dynamic>) {
+        return Booking.fromJson(response.data as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAvailability(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _dio.post('/Bookings/availability', data: data);
+      final result = Map<String, dynamic>.from(response.data as Map);
+      final rawEmptyMessage = result['emptyMessage'] ?? result['message'];
+      final emptyMessage = backendMessageFromResponse(
+        rawEmptyMessage,
+        fallback: 'Không có nhân viên phù hợp trong thời gian đã chọn.',
+      );
+
+      if (emptyMessage.isNotEmpty) {
+        result['emptyMessage'] = emptyMessage;
+      }
+
+      return result;
+    } on DioException catch (error) {
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể kiểm tra thời gian đặt dịch vụ.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Booking> createBooking(
+    Map<String, dynamic> data, {
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/Bookings',
+        data: data,
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
       return Booking.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi tạo Booking');
+    } on DioException catch (error) {
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể tạo đơn đặt dịch vụ.',
+        ),
+      );
     }
   }
 
   @override
   Future<void> cancelBooking(String bookingId) async {
     try {
-      await updateBookingStatus(bookingId, 4); // 4 = Cancelled
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi hủy Booking');
+      await _dio.patch(
+        '/Bookings/$bookingId/status',
+        data: {'newStatus': BookingStatusCode.cancelled},
+      );
+    } on DioException catch (error) {
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể hủy đơn đặt dịch vụ.',
+        ),
+      );
     }
   }
 
@@ -92,8 +174,13 @@ class ApiBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {
     try {
       await _dio.patch('/Bookings/$bookingId/accept');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Lỗi khi nhận đơn');
+    } on DioException catch (error) {
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Lỗi khi nhận đơn.',
+        ),
+      );
     }
   }
 
@@ -104,9 +191,12 @@ class ApiBookingRepository implements BookingRepository {
         '/Bookings/$bookingId/status',
         data: {'newStatus': newStatus},
       );
-    } on DioException catch (e) {
+    } on DioException catch (error) {
       throw Exception(
-        e.response?.data['message'] ?? 'Lỗi khi cập nhật trạng thái',
+        backendMessageFromDioException(
+          error,
+          fallback: 'Lỗi khi cập nhật trạng thái.',
+        ),
       );
     }
   }
@@ -116,12 +206,10 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return ApiBookingRepository(ref.read(dioProvider));
 });
 
-// Cho Client
 final bookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) async {
   return ref.read(bookingRepositoryProvider).getClientBookings();
 });
 
-// Cho Worker
 final workerBookingsProvider = FutureProvider.autoDispose<List<Booking>>((
   ref,
 ) async {
