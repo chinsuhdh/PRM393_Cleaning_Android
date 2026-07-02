@@ -61,7 +61,19 @@ class Booking {
     String statusStr;
     final rawStatus = json['status'];
     if (rawStatus is int) {
-      const statusNames = ['Pending', 'Accepted', 'InProgress', 'Completed', 'Cancelled'];
+      // Order must match the backend BookingStatus enum (DAL/Enums/AppEnums.cs),
+      // which serializes by index when a numeric value is sent.
+      const statusNames = [
+        'PendingPayment',
+        'PaidPendingWorker',
+        'Accepted',
+        'RescheduleRequested',
+        'InProgress',
+        'Completed',
+        'Cancelled',
+        'Refunded',
+        'AwaitingWorker',
+      ];
       statusStr = (rawStatus >= 0 && rawStatus < statusNames.length) ? statusNames[rawStatus] : rawStatus.toString();
     } else {
       statusStr = (rawStatus as String?) ?? 'Unknown';

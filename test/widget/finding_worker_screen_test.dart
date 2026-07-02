@@ -6,6 +6,7 @@ import 'package:cleanai/ui/booking/finding_worker_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   testWidgets(
@@ -25,12 +26,10 @@ void main() {
 
       await _pump(tester, repository, searchTimeout: const Duration(milliseconds: 50));
 
-      // Initially searching.
       await tester.pump();
       expect(find.text('Đang tìm nhân viên phù hợp…'), findsOneWidget);
       expect(find.textContaining('Không có tọa độ địa chỉ'), findsOneWidget);
 
-      // Advance past the timeout so the next poll flips into the timed-out state.
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
 
@@ -61,6 +60,112 @@ void main() {
       expect(find.text('Xem chi tiết đơn'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    '[UT-FE-DISPATCH-001-03] Scheduled bookings show the "request sent" waiting view (no map)',
+    (tester) async {
+      final repository = _FakeBookingRepository(
+        booking: const Booking(
+          id: 'b1',
+          serviceName: 'Dọn nhà',
+          date: '06/07/2026',
+          time: '09:00',
+          price: 200000,
+          status: 'PendingPayment',
+          bookingType: 'Scheduled',
+        ),
+      );
+
+      await _pump(tester, repository);
+      await tester.pump();
+
+      expect(find.text('Đã gửi yêu cầu thành công!'), findsOneWidget);
+      expect(find.text('Đang tìm nhân viên phù hợp…'), findsNothing);
+
+      // Dispose the screen so its polling timer does not leak past the test.
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-DISPATCH-001-04] Cancelling sends the cancel request and returns home',
+    (tester) async {
+      final repository = _FakeBookingRepository(
+        booking: const Booking(
+          id: 'b1',
+          serviceName: 'Dọn nhà',
+          date: '06/07/2026',
+          time: '09:00',
+          price: 200000,
+          status: 'PendingPayment',
+          bookingType: 'Scheduled',
+        ),
+      );
+
+      final router = GoRouter(
+        initialLocation: '/finding',
+        routes: [
+          GoRoute(
+            path: '/finding',
+            builder: (_, __) => const FindingWorkerScreen(bookingId: 'b1'),
+          ),
+          GoRoute(
+            path: '/home',
+            builder: (_, __) => const Scaffold(body: Text('HOME_STUB')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            bookingRepositoryProvider.overrideWithValue(repository),
+            workerRepositoryProvider.overrideWithValue(_FakeWorkerRepository()),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Hủy đơn'));
+      await tester.pumpAndSettle();
+
+      expect(repository.cancelCount, 1);
+      expect(find.text('HOME_STUB'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-DISPATCH-001-05] "Tiếp tục chờ" resumes searching after a timeout',
+    (tester) async {
+      final repository = _FakeBookingRepository(
+        booking: const Booking(
+          id: 'b1',
+          serviceName: 'Dọn nhà',
+          date: '',
+          time: '',
+          price: 200000,
+          status: 'AwaitingWorker',
+          bookingType: 'Immediate',
+        ),
+      );
+
+      await _pump(tester, repository, searchTimeout: const Duration(milliseconds: 50));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('Chưa có nhân viên nào nhận đơn'), findsOneWidget);
+
+      await tester.tap(find.text('Tiếp tục chờ'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 10));
+
+      expect(find.text('Đang tìm nhân viên phù hợp…'), findsOneWidget);
+      expect(find.text('Chưa có nhân viên nào nhận đơn'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }
 
 Future<void> _pump(
@@ -85,6 +190,7 @@ class _FakeBookingRepository implements BookingRepository {
   _FakeBookingRepository({required this.booking});
 
   final Booking booking;
+  int cancelCount = 0;
 
   @override
   Future<Booking?> getBookingById(String bookingId) async => booking;
@@ -100,7 +206,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBooking(String bookingId) async {
+    cancelCount++;
+  }
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];

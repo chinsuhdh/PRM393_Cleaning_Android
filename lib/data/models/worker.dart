@@ -55,7 +55,7 @@ class Worker {
     return Worker(
       id: json['id'] as String,
       name: json['name'] as String,
-      rating: (json['rating'] as num).toDouble(),
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
       distance: json['distance'] as String? ?? '',
       experience: json['experience'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String?,

@@ -34,11 +34,7 @@ class _FindingWorkerScreenState extends ConsumerState<FindingWorkerScreen>
     with SingleTickerProviderStateMixin {
   static const _pollInterval = Duration(seconds: 4);
 
-  late final AnimationController _progress =
-      AnimationController(vsync: this, duration: widget.searchTimeout)
-        ..addStatusListener((status) {
-          if (status == AnimationStatus.completed) _onTimeout();
-        });
+  late final AnimationController _progress;
 
   Timer? _timer;
   Booking? _booking;
@@ -51,6 +47,10 @@ class _FindingWorkerScreenState extends ConsumerState<FindingWorkerScreen>
   @override
   void initState() {
     super.initState();
+    _progress = AnimationController(vsync: this, duration: widget.searchTimeout)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _onTimeout();
+      });
     _timer = Timer.periodic(_pollInterval, (_) => _refresh());
     _refresh();
   }

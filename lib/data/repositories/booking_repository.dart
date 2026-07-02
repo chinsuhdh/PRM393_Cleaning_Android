@@ -20,6 +20,20 @@ abstract class BookingRepository {
   Future<void> updateBookingStatus(String bookingId, int newStatus);
 }
 
+class BookingStatusCode {
+  const BookingStatusCode._();
+
+  static const int pendingPayment = 0;
+  static const int paidPendingWorker = 1;
+  static const int accepted = 2;
+  static const int rescheduleRequested = 3;
+  static const int inProgress = 4;
+  static const int completed = 5;
+  static const int cancelled = 6;
+  static const int refunded = 7;
+  static const int awaitingWorker = 8;
+}
+
 class ApiBookingRepository implements BookingRepository {
   ApiBookingRepository(this._dio);
 
@@ -142,7 +156,10 @@ class ApiBookingRepository implements BookingRepository {
   @override
   Future<void> cancelBooking(String bookingId) async {
     try {
-      await updateBookingStatus(bookingId, 4); // 4 = Cancelled
+      await _dio.patch(
+        '/Bookings/$bookingId/status',
+        data: {'newStatus': BookingStatusCode.cancelled},
+      );
     } on DioException catch (error) {
       throw Exception(
         backendMessageFromDioException(
