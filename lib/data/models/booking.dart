@@ -7,6 +7,7 @@ class Booking {
   final String time;
   final double price;
   final String status;
+  final String bookingType;
   final Worker? worker;
 
   // MỚI THÊM
@@ -21,16 +22,31 @@ class Booking {
     required this.time,
     required this.price,
     required this.status,
+    this.bookingType = '',
     this.worker,
     this.addressText,
     this.latitude,
     this.longitude,
   });
 
+  /// True for an "as soon as possible" booking (as opposed to a scheduled day/time).
+  bool get isImmediate => bookingType == 'Immediate';
+
+  /// True while the booking is still waiting to be matched with a worker.
+  bool get isAwaitingWorker =>
+      status == 'AwaitingWorker' ||
+      status == 'PaidPendingWorker' ||
+      status == 'PendingPayment';
+
+  /// True once a worker has accepted and the job is assigned/active.
+  bool get hasWorkerAssigned =>
+      status == 'Accepted' || status == 'InProgress' || status == 'Completed';
+
   factory Booking.fromJson(Map<String, dynamic> json) {
     String date = '';
     String time = '';
-    final rawScheduled = json['scheduledTime'] as String?;
+    final rawScheduled =
+        (json['scheduledStartTime'] ?? json['scheduledTime']) as String?;
 
     if (rawScheduled != null && rawScheduled.isNotEmpty) {
       final dt = DateTime.tryParse(rawScheduled)?.toLocal();
@@ -64,6 +80,7 @@ class Booking {
       time: time,
       price: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
       status: statusStr,
+      bookingType: (json['bookingType'] as String?) ?? '',
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
 
       // MỚI THÊM: Parse dữ liệu tọa độ từ BE trả về
