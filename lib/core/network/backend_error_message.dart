@@ -32,3 +32,17 @@ String backendMessageFromDioException(
     fallback: fallback,
   );
 }
+
+String? backendErrorCodeFromDioException(DioException error) {
+  final extra = error.response?.extra;
+  if (extra != null && extra['errorCode'] is String) {
+    return extra['errorCode'] as String;
+  }
+
+  final data = error.response?.data;
+  if (data is Map && data['errorCode'] is String) {
+    return data['errorCode'] as String;
+  }
+
+  return null;
+}

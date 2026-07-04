@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/booking_repository.dart';
@@ -83,7 +84,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         'addressId': _selectedAddress?['id'],
         if (_bookingType == 0)
           'scheduledStartTime': _scheduledStart?.toUtc().toIso8601String(),
-        'bookingType': _bookingType,
+        'bookingType': _bookingType == 1 ? BookingTypeName.immediate : BookingTypeName.scheduled,
         'durationHours': 2,
         'notes': _notesController.text.isNotEmpty ? _notesController.text : 'Không có ghi chú',
       };
