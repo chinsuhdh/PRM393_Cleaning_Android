@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'api_envelope.dart';
+
 class DioClient {
   DioClient._();
 
@@ -27,6 +29,8 @@ class DioClient {
         },
       ),
     );
+
+    dio.interceptors.add(ApiEnvelopeInterceptor());
 
     if (kDebugMode) {
       dio.interceptors.add(

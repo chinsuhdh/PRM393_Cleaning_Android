@@ -1,6 +1,7 @@
 ﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/booking_enums.dart';
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking.dart';
@@ -17,21 +18,7 @@ abstract class BookingRepository {
   });
   Future<void> cancelBooking(String bookingId);
   Future<void> acceptBooking(String bookingId);
-  Future<void> updateBookingStatus(String bookingId, int newStatus);
-}
-
-class BookingStatusCode {
-  const BookingStatusCode._();
-
-  static const int pendingPayment = 0;
-  static const int paidPendingWorker = 1;
-  static const int accepted = 2;
-  static const int rescheduleRequested = 3;
-  static const int inProgress = 4;
-  static const int completed = 5;
-  static const int cancelled = 6;
-  static const int refunded = 7;
-  static const int awaitingWorker = 8;
+  Future<void> updateBookingStatus(String bookingId, String newStatus);
 }
 
 class ApiBookingRepository implements BookingRepository {
@@ -158,7 +145,7 @@ class ApiBookingRepository implements BookingRepository {
     try {
       await _dio.patch(
         '/Bookings/$bookingId/status',
-        data: {'newStatus': BookingStatusCode.cancelled},
+        data: {'newStatus': BookingStatusName.cancelled},
       );
     } on DioException catch (error) {
       throw Exception(
@@ -185,7 +172,7 @@ class ApiBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<void> updateBookingStatus(String bookingId, int newStatus) async {
+  Future<void> updateBookingStatus(String bookingId, String newStatus) async {
     try {
       await _dio.patch(
         '/Bookings/$bookingId/status',

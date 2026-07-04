@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/user_role.dart';
 import '../../core/network/dio_client.dart';
 
-enum UserRole { client, worker, admin }
+export '../../core/constants/user_role.dart' show UserRole;
 
 class AuthState {
   final bool isAuthenticated;
@@ -17,7 +18,6 @@ class AuthState {
     this.role = UserRole.client,
   });
 
-  // Adding copyWith to help with state updates if needed
   AuthState copyWith({
     bool? isAuthenticated,
     String? userId,
@@ -98,21 +98,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     UserRole role = UserRole.client,
   }) async {
     try {
-      // Map UserRole enum to string expected by .NET backend
-      String roleString;
-      switch (role) {
-        case UserRole.admin:
-          roleString = "Admin";
-          break;
-        case UserRole.worker:
-          roleString = "Worker";
-          break;
-        case UserRole.client:
-        default:
-          roleString = "Client";
-          break;
-      }
-
       final response = await _dio.post(
         '/Auth/register',
         data: {
@@ -120,13 +105,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           "phoneNumber": phone,
           "password": password,
           "fullName": name,
-          "role": roleString,
+          "role": role.apiValue,
         },
       );
-
-      // Note: Your .NET API returns `{ message: "Đăng ký thành công!" }`
-      // It does NOT return a token. The user must verify OTP and login afterward.
-      // Therefore, we return true but DO NOT change the isAuthenticated state here.
 
       if (response.statusCode == 200) {
         print("Registration successful. Please verify OTP.");
@@ -139,9 +120,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ==========================================
-  // 3. LOGOUT
-  // ==========================================
   void logout() {
     DioClient.clearAuthToken(_dio);
     state = const AuthState();
@@ -152,9 +130,6 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.read(dioProvider));
 });
 
-// ==========================================
-// XÁC THỰC OTP (SAU KHI ĐĂNG KÝ)
-// ==========================================
 Future<bool> verifyAccount(String email, String otpCode) async {
   try {
     final response = await DioClient.instance.post(
@@ -168,9 +143,6 @@ Future<bool> verifyAccount(String email, String otpCode) async {
   }
 }
 
-// ==========================================
-// QUÊN MẬT KHẨU (GỬI OTP)
-// ==========================================
 Future<bool> forgotPassword(String email) async {
   try {
     final response = await DioClient.instance.post(
@@ -184,9 +156,6 @@ Future<bool> forgotPassword(String email) async {
   }
 }
 
-// ==========================================
-// ĐẶT LẠI MẬT KHẨU
-// ==========================================
 Future<bool> resetPassword(
   String email,
   String otpCode,

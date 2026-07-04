@@ -1,3 +1,4 @@
+import 'package:cleanai/core/constants/booking_enums.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,19 +7,19 @@ import '../support/dio_test_harness.dart';
 
 void main() {
   test(
-    '[UT-FE-BOOK-CANCEL-01] cancelBooking sends the Cancelled status code (6), not InProgress',
+    '[UT-FE-BOOK-CANCEL-01] cancelBooking sends the Cancelled status name, not InProgress',
     () async {
       final harness = DioTestHarness();
       harness.adapter.onPatch(
         '/Bookings/b1/status',
         (server) => server.reply(200, {'message': 'ok'}),
-        data: {'newStatus': BookingStatusCode.cancelled},
+        data: {'newStatus': BookingStatusName.cancelled},
       );
       final repository = ApiBookingRepository(harness.dio);
 
       await repository.cancelBooking('b1');
 
-      expect(BookingStatusCode.cancelled, 6);
+      expect(BookingStatusName.cancelled, 'Cancelled');
     },
   );
 
@@ -63,7 +64,7 @@ void main() {
   );
 
   test(
-    '[UT-FE-BOOK-STATUS-01] numeric booking status maps to the backend enum order',
+    '[UT-FE-BOOK-STATUS-01] numeric booking status still maps to the backend enum order',
     () {
       Booking parseWithStatus(int code) => Booking.fromJson({
         'id': 'b1',
@@ -71,9 +72,23 @@ void main() {
         'status': code,
       });
 
-      expect(parseWithStatus(BookingStatusCode.cancelled).status, 'Cancelled');
-      expect(parseWithStatus(BookingStatusCode.inProgress).status, 'InProgress');
-      expect(parseWithStatus(BookingStatusCode.awaitingWorker).status, 'AwaitingWorker');
+      expect(parseWithStatus(6).status, 'Cancelled');
+      expect(parseWithStatus(4).status, 'InProgress');
+      expect(parseWithStatus(8).status, 'AwaitingWorker');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-STATUS-02] string booking status is passed through unchanged',
+    () {
+      Booking parseWithStatus(String code) => Booking.fromJson({
+        'id': 'b1',
+        'serviceName': 'Dọn nhà',
+        'status': code,
+      });
+
+      expect(parseWithStatus('Cancelled').status, 'Cancelled');
+      expect(parseWithStatus('AwaitingWorker').status, 'AwaitingWorker');
     },
   );
 
@@ -83,10 +98,15 @@ void main() {
       final harness = DioTestHarness();
       harness.adapter.onGet(
         '/Bookings/client',
-        (server) => server.reply(200, [
-          {'id': 'b1', 'serviceName': 'Dọn nhà', 'status': 'AwaitingWorker'},
-          {'id': 'b2', 'serviceName': 'Giặt ủi', 'status': 'Completed'},
-        ]),
+        (server) => server.reply(200, {
+          'success': true,
+          'message': 'ok',
+          'data': [
+            {'id': 'b1', 'serviceName': 'Dọn nhà', 'status': 'AwaitingWorker'},
+            {'id': 'b2', 'serviceName': 'Giặt ủi', 'status': 'Completed'},
+          ],
+          'errorCode': null,
+        }),
         data: null,
       );
       final repository = ApiBookingRepository(harness.dio);
@@ -140,11 +160,16 @@ void main() {
       harness.adapter.onPost(
         '/Bookings',
         (server) => server.reply(200, {
-          'id': 'b9',
-          'serviceName': 'Dọn nhà',
-          'status': 'AwaitingWorker',
-          'bookingType': 'Immediate',
-          'totalPrice': 200000,
+          'success': true,
+          'message': 'Tạo đơn thành công.',
+          'data': {
+            'id': 'b9',
+            'serviceName': 'Dọn nhà',
+            'status': 'AwaitingWorker',
+            'bookingType': 'Immediate',
+            'totalPrice': 200000,
+          },
+          'errorCode': null,
         }),
         data: request,
       );

@@ -1,3 +1,4 @@
+import '../../core/constants/booking_enums.dart';
 import 'worker.dart';
 
 class Booking {
@@ -10,7 +11,6 @@ class Booking {
   final String bookingType;
   final Worker? worker;
 
-  // MỚI THÊM
   final String? addressText;
   final double? latitude;
   final double? longitude;
@@ -29,18 +29,17 @@ class Booking {
     this.longitude,
   });
 
-  /// True for an "as soon as possible" booking (as opposed to a scheduled day/time).
-  bool get isImmediate => bookingType == 'Immediate';
+  bool get isImmediate => bookingType == BookingTypeName.immediate;
 
-  /// True while the booking is still waiting to be matched with a worker.
   bool get isAwaitingWorker =>
-      status == 'AwaitingWorker' ||
-      status == 'PaidPendingWorker' ||
-      status == 'PendingPayment';
+      status == BookingStatusName.awaitingWorker ||
+      status == BookingStatusName.paidPendingWorker ||
+      status == BookingStatusName.pendingPayment;
 
-  /// True once a worker has accepted and the job is assigned/active.
   bool get hasWorkerAssigned =>
-      status == 'Accepted' || status == 'InProgress' || status == 'Completed';
+      status == BookingStatusName.accepted ||
+      status == BookingStatusName.inProgress ||
+      status == BookingStatusName.completed;
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     String date = '';
@@ -61,19 +60,7 @@ class Booking {
     String statusStr;
     final rawStatus = json['status'];
     if (rawStatus is int) {
-      // Order must match the backend BookingStatus enum (DAL/Enums/AppEnums.cs),
-      // which serializes by index when a numeric value is sent.
-      const statusNames = [
-        'PendingPayment',
-        'PaidPendingWorker',
-        'Accepted',
-        'RescheduleRequested',
-        'InProgress',
-        'Completed',
-        'Cancelled',
-        'Refunded',
-        'AwaitingWorker',
-      ];
+      const statusNames = BookingStatusName.ordered;
       statusStr = (rawStatus >= 0 && rawStatus < statusNames.length) ? statusNames[rawStatus] : rawStatus.toString();
     } else {
       statusStr = (rawStatus as String?) ?? 'Unknown';
@@ -95,7 +82,6 @@ class Booking {
       bookingType: (json['bookingType'] as String?) ?? '',
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
 
-      // MỚI THÊM: Parse dữ liệu tọa độ từ BE trả về
       addressText: json['addressText'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),

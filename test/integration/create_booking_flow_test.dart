@@ -29,21 +29,24 @@ void main() {
         }),
         data: null,
       );
-      // The real repository sends this exact payload for an immediate booking; if it does not match,
-      // the mock adapter throws, no booking is returned, and navigation never happens.
       harness.adapter.onPost(
         '/Bookings',
         (server) => server.reply(200, {
-          'id': 'booking-xyz',
-          'serviceName': 'Apartment cleaning',
-          'status': 'AwaitingWorker',
-          'bookingType': 'Immediate',
-          'totalPrice': 200000,
+          'success': true,
+          'message': 'Tạo đơn thành công.',
+          'data': {
+            'id': 'booking-xyz',
+            'serviceName': 'Apartment cleaning',
+            'status': 'AwaitingWorker',
+            'bookingType': 'Immediate',
+            'totalPrice': 200000,
+          },
+          'errorCode': null,
         }),
         data: {
           'serviceId': 'service-1',
           'addressId': 'address-1',
-          'bookingType': 1,
+          'bookingType': 'Immediate',
           'durationHours': 2,
           'notes': 'Không có ghi chú',
         },
@@ -76,14 +79,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Address step -> Date/Time step, pick immediate, -> Summary step.
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đặt ngay'));
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
-      // Confirm -> submit through the real ApiBookingRepository over the mocked Dio.
       await tester.tap(
         find.ancestor(of: find.text('Xác nhận'), matching: find.byType(FilledButton)),
       );
@@ -116,11 +117,16 @@ void main() {
       );
       harness.adapter.onPost(
         '/Bookings',
-        (server) => server.reply(400, {'message': 'Thời gian nằm ngoài giờ hoạt động.'}),
+        (server) => server.reply(400, {
+          'success': false,
+          'message': 'Thời gian nằm ngoài giờ hoạt động.',
+          'data': null,
+          'errorCode': 'BOOKING_OUTSIDE_OPERATING_HOURS',
+        }),
         data: {
           'serviceId': 'service-1',
           'addressId': 'address-1',
-          'bookingType': 1,
+          'bookingType': 'Immediate',
           'durationHours': 2,
           'notes': 'Không có ghi chú',
         },
