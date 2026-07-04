@@ -76,6 +76,12 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
+      - name: Create local.properties
+        shell: bash
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
+          echo "GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" >> android/local.properties
       - name: Build debug APK
         run: flutter build apk --debug
       - name: Upload APK artifact
