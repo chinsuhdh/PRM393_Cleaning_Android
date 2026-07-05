@@ -2,12 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/dio_client.dart';
 import '../models/worker.dart';
-import 'package:flutter/foundation.dart';
 
 abstract class WorkerRepository {
   Future<Worker?> getMyWorkerProfile();
   Future<void> updateLocation(double lat, double lng);
-  Future<List<Worker>> getRecommendedWorkers(String bookingId);
 
   /// Đăng ký thông tin định danh và kỹ năng cho thợ
   Future<void> registerAsWorker({
@@ -47,25 +45,6 @@ class ApiWorkerRepository implements WorkerRepository {
   }
 
   @override
-  Future<List<Worker>> getRecommendedWorkers(String bookingId) async {
-    try {
-      final response = await _dio.get('/Ai/recommended-workers/$bookingId');
-
-      final raw = response.data;
-      if (raw is List) {
-        return raw
-            .whereType<Map<String, dynamic>>()
-            .map((json) => Worker.fromJson(json))
-            .toList();
-      }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching recommended workers: $e');
-      return [];
-    }
-  }
-
-  @override
   Future<void> registerAsWorker({
     required String identityCardNumber,
     required List<Map<String, dynamic>> skills,
@@ -90,12 +69,4 @@ final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
 
 final workerProfileProvider = FutureProvider<Worker?>((ref) async {
   return ref.read(workerRepositoryProvider).getMyWorkerProfile();
-});
-
-final recommendedWorkersProvider = FutureProvider.family<List<Worker>, String>((
-  ref,
-  bookingId,
-) async {
-  final repo = ref.read(workerRepositoryProvider);
-  return repo.getRecommendedWorkers(bookingId);
 });

@@ -6,14 +6,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
-import '../../data/models/worker.dart';
 import '../../data/repositories/booking_repository.dart';
-import '../../data/repositories/worker_repository.dart';
 import 'widgets/finding_worker_map.dart';
 
-/// After a booking is created it is offered to eligible workers. This screen watches the booking's
-/// status until a worker accepts. Immediate bookings show a live GPS-style map with nearby workers
-/// and a countdown; scheduled bookings show a simpler "request sent, please wait" state.
+/// After a booking is created it is broadcast to eligible workers. This screen watches the
+/// booking's status until a worker accepts. Immediate bookings show a live GPS-style map with a
+/// countdown; scheduled bookings show a simpler "request sent, please wait" state.
 class FindingWorkerScreen extends ConsumerStatefulWidget {
   final String bookingId;
 
@@ -82,9 +80,6 @@ class _FindingWorkerScreenState extends ConsumerState<FindingWorkerScreen>
         }
       }
     });
-    if (booking?.isImmediate == true && !booking!.hasWorkerAssigned) {
-      ref.invalidate(recommendedWorkersProvider(widget.bookingId));
-    }
   }
 
   void _stopSearch() {
@@ -166,12 +161,8 @@ class _FindingWorkerScreenState extends ConsumerState<FindingWorkerScreen>
       );
     }
     if (booking.isImmediate) {
-      final workers = ref
-          .watch(recommendedWorkersProvider(widget.bookingId))
-          .maybeWhen(data: (list) => list, orElse: () => const <Worker>[]);
       return FindingWorkerMap(
         booking: booking,
-        nearbyWorkers: workers,
         progress: _progress,
         cancelling: _cancelling,
         onCancel: _cancelBooking,

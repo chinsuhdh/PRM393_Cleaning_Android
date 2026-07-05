@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
@@ -50,10 +51,17 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
           controller: _tabController,
           children: _tabs.map((tabStatus) {
 
-            // ĐÃ SỬA: Gom nhóm các status đang xử lý vào tab 'Upcoming'
+            // Mọi trạng thái đang hoạt động (tìm thợ -> chờ thanh toán) gom vào tab 'Upcoming'.
             final filtered = bookings.where((b) {
               if (tabStatus == 'Upcoming') {
-                return ['Pending', 'Confirmed', 'InProgress', 'Upcoming'].contains(b.status);
+                return const [
+                  BookingStatusName.awaitingWorker,
+                  BookingStatusName.accepted,
+                  BookingStatusName.onTheWay,
+                  BookingStatusName.inProgress,
+                  BookingStatusName.pendingPayment,
+                  BookingStatusName.rescheduleRequested,
+                ].contains(b.status);
               }
               return b.status == tabStatus;
             }).toList();
@@ -97,34 +105,36 @@ class BookingCard extends StatelessWidget {
   final Booking booking;
   const BookingCard({super.key, required this.booking});
 
-  // ĐÃ SỬA: Bổ sung các trạng thái thực tế từ Backend vào logic màu sắc
   Color _statusColor(String status) {
     switch (status) {
-      case 'Upcoming':
-      case 'Pending':
-      case 'Confirmed':
-      case 'InProgress':
+      case BookingStatusName.awaitingWorker:
+      case BookingStatusName.accepted:
+      case BookingStatusName.onTheWay:
+      case BookingStatusName.inProgress:
+      case BookingStatusName.pendingPayment:
+      case BookingStatusName.rescheduleRequested:
         return kPrimary;
-      case 'Completed':
+      case BookingStatusName.completed:
         return kSecondary;
-      case 'Cancelled':
+      case BookingStatusName.cancelled:
         return Colors.red;
       default:
         return Colors.grey;
     }
   }
 
-  // ĐÃ SỬA: Bổ sung các trạng thái thực tế từ Backend vào logic màu nền
   Color _statusBgColor(String status) {
     switch (status) {
-      case 'Upcoming':
-      case 'Pending':
-      case 'Confirmed':
-      case 'InProgress':
+      case BookingStatusName.awaitingWorker:
+      case BookingStatusName.accepted:
+      case BookingStatusName.onTheWay:
+      case BookingStatusName.inProgress:
+      case BookingStatusName.pendingPayment:
+      case BookingStatusName.rescheduleRequested:
         return kPrimaryContainer;
-      case 'Completed':
+      case BookingStatusName.completed:
         return kSecondaryContainer;
-      case 'Cancelled':
+      case BookingStatusName.cancelled:
         return const Color(0xFFFFDAD6);
       default:
         return Colors.grey.shade200;

@@ -71,7 +71,7 @@ void main() {
           date: '06/07/2026',
           time: '09:00',
           price: 200000,
-          status: 'PendingPayment',
+          status: 'AwaitingWorker',
           bookingType: 'Scheduled',
         ),
       );
@@ -97,7 +97,7 @@ void main() {
           date: '06/07/2026',
           time: '09:00',
           price: 200000,
-          status: 'PendingPayment',
+          status: 'AwaitingWorker',
           bookingType: 'Scheduled',
         ),
       );
@@ -224,9 +224,6 @@ class _FakeBookingRepository implements BookingRepository {
 }
 
 class _FakeWorkerRepository implements WorkerRepository {
-  @override
-  Future<List<Worker>> getRecommendedWorkers(String bookingId) async => [];
-
   @override
   Future<Worker?> getMyWorkerProfile() async => null;
 

@@ -1,18 +1,14 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/worker.dart';
 import 'nearby_workers_google_map.dart';
 
-/// Immediate-booking "finding a worker" view: a stylized GPS map with the client at the centre and
-/// nearby eligible workers around them, a countdown progress bar (the search time limit), and a
-/// Grab-style draggable sheet that reveals the request details when pulled up.
+/// Immediate-booking "finding a worker" view: a map centred on the job address, a countdown
+/// progress bar (the search time limit), and a Grab-style draggable sheet that reveals the request
+/// details when pulled up. Dispatch is broadcast — candidate workers are not shown to the client.
 class FindingWorkerMap extends StatelessWidget {
   final Booking booking;
-  final List<Worker> nearbyWorkers;
   final Animation<double> progress; // 0.0 -> 1.0 across the search window
   final bool cancelling;
   final VoidCallback onCancel;
@@ -20,7 +16,6 @@ class FindingWorkerMap extends StatelessWidget {
   const FindingWorkerMap({
     super.key,
     required this.booking,
-    required this.nearbyWorkers,
     required this.progress,
     required this.cancelling,
     required this.onCancel,
@@ -31,9 +26,9 @@ class FindingWorkerMap extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: NearbyWorkersGoogleMap(booking: booking, workers: nearbyWorkers),
+          child: NearbyWorkersGoogleMap(booking: booking),
         ),
-        _SearchProgressBanner(progress: progress, workerCount: nearbyWorkers.length),
+        _SearchProgressBanner(progress: progress),
         _RequestDetailsSheet(booking: booking, cancelling: cancelling, onCancel: onCancel),
       ],
     );
@@ -42,9 +37,8 @@ class FindingWorkerMap extends StatelessWidget {
 
 class _SearchProgressBanner extends StatelessWidget {
   final Animation<double> progress;
-  final int workerCount;
 
-  const _SearchProgressBanner({required this.progress, required this.workerCount});
+  const _SearchProgressBanner({required this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -93,9 +87,7 @@ class _SearchProgressBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  workerCount > 0
-                      ? 'Có $workerCount nhân viên ở gần đang được mời nhận đơn.'
-                      : 'Đang gửi yêu cầu tới các nhân viên ở gần bạn.',
+                  'Đang gửi yêu cầu tới các nhân viên ở gần bạn.',
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
               ],
@@ -223,148 +215,4 @@ class _DetailRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A lightweight, dependency-free map illustration: a tinted surface with faint "streets", an
-/// animated radar pulse around the client, and worker markers scattered nearby.
-class _MapCanvas extends StatefulWidget {
-  final List<Worker> nearbyWorkers;
-  const _MapCanvas({required this.nearbyWorkers});
-
-  @override
-  State<_MapCanvas> createState() => _MapCanvasState();
-}
-
-class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse =
-      AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final center = Offset(size.width / 2, size.height * 0.42);
-        return Container(
-          color: const Color(0xFFEAF0F4),
-          child: Stack(
-            children: [
-              Positioned.fill(child: CustomPaint(painter: _StreetsPainter())),
-              // Radar pulse.
-              AnimatedBuilder(
-                animation: _pulse,
-                builder: (context, _) {
-                  final radius = 40 + _pulse.value * (size.shortestSide * 0.45);
-                  return Positioned(
-                    left: center.dx - radius,
-                    top: center.dy - radius,
-                    child: Container(
-                      width: radius * 2,
-                      height: radius * 2,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: kPrimary.withValues(alpha: 0.12 * (1 - _pulse.value)),
-                        border: Border.all(color: kPrimary.withValues(alpha: 0.25 * (1 - _pulse.value))),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              // Worker markers.
-              ..._workerMarkers(size, center),
-              // Client marker.
-              Positioned(
-                left: center.dx - 22,
-                top: center.dy - 22,
-                child: _ClientMarker(),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  List<Widget> _workerMarkers(Size size, Offset center) {
-    final workers = widget.nearbyWorkers.take(6).toList();
-    if (workers.isEmpty) return const [];
-    final spread = size.shortestSide * 0.32;
-    return List.generate(workers.length, (i) {
-      final angle = (i / workers.length) * 2 * math.pi + 0.4;
-      final radius = spread * (0.55 + 0.45 * ((i % 3) / 2));
-      final dx = center.dx + radius * math.cos(angle);
-      final dy = center.dy + radius * math.sin(angle);
-      return Positioned(
-        left: dx - 20,
-        top: dy - 20,
-        child: _WorkerMarker(worker: workers[i]),
-      );
-    });
-  }
-}
-
-class _ClientMarker extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-          child: const Icon(Icons.person_pin_circle_rounded, color: Colors.white, size: 22),
-        ),
-      ],
-    );
-  }
-}
-
-class _WorkerMarker extends StatelessWidget {
-  final Worker worker;
-  const _WorkerMarker({required this.worker});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: kPrimary, width: 2),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
-      ),
-      child: Center(
-        child: Text(
-          worker.initials,
-          style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
-}
-
-class _StreetsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.7)
-      ..strokeWidth = 6;
-    const step = 72.0;
-    for (double x = step; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = step; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

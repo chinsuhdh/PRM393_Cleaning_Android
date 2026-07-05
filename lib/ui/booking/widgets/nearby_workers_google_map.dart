@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../data/models/booking.dart';
-import '../../../data/models/worker.dart';
 
+/// Map shown while broadcasting a booking: the job address only. Dispatch is broadcast
+/// first-accept-wins, so candidate workers are not exposed to the client.
 class NearbyWorkersGoogleMap extends StatelessWidget {
   const NearbyWorkersGoogleMap({
     super.key,
     required this.booking,
-    required this.workers,
   });
 
   final Booking booking;
-  final List<Worker> workers;
 
   bool get _hasBookingLocation =>
       booking.latitude != null &&
@@ -59,19 +58,6 @@ class NearbyWorkersGoogleMap extends StatelessWidget {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         zIndexInt: 2,
       ),
-      for (final worker in workers)
-        if (worker.latitude != null &&
-            worker.longitude != null &&
-            worker.latitude!.isFinite &&
-            worker.longitude!.isFinite)
-          Marker(
-            markerId: MarkerId('worker-${worker.id}'),
-            position: LatLng(worker.latitude!, worker.longitude!),
-            infoWindow: InfoWindow(
-              title: worker.name,
-              snippet: worker.distance.isEmpty ? 'Nhân viên ở gần' : worker.distance,
-            ),
-          ),
     };
 
     return GoogleMap(

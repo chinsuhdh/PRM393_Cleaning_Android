@@ -64,17 +64,18 @@ void main() {
   );
 
   test(
-    '[UT-FE-BOOK-STATUS-01] numeric booking status still maps to the backend enum order',
+    '[UT-FE-BOOK-STATUS-01] booking status is parsed by name (API serializes enums by name)',
     () {
-      Booking parseWithStatus(int code) => Booking.fromJson({
+      Booking parseWithStatus(Object? code) => Booking.fromJson({
         'id': 'b1',
         'serviceName': 'Dọn nhà',
         'status': code,
       });
 
-      expect(parseWithStatus(6).status, 'Cancelled');
-      expect(parseWithStatus(4).status, 'InProgress');
-      expect(parseWithStatus(8).status, 'AwaitingWorker');
+      expect(parseWithStatus('Cancelled').status, 'Cancelled');
+      expect(parseWithStatus('OnTheWay').status, 'OnTheWay');
+      expect(parseWithStatus('AwaitingWorker').status, 'AwaitingWorker');
+      expect(parseWithStatus(null).status, 'Unknown');
     },
   );
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart'; // THƯ VIỆN MỞ LINK
+import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
@@ -50,7 +51,14 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
             data: (bookings) => _buildJobList(
-              bookings.where((b) => b.status == 'Accepted' || b.status == 'InProgress').toList(),
+              bookings
+                  .where((b) => const [
+                        BookingStatusName.accepted,
+                        BookingStatusName.onTheWay,
+                        BookingStatusName.inProgress,
+                        BookingStatusName.pendingPayment,
+                      ].contains(b.status))
+                  .toList(),
               isAvailableTab: false,
             ),
           ),
