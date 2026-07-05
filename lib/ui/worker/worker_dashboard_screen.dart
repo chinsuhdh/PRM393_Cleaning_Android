@@ -381,8 +381,8 @@ class _JobMiniCard extends StatelessWidget {
   const _JobMiniCard({required this.job});
 
   Color _statusColor(String status) {
-    if (status == 'Pending' || status == 'Upcoming') return Colors.orange;
-    if (status == 'Accepted' || status == 'InProgress') return kSecondary;
+    if (status == 'AwaitingWorker' || status == 'PendingPayment') return Colors.orange;
+    if (status == 'Accepted' || status == 'OnTheWay' || status == 'InProgress') return kSecondary;
     if (status == 'Completed') return kPrimary;
     return Colors.grey;
   }

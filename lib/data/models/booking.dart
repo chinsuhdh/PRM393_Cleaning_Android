@@ -31,14 +31,14 @@ class Booking {
 
   bool get isImmediate => bookingType == BookingTypeName.immediate;
 
-  bool get isAwaitingWorker =>
-      status == BookingStatusName.awaitingWorker ||
-      status == BookingStatusName.paidPendingWorker ||
-      status == BookingStatusName.pendingPayment;
+  bool get isAwaitingWorker => status == BookingStatusName.awaitingWorker;
 
+  // PendingPayment is post-job (pay-after-job): the worker is still attached.
   bool get hasWorkerAssigned =>
       status == BookingStatusName.accepted ||
+      status == BookingStatusName.onTheWay ||
       status == BookingStatusName.inProgress ||
+      status == BookingStatusName.pendingPayment ||
       status == BookingStatusName.completed;
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -57,14 +57,8 @@ class Booking {
       }
     }
 
-    String statusStr;
-    final rawStatus = json['status'];
-    if (rawStatus is int) {
-      const statusNames = BookingStatusName.ordered;
-      statusStr = (rawStatus >= 0 && rawStatus < statusNames.length) ? statusNames[rawStatus] : rawStatus.toString();
-    } else {
-      statusStr = (rawStatus as String?) ?? 'Unknown';
-    }
+    // The API serializes enums by name (e.g. "AwaitingWorker").
+    final statusStr = json['status']?.toString() ?? 'Unknown';
 
     String serviceName = (json['serviceName'] as String?) ?? '';
     if (serviceName.isEmpty) {
