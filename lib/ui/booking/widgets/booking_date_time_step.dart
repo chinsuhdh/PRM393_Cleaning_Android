@@ -70,7 +70,7 @@ class BookingDateTimeStep extends StatelessWidget {
                   context: context,
                   initialDate: selectedDate,
                   firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
                 );
                 if (picked != null) onDateChanged(picked);
               },
@@ -88,7 +88,27 @@ class BookingDateTimeStep extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
               ),
               onTap: () async {
-                final picked = await showTimePicker(context: context, initialTime: selectedTime);
+                final picked = await showModalBottomSheet<TimeOfDay>(
+                  context: context,
+                  builder: (sheetContext) => GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      childAspectRatio: 2,
+                    ),
+                    itemCount: 48,
+                    itemBuilder: (_, index) {
+                      final time = TimeOfDay(hour: index ~/ 2, minute: index.isEven ? 0 : 30);
+                      final candidate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, time.hour, time.minute);
+                      final enabled = !candidate.isBefore(DateTime.now().add(const Duration(hours: 2))) &&
+                          !candidate.isAfter(DateTime.now().add(const Duration(days: 30)));
+                      return TextButton(
+                        onPressed: enabled ? () => Navigator.pop(sheetContext, time) : null,
+                        child: Text('${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'),
+                      );
+                    },
+                  ),
+                );
                 if (picked != null) onTimeChanged(picked);
               },
             ),
@@ -99,7 +119,7 @@ class BookingDateTimeStep extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Lịch hẹn cần trước ít nhất 2 giờ và trong giờ hoạt động của dịch vụ.',
+                    'Lịch hẹn cần trước ít nhất 2 giờ và trong vòng 30 ngày tới.',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ),

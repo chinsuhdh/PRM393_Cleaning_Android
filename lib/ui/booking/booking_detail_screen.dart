@@ -6,6 +6,9 @@ import '../../core/network/dio_client.dart';
 import '../../data/models/booking.dart';
 // ĐÃ FIX: Thêm import Repository để dùng các provider
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../core/constants/booking_enums.dart';
+import 'widgets/booking_action_bar.dart';
 
 // API Gọi chi tiết Booking bằng ID
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
@@ -71,6 +74,31 @@ class BookingDetailScreen extends ConsumerWidget {
                 _DetailRow(icon: Icons.access_time_rounded, label: 'Time', value: booking.time),
                 // ĐÃ FIX: Dùng `booking.price` theo chuẩn model cũ của bạn
                 _DetailRow(icon: Icons.attach_money_rounded, label: 'Total', value: '${booking.price} VND'),
+                if (booking.statusTimeline.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text('Status timeline', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ...booking.statusTimeline.map((entry) => ListTile(
+                    leading: const Icon(Icons.check_circle_outline, color: kPrimary),
+                    title: Text(entry['newStatus']?.toString() ?? ''),
+                    subtitle: Text(entry['reason']?.toString() ?? ''),
+                  )),
+                ],
+                if (booking.photos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 96,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: booking.photos.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, index) => Image.network(
+                        booking.photos[index]['photoUrl'].toString(),
+                        width: 96,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
 
                 if (booking.worker != null) ...[
@@ -109,35 +137,80 @@ class BookingDetailScreen extends ConsumerWidget {
                   )
                 ],
 
-                if (booking.status == 'Pending' || booking.status == 'Upcoming')
-                  OutlinedButton(
-                    onPressed: () async {
-                      try {
-                        await ref.read(bookingRepositoryProvider).cancelBooking(bookingId);
-                        ref.invalidate(bookingDetailProvider(bookingId));
-                        ref.invalidate(bookingsProvider);
-
-                        // ĐÃ FIX: Kiểm tra context mounted trước khi hiển thị SnackBar sau hàm await
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
-                      } catch (e) {
-                        // ĐÃ FIX: Kiểm tra context mounted
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red));
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Cancel Booking'),
-                  ),
+                BookingActionBar(
+                  status: booking.status,
+                  viewerRole: ref.watch(authProvider).role,
+                  isScheduled: booking.bookingType == BookingTypeName.scheduled,
+                  onChat: () => context.push('/chat'),
+                  onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
+                  onStart: () => _advance(context, ref, BookingStatusName.inProgress),
+                  onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
+                  onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+                  onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
+                  onReport: (reason) => _cancel(context, ref, reason),
+                  onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
+                  onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
+                  onPayNow: () => context.push('/payment/${booking.id}'),
+                  onReview: () => context.push('/review/${booking.id}'),
+                  onViewEarning: () => context.push('/worker/wallet'),
+                  onViewReason: () => _showCancellationReason(context, booking),
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _advance(BuildContext context, WidgetRef ref, String newStatus) async {
+    try {
+      await ref.read(bookingRepositoryProvider).updateBookingStatus(bookingId, newStatus);
+      ref.invalidate(bookingDetailProvider(bookingId));
+      ref.invalidate(bookingsProvider);
+      ref.invalidate(workerBookingsProvider);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật trạng thái: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _cancel(BuildContext context, WidgetRef ref, String reason) async {
+    try {
+      await ref.read(bookingRepositoryProvider).updateBookingStatus(
+            bookingId,
+            BookingStatusName.cancelled,
+            reason: reason.isEmpty ? null : reason,
+          );
+      ref.invalidate(bookingDetailProvider(bookingId));
+      ref.invalidate(bookingsProvider);
+      ref.invalidate(workerBookingsProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showCancellationReason(BuildContext context, Booking booking) {
+    final cancelEntry = booking.statusTimeline.lastWhere(
+      (entry) => entry['newStatus']?.toString() == BookingStatusName.cancelled,
+      orElse: () => const {},
+    );
+    final reason = (cancelEntry['reason'] as String?)?.trim();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Lý do hủy đơn'),
+        content: Text(reason == null || reason.isEmpty ? 'Không có lý do được cung cấp.' : reason),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng')),
+        ],
       ),
     );
   }

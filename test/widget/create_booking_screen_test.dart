@@ -5,6 +5,7 @@ import 'package:cleanai/ui/booking/create_booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 
 import '../support/dio_test_harness.dart';
 
@@ -18,6 +19,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
 
       expect(find.text('Đặt dịch vụ'), findsOneWidget);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       expect(find.text('Home'), findsOneWidget);
 
@@ -48,6 +51,8 @@ void main() {
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       expect(find.text('Bạn chưa có địa chỉ để đặt dịch vụ.'), findsOneWidget);
       expect(find.text('Thêm địa chỉ'), findsOneWidget);
     },
@@ -70,6 +75,8 @@ void main() {
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       expect(find.text('Không thể tải danh sách địa chỉ'), findsOneWidget);
       expect(find.text('Thử lại'), findsOneWidget);
     },
@@ -84,6 +91,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
@@ -104,6 +113,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đặt ngay'));
@@ -129,9 +140,69 @@ void main() {
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
 
       expect(find.text('Thêm địa chỉ mới'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOK-004-01] The summary step renders the server breakdown lines and total verbatim (D.10)',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository(quote: {
+        'serviceVersion': 1,
+        'totalPrice': 243000,
+        'breakdown': [
+          {'label': 'Home Cleaning — base', 'amount': 120000},
+          {'label': '3 rooms × 40,000₫', 'amount': 120000},
+          {'label': 'Promotion −10%', 'amount': -27000},
+        ],
+      });
+      await _pumpScreen(tester, harness, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đặt ngay'));
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home Cleaning — base'), findsOneWidget);
+      expect(find.text('3 rooms × 40,000₫'), findsOneWidget);
+      expect(find.text('Promotion −10%'), findsOneWidget);
+      expect(find.textContaining('243.000'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOK-004-02] A QUOTE_STALE create response triggers a silent re-quote and retry (D.5/D.11)',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository(failCreateOnce: true);
+      await _pumpScreen(tester, harness, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đặt ngay'));
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Xác nhận'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Giá đã thay đổi, đang xác nhận lại.'), findsOneWidget);
+      expect(repository.quoteCallCount, 2); // initial summary quote + the re-quote after staleness
+      expect(repository.createCallCount, 2); // the retried create must actually succeed
     },
   );
 
@@ -200,11 +271,34 @@ Future<void> _pumpScreen(
 }
 
 class _FakeBookingRepository implements BookingRepository {
+  _FakeBookingRepository({Map<String, dynamic>? quote, this.failCreateOnce = false})
+      : _quote = quote ?? {
+          'serviceVersion': 1,
+          'totalPrice': 100000,
+          'breakdown': [{'label': 'Base', 'amount': 100000}],
+        };
+
+  final Map<String, dynamic> _quote;
+  final bool failCreateOnce;
+  int quoteCallCount = 0;
+  int createCallCount = 0;
+
+  @override
+  Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async {
+    quoteCallCount++;
+    return _quote;
+  }
+
+  @override
+  Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos) async {}
+
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {'slots': <Object>[]};
 
   @override
   Future<Booking> createBooking(Map<String, dynamic> data, {required String idempotencyKey}) async {
+    createCallCount++;
+    if (failCreateOnce && createCallCount == 1) throw const QuoteStaleException();
     return const Booking(
       id: 'booking-1',
       serviceName: 'Apartment cleaning',
@@ -234,5 +328,5 @@ class _FakeBookingRepository implements BookingRepository {
   Future<List<Booking>> getWorkerBookings() async => [];
 
   @override
-  Future<void> updateBookingStatus(String bookingId, String newStatus) async {}
+  Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
 }

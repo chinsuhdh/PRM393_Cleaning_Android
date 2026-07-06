@@ -24,6 +24,36 @@ void main() {
   );
 
   test(
+    '[UT-FE-BOOK-STATUS-03] updateBookingStatus sends an optional reason for report/cancel actions (D.8)',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Bookings/b1/status',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'newStatus': BookingStatusName.cancelled, 'reason': 'Khach vang mat'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.updateBookingStatus('b1', BookingStatusName.cancelled, reason: 'Khach vang mat');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-STATUS-04] updateBookingStatus omits the reason field when none is given',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Bookings/b1/status',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'newStatus': BookingStatusName.onTheWay},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.updateBookingStatus('b1', BookingStatusName.onTheWay);
+    },
+  );
+
+  test(
     '[UT-FE-BOOK-ACCEPT-01] acceptBooking PATCHes the accept endpoint',
     () async {
       final harness = DioTestHarness();
@@ -137,7 +167,7 @@ void main() {
   );
 
   test(
-    '[UT-FE-BOOK-LIST-03] getAvailableBookings returns [] on a server error',
+    '[UT-FE-BOOK-LIST-03] getAvailableBookings surfaces a server error',
     () async {
       final harness = DioTestHarness();
       harness.adapter.onGet(
@@ -147,9 +177,7 @@ void main() {
       );
       final repository = ApiBookingRepository(harness.dio);
 
-      final bookings = await repository.getAvailableBookings();
-
-      expect(bookings, isEmpty);
+      expect(repository.getAvailableBookings(), throwsA(isA<Exception>()));
     },
   );
 

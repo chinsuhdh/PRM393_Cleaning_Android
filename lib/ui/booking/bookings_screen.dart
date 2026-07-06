@@ -4,6 +4,7 @@ import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
+import 'package:intl/intl.dart';
 
 class BookingsScreen extends ConsumerStatefulWidget {
   const BookingsScreen({super.key});
@@ -15,7 +16,7 @@ class BookingsScreen extends ConsumerStatefulWidget {
 class _BookingsScreenState extends ConsumerState<BookingsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _tabs = ['Upcoming', 'Completed', 'Cancelled'];
+  final List<String> _tabs = ['Active', 'History'];
 
   @override
   void initState() {
@@ -53,7 +54,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
 
             // Mọi trạng thái đang hoạt động (tìm thợ -> chờ thanh toán) gom vào tab 'Upcoming'.
             final filtered = bookings.where((b) {
-              if (tabStatus == 'Upcoming') {
+              if (tabStatus == 'Active') {
                 return const [
                   BookingStatusName.awaitingWorker,
                   BookingStatusName.accepted,
@@ -63,8 +64,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
                   BookingStatusName.rescheduleRequested,
                 ].contains(b.status);
               }
-              return b.status == tabStatus;
-            }).toList();
+              return const [BookingStatusName.completed, BookingStatusName.cancelled].contains(b.status);
+            }).toList()
+              ..sort((a, b) => tabStatus == 'Active'
+                  ? (a.scheduledStartTime ?? DateTime(9999)).compareTo(b.scheduledStartTime ?? DateTime(9999))
+                  : (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
             if (filtered.isEmpty) {
               return Center(
@@ -77,7 +81,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
                             .withValues(alpha: 0.4)),
                     const SizedBox(height: 16),
                     Text(
-                      'No $tabStatus bookings',
+                      'No bookings yet',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -86,16 +90,25 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
                 ),
               );
             }
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, i) => BookingCard(booking: filtered[i]),
+            return RefreshIndicator(
+              onRefresh: () => ref.refresh(bookingsProvider.future),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (context, i) => BookingCard(booking: filtered[i]),
+              ),
             );
           }).toList(),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Error: $e'),
+            FilledButton(onPressed: () => ref.invalidate(bookingsProvider), child: const Text('Retry')),
+          ],
+        )),
       ),
     );
   }
@@ -195,6 +208,11 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(booking.time, style: theme.textTheme.bodyMedium),
               ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(booking.price),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
             ),
             if (booking.worker != null) ...[
               const SizedBox(height: 16),

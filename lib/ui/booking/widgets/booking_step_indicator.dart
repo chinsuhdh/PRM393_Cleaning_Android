@@ -5,9 +5,9 @@ class BookingStepIndicator extends StatelessWidget {
   final int currentStep;
   const BookingStepIndicator({super.key, required this.currentStep});
 
-  static const _labels = ['Địa chỉ', 'Thời gian', 'Xác nhận'];
-  static const _stepWidth = 68.0;
-  static const _connectorWidth = 28.0;
+  static const _labels = ['Câu hỏi', 'Địa chỉ', 'Thời gian', 'Xác nhận'];
+  static const _stepWidth = 58.0;
+  static const _connectorWidth = 16.0;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class BookingStepIndicator extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < 3; i++) ...[
+            for (var i = 0; i < 4; i++) ...[
               if (i > 0) _connector(context, isDone: i <= currentStep),
               _step(context, i),
             ],
