@@ -15,7 +15,6 @@ import '../../ui/home/home_screen.dart';
 import '../../ui/booking/bookings_screen.dart';
 import '../../ui/booking/create_booking_screen.dart';
 import '../../ui/booking/booking_detail_screen.dart';
-import '../../ui/booking/finding_worker_screen.dart';
 import '../../ui/chat/chat_screen.dart';
 import '../../ui/notification/notifications_screen.dart';
 import '../../ui/profile/profile_screen.dart';
@@ -46,7 +45,6 @@ class AppRoutes {
   static const serviceDetail = '/category/:id';
   static const createBooking = '/booking/create/:serviceId';
   static const bookingDetail = '/booking/:id';
-  static const findingWorker = '/finding-worker/:bookingId';
   static const addressManagement = '/address';
   static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password'; // [THÊM MỚI]
@@ -111,12 +109,6 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: AppRoutes.findingWorker,
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => FindingWorkerScreen(bookingId: state.pathParameters['bookingId'] ?? ''),
-    ),
-
-    GoRoute(
         path: AppRoutes.addressManagement,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AddressManagementScreen()
@@ -147,6 +139,19 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Write a Review')), body: const Center(child: Text('ReviewScreen'))),
     ),
 
+    // Standalone route so Booking Detail's Chat button can push it from the root
+    // navigator. Do not reuse the bare '/chat' path here: that one is a
+    // StatefulShellBranch (the client shell's AI-assistant tab) and pushing a
+    // shell-branch path from outside the shell reuses its branch NavigatorState
+    // GlobalKey for a second Navigator, which crashes with a duplicated-page-key
+    // assertion. There is no real per-booking chat yet (EPIC J-T1/J-T2) so this
+    // still opens the AI assistant for now.
+    GoRoute(
+      path: '/chat/:bookingId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ChatScreen(),
+    ),
+
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => ClientShell(navigationShell: navigationShell),
       branches: [
@@ -162,7 +167,23 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state, navigationShell) => WorkerShell(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(navigatorKey: _workerShellHomeKey, routes: [GoRoute(path: AppRoutes.workerShell, builder: (context, state) => const WorkerDashboardScreen())]),
-        StatefulShellBranch(navigatorKey: _workerShellJobsKey, routes: [GoRoute(path: '/worker/jobs', builder: (context, state) => const WorkerJobsScreen())]),
+        StatefulShellBranch(
+          navigatorKey: _workerShellJobsKey,
+          routes: [
+            GoRoute(
+              path: '/worker/jobs',
+              builder: (context, state) => const WorkerJobsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'booking/:id',
+                  builder: (context, state) => BookingDetailScreen(
+                    bookingId: state.pathParameters['id'] ?? '',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         StatefulShellBranch(navigatorKey: _workerShellWalletKey, routes: [GoRoute(path: '/worker/wallet', builder: (context, state) => const WorkerWalletScreen())]),
       ],
     ),

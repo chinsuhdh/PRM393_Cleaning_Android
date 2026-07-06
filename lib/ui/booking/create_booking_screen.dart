@@ -130,7 +130,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       ref.invalidate(bookingsProvider);
       if (mounted) {
         if (_bookingType == 1) {
-          context.push('/finding-worker/${newBooking.id}');
+          context.push('/booking/${newBooking.id}');
         } else {
           context.go('/home');
         }

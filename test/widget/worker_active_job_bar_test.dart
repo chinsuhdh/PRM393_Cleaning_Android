@@ -1,20 +1,23 @@
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
-import 'package:cleanai/ui/home/active_booking_bar.dart';
+import 'package:cleanai/ui/worker/worker_active_job_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+// Worker-side mirror of ActiveBookingBar (F.8 "pinned active job"): a persistent bar so the worker
+// always sees their current job's state (accepted / on the way / in progress / awaiting payment)
+// without having to dig into the Jobs tab.
 void main() {
   Future<void> pump(WidgetTester tester, BookingRepository repository) {
     final router = GoRouter(
-      initialLocation: '/home',
+      initialLocation: '/worker/dashboard',
       routes: [
         GoRoute(
-          path: '/home',
+          path: '/worker/dashboard',
           builder: (_, __) => const Scaffold(
-            bottomNavigationBar: ActiveBookingBar(),
+            bottomNavigationBar: WorkerActiveJobBar(),
             body: SizedBox.shrink(),
           ),
         ),
@@ -36,156 +39,79 @@ void main() {
   }
 
   testWidgets(
-    '[UT-FE-ACTBAR-01] Nothing renders when there is no AwaitingWorker booking',
+    '[UT-FE-WORKERACTBAR-01] Nothing renders when the worker has no active job',
     (tester) async {
       await pump(tester, _FakeBookingRepository(bookings: const [
         Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 100000, status: 'Completed'),
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.byType(ActiveBookingBar), findsOneWidget);
+      expect(find.byType(WorkerActiveJobBar), findsOneWidget);
       expect(find.text('Dọn nhà'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-ACTBAR-02] An Immediate AwaitingWorker booking shows a searching bar and opens detail on tap',
+    '[UT-FE-WORKERACTBAR-02] An Accepted job is shown and opens detail on tap',
     (tester) async {
       await pump(tester, _FakeBookingRepository(bookings: const [
-        Booking(
-          id: 'b1',
-          serviceName: 'Dọn nhà',
-          date: '',
-          time: '',
-          price: 200000,
-          status: 'AwaitingWorker',
-          bookingType: 'Immediate',
-        ),
+        Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'Accepted'),
       ]));
       await tester.pumpAndSettle();
 
       expect(find.text('Dọn nhà'), findsOneWidget);
-      expect(find.textContaining('Đang tìm nhân viên'), findsOneWidget);
 
-      await tester.tap(find.byType(ActiveBookingBar));
+      await tester.tap(find.byType(WorkerActiveJobBar));
       await tester.pumpAndSettle();
       expect(find.text('DETAIL_b1'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '[UT-FE-ACTBAR-03] A Scheduled AwaitingWorker booking shows a distinct waiting message',
-    (tester) async {
-      await pump(tester, _FakeBookingRepository(bookings: const [
-        Booking(
-          id: 'b2',
-          serviceName: 'Giặt ủi',
-          date: '10/07/2026',
-          time: '09:00',
-          price: 150000,
-          status: 'AwaitingWorker',
-          bookingType: 'Scheduled',
-        ),
-      ]));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Giặt ủi'), findsOneWidget);
-      expect(find.textContaining('chờ nhân viên'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    '[UT-FE-ACTBAR-04] With multiple AwaitingWorker bookings, the soonest one is shown',
-    (tester) async {
-      await pump(tester, _FakeBookingRepository(bookings: [
-        Booking(
-          id: 'later',
-          serviceName: 'Dọn nhà sau',
-          date: '',
-          time: '',
-          price: 200000,
-          status: 'AwaitingWorker',
-          bookingType: 'Scheduled',
-          scheduledStartTime: DateTime.now().add(const Duration(days: 2)),
-        ),
-        Booking(
-          id: 'sooner',
-          serviceName: 'Dọn nhà trước',
-          date: '',
-          time: '',
-          price: 200000,
-          status: 'AwaitingWorker',
-          bookingType: 'Immediate',
-          scheduledStartTime: DateTime.now().add(const Duration(minutes: 15)),
-        ),
-      ]));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Dọn nhà trước'), findsOneWidget);
-      expect(find.text('Dọn nhà sau'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    '[UT-FE-ACTBAR-06] An OnTheWay booking shows "worker is on the way"',
+    '[UT-FE-WORKERACTBAR-03] An OnTheWay job shows that the worker is heading over',
     (tester) async {
       await pump(tester, _FakeBookingRepository(bookings: const [
         Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'OnTheWay'),
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dọn nhà'), findsOneWidget);
       expect(find.textContaining('trên đường'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '[UT-FE-ACTBAR-07] An InProgress booking shows "job in progress"',
+    '[UT-FE-WORKERACTBAR-04] An InProgress job shows the work is currently being done',
     (tester) async {
       await pump(tester, _FakeBookingRepository(bookings: const [
         Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'InProgress'),
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dọn nhà'), findsOneWidget);
-      expect(find.textContaining('đang được thực hiện'), findsOneWidget);
+      expect(find.textContaining('đang thực hiện'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '[UT-FE-ACTBAR-08] A PendingPayment booking is also surfaced',
+    '[UT-FE-WORKERACTBAR-05] An in-progress job takes priority over a merely-accepted one',
     (tester) async {
       await pump(tester, _FakeBookingRepository(bookings: const [
-        Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'PendingPayment'),
+        Booking(id: 'accepted', serviceName: 'Đơn đã nhận', date: '', time: '', price: 100000, status: 'Accepted'),
+        Booking(id: 'doing', serviceName: 'Đơn đang làm', date: '', time: '', price: 200000, status: 'InProgress'),
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dọn nhà'), findsOneWidget);
-      expect(find.textContaining('thanh toán'), findsOneWidget);
+      expect(find.text('Đơn đang làm'), findsOneWidget);
+      expect(find.text('Đơn đã nhận'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-ACTBAR-09] An in-progress job takes priority over a still-searching booking',
-    (tester) async {
-      await pump(tester, _FakeBookingRepository(bookings: const [
-        Booking(id: 'searching', serviceName: 'Đang tìm', date: '', time: '', price: 100000, status: 'AwaitingWorker'),
-        Booking(id: 'doing', serviceName: 'Đang làm', date: '', time: '', price: 200000, status: 'InProgress'),
-      ]));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Đang làm'), findsOneWidget);
-      expect(find.text('Đang tìm'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    '[UT-FE-ACTBAR-05] A repository error is swallowed and the bar stays hidden',
+    '[UT-FE-WORKERACTBAR-06] A repository error is swallowed and the bar stays hidden',
     (tester) async {
       await pump(tester, _FailingBookingRepository());
       await tester.pumpAndSettle();
 
-      expect(find.byType(ActiveBookingBar), findsOneWidget);
+      expect(find.byType(WorkerActiveJobBar), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -196,7 +122,7 @@ class _FakeBookingRepository implements BookingRepository {
   final List<Booking> bookings;
 
   @override
-  Future<List<Booking>> getClientBookings() async => bookings;
+  Future<List<Booking>> getWorkerBookings() async => bookings;
 
   @override
   Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async => {};
@@ -225,7 +151,7 @@ class _FakeBookingRepository implements BookingRepository {
   Future<List<Booking>> getAvailableBookings() async => [];
 
   @override
-  Future<List<Booking>> getWorkerBookings() async => [];
+  Future<List<Booking>> getClientBookings() async => [];
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
@@ -233,7 +159,7 @@ class _FakeBookingRepository implements BookingRepository {
 
 class _FailingBookingRepository implements BookingRepository {
   @override
-  Future<List<Booking>> getClientBookings() async => throw Exception('network down');
+  Future<List<Booking>> getWorkerBookings() async => throw Exception('network down');
 
   @override
   Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async => {};
@@ -261,7 +187,7 @@ class _FailingBookingRepository implements BookingRepository {
   Future<List<Booking>> getAvailableBookings() async => [];
 
   @override
-  Future<List<Booking>> getWorkerBookings() async => [];
+  Future<List<Booking>> getClientBookings() async => [];
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}

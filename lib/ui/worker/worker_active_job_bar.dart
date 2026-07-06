@@ -9,18 +9,30 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
-class ActiveBookingBar extends ConsumerStatefulWidget {
-  const ActiveBookingBar({super.key, this.pollInterval = const Duration(seconds: 6)});
+/// Worker-side mirror of ActiveBookingBar (F.8 "pinned active job"): a persistent bar so the worker
+/// always sees their current job's state without digging into the Jobs tab.
+class WorkerActiveJobBar extends ConsumerStatefulWidget {
+  const WorkerActiveJobBar({super.key, this.pollInterval = const Duration(seconds: 6)});
 
   final Duration pollInterval;
 
   @override
-  ConsumerState<ActiveBookingBar> createState() => _ActiveBookingBarState();
+  ConsumerState<WorkerActiveJobBar> createState() => _WorkerActiveJobBarState();
 }
 
-class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
+class _WorkerActiveJobBarState extends ConsumerState<WorkerActiveJobBar> {
   Timer? _timer;
   Booking? _active;
+
+  // Lower rank = more urgent to surface: a job actually being worked right now matters more than one
+  // that's merely been accepted.
+  static const _statusRank = {
+    BookingStatusName.inProgress: 0,
+    BookingStatusName.onTheWay: 1,
+    BookingStatusName.pendingPayment: 2,
+    BookingStatusName.accepted: 3,
+    BookingStatusName.rescheduleRequested: 4,
+  };
 
   @override
   void initState() {
@@ -35,21 +47,10 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
     super.dispose();
   }
 
-  // Lower rank = more urgent to surface: a job actually happening right now matters more than one
-  // that's merely been accepted or is still searching for a worker (D.7's Active tab, prioritized).
-  static const _statusRank = {
-    BookingStatusName.inProgress: 0,
-    BookingStatusName.onTheWay: 1,
-    BookingStatusName.pendingPayment: 2,
-    BookingStatusName.accepted: 3,
-    BookingStatusName.rescheduleRequested: 4,
-    BookingStatusName.awaitingWorker: 5,
-  };
-
   Future<void> _refresh() async {
     List<Booking> bookings;
     try {
-      bookings = await ref.read(bookingRepositoryProvider).getClientBookings();
+      bookings = await ref.read(bookingRepositoryProvider).getWorkerBookings();
     } catch (_) {
       return;
     }
@@ -68,25 +69,21 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   String _subtitleFor(Booking booking) {
     switch (booking.status) {
-      case BookingStatusName.accepted:
-        return 'Nhân viên đã nhận đơn của bạn';
       case BookingStatusName.onTheWay:
-        return 'Nhân viên đang trên đường đến';
+        return 'Bạn đang trên đường đến';
       case BookingStatusName.inProgress:
-        return 'Công việc đang được thực hiện';
+        return 'Công việc đang thực hiện';
       case BookingStatusName.pendingPayment:
-        return 'Đã xong việc — chờ thanh toán';
+        return 'Đã xong việc — chờ khách thanh toán';
       case BookingStatusName.rescheduleRequested:
         return 'Yêu cầu đổi lịch đang chờ xác nhận';
       default:
-        return booking.isImmediate ? 'Đang tìm nhân viên phù hợp…' : 'Đang chờ nhân viên nhận đơn…';
+        return 'Bạn đã nhận đơn này';
     }
   }
 
   IconData _iconFor(Booking booking) {
     switch (booking.status) {
-      case BookingStatusName.accepted:
-        return Icons.check_circle_outline_rounded;
       case BookingStatusName.onTheWay:
         return Icons.directions_car_filled_rounded;
       case BookingStatusName.inProgress:
@@ -96,7 +93,7 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
       case BookingStatusName.rescheduleRequested:
         return Icons.event_repeat_rounded;
       default:
-        return booking.isImmediate ? Icons.search_rounded : Icons.hourglass_top_rounded;
+        return Icons.check_circle_outline_rounded;
     }
   }
 
@@ -106,22 +103,18 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
     if (booking == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
-    final subtitle = _subtitleFor(booking);
 
     return SafeArea(
       top: false,
       child: Material(
         color: kPrimaryContainer,
         child: InkWell(
-          onTap: () => context.push('/booking/${booking.id}'),
+          onTap: () => context.push('/worker/jobs/booking/${booking.id}'),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Icon(
-                  _iconFor(booking),
-                  color: kPrimary,
-                ),
+                Icon(_iconFor(booking), color: kPrimary),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -136,7 +129,7 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
                         ),
                       ),
                       Text(
-                        subtitle,
+                        _subtitleFor(booking),
                         style: theme.textTheme.bodySmall?.copyWith(color: kOnPrimaryContainer),
                       ),
                     ],

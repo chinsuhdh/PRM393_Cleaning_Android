@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/models/booking.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/booking_repository.dart';
-import '../../data/models/booking.dart';
+import '../../data/repositories/worker_repository.dart';
+import '../../data/services/dispatch_hub_service.dart';
+
+final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
 class WorkerDashboardScreen extends ConsumerWidget {
   const WorkerDashboardScreen({super.key});
@@ -13,18 +18,42 @@ class WorkerDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    // Lấy thông tin user thật từ Provider
+    // Keeps the dispatch hub connected while the dashboard is visible, so the newest-job preview
+    // below updates live instead of only refreshing when the worker navigates away and back.
+    ref.watch(dispatchLiveFeedProvider);
+
     final authState = ref.watch(authProvider);
     final userName = authState.userName ?? 'Worker';
     final initials = userName.isNotEmpty ? userName[0].toUpperCase() : 'W';
 
-    // Gọi API lấy danh sách các đơn hàng "Available" (Pending & chưa có thợ)
+    final workerBookingsAsync = ref.watch(workerBookingsProvider);
     final availableJobsAsync = ref.watch(availableBookingsProvider);
+    final profileAsync = ref.watch(workerProfileProvider);
+
+    final now = DateTime.now();
+    bool completedToday(dynamic b) =>
+        b.status == 'Completed' &&
+        b.updatedAt != null &&
+        b.updatedAt.year == now.year &&
+        b.updatedAt.month == now.month &&
+        b.updatedAt.day == now.day;
+
+    final todaysCompleted = workerBookingsAsync.maybeWhen(
+      data: (bookings) => bookings.where(completedToday).toList(),
+      orElse: () => const [],
+    );
+    final todaysEarnings = todaysCompleted.fold<double>(0, (sum, b) => sum + b.price);
+    final rating = profileAsync.maybeWhen(data: (worker) => worker?.rating ?? 0.0, orElse: () => 0.0);
+    final availableJobs = availableJobsAsync.maybeWhen(data: (jobs) => jobs, orElse: () => const <Booking>[]);
+    final newestJob = availableJobs.isEmpty
+        ? null
+        : (availableJobs.toList()
+              ..sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0))))
+            .first;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // App bar with greeting & Logout button
           SliverAppBar(
             expandedHeight: 180,
             pinned: false,
@@ -33,7 +62,6 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 icon: const Icon(Icons.logout_rounded, color: Colors.white),
                 tooltip: 'Đăng xuất',
                 onPressed: () async {
-                  // Hiển thị dialog xác nhận đăng xuất
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
@@ -58,11 +86,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                   );
 
                   if (confirm == true) {
-                    // Gọi hàm logout từ AuthProvider
                     ref.read(authProvider.notifier).logout();
-
-                    // Chuyển hướng về trang Đăng nhập
-                    // (Lưu ý: Đảm bảo GoRouter của bạn có cấu hình route '/login')
                     if (context.mounted) {
                       context.go('/login');
                     }
@@ -97,7 +121,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              userName, // Hiển thị tên thật
+                              userName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
@@ -110,7 +134,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                           radius: 24,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           child: Text(
-                            initials, // Chữ cái đầu thật
+                            initials,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -155,14 +179,13 @@ class WorkerDashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Stats cards (Tạm để 0)
                 Row(
                   children: [
                     Expanded(
                       child: _StatCard(
                         icon: Icons.attach_money_rounded,
                         label: "Today's Earn",
-                        value: '\$0',
+                        value: _vnd.format(todaysEarnings),
                         color: kSecondary,
                       ),
                     ),
@@ -171,7 +194,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       child: _StatCard(
                         icon: Icons.work_rounded,
                         label: 'Jobs Today',
-                        value: '0',
+                        value: '${todaysCompleted.length}',
                         color: kPrimary,
                       ),
                     ),
@@ -180,14 +203,13 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       child: _StatCard(
                         icon: Icons.star_rounded,
                         label: 'Rating',
-                        value: '0.0',
+                        value: rating.toStringAsFixed(1),
                         color: kTertiary,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Quick actions
                 Text(
                   'Quick Actions',
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -200,7 +222,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                     _QuickAction(
                       icon: Icons.work_rounded,
                       label: 'My Jobs',
-                      onTap: () => context.push('/worker/jobs'),
+                      onTap: () => context.go('/worker/jobs'),
                     ),
                     const SizedBox(width: 12),
                     _QuickAction(
@@ -208,78 +230,68 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       label: 'Wallet',
                       onTap: () => context.push('/worker/wallet'),
                     ),
-                    const SizedBox(width: 12),
-                    _QuickAction(
-                      icon: Icons.schedule_rounded,
-                      label: 'Schedule',
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 12),
-                    _QuickAction(
-                      icon: Icons.support_agent_rounded,
-                      label: 'Support',
-                      onTap: () {},
-                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Available jobs
+                // Shows the newest posted job's real details directly — not just a count with a
+                // button to another screen — so the worker can see what it actually is at a glance.
+                // The full live/hideable list still lives in the Jobs tab; this is just a preview.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Available Jobs',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      'New Job',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    if (availableJobs.length > 1)
+                      TextButton(
+                        onPressed: () => context.go('/worker/jobs'),
+                        child: const Text('View all'),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () => ref.refresh(availableBookingsProvider),
-                      child: const Text('Refresh'),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-
-                // Render danh sách công việc thật từ API
-                availableJobsAsync.when(
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: CircularProgressIndicator(),
+                if (newestJob == null)
+                  Card(
+                    elevation: 0,
+                    color: kPrimaryContainer,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: const ListTile(
+                      contentPadding: EdgeInsets.all(16),
+                      leading: Icon(Icons.notifications_active_rounded, color: kPrimary),
+                      title: Text(
+                        'No jobs available right now',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: kOnPrimaryContainer),
+                      ),
                     ),
-                  ),
-                  error: (err, stack) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        'Lỗi tải đơn hàng: $err',
-                        style: const TextStyle(color: Colors.red),
+                  )
+                else
+                  Card(
+                    elevation: 0,
+                    color: kPrimaryContainer,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      onTap: () => context.push('/worker/jobs/booking/${newestJob.id}'),
+                      leading: const CircleAvatar(
+                        backgroundColor: kPrimary,
+                        child: Icon(Icons.cleaning_services_rounded, color: Colors.white),
+                      ),
+                      title: Text(
+                        newestJob.serviceName,
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: kOnPrimaryContainer),
+                      ),
+                      subtitle: Text(
+                        newestJob.isImmediate ? 'Now · ${newestJob.time}' : '${newestJob.date} · ${newestJob.time}',
+                        style: const TextStyle(color: kOnPrimaryContainer),
+                      ),
+                      trailing: Text(
+                        _vnd.format(newestJob.price),
+                        style: const TextStyle(fontWeight: FontWeight.w800, color: kPrimary),
                       ),
                     ),
                   ),
-                  data: (jobs) {
-                    if (jobs.isEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Text(
-                            'Hiện không có đơn đặt lịch nào khả dụng.',
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return Column(
-                      children: jobs
-                          .map((job) => _JobMiniCard(job: job))
-                          .toList(),
-                    );
-                  },
-                ),
               ]),
             ),
           ),
@@ -317,10 +329,12 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: color,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             Text(
               label,
@@ -368,83 +382,6 @@ class _QuickAction extends StatelessWidget {
               label,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _JobMiniCard extends StatelessWidget {
-  final Booking job; // Model thật
-  const _JobMiniCard({required this.job});
-
-  Color _statusColor(String status) {
-    if (status == 'AwaitingWorker' || status == 'PendingPayment') return Colors.orange;
-    if (status == 'Accepted' || status == 'OnTheWay' || status == 'InProgress') return kSecondary;
-    if (status == 'Completed') return kPrimary;
-    return Colors.grey;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Lấy ký tự đầu tiên của tên dịch vụ để làm Avatar
-    final initial = job.serviceName.isNotEmpty
-        ? job.serviceName[0].toUpperCase()
-        : 'J';
-
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        // Khi thợ bấm vào đơn, điều hướng sang trang Chi tiết để xem và Nhận đơn
-        onTap: () => context.push('/booking/${job.id}'),
-        leading: CircleAvatar(
-          backgroundColor: kPrimaryContainer,
-          child: Text(
-            initial,
-            style: const TextStyle(
-              color: kOnPrimaryContainer,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        title: Text(
-          job.serviceName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text('${job.date} · ${job.time}'),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${job.price} VND',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: kPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: _statusColor(job.status).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                job.status,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: _statusColor(job.status),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
             ),
           ],
         ),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../core/constants/booking_enums.dart';
 import 'worker.dart';
 
@@ -12,9 +14,17 @@ class Booking {
   final Worker? worker;
   final DateTime? scheduledStartTime;
   final DateTime? updatedAt;
+  final DateTime? createdAt;
   final List<Map<String, dynamic>> statusTimeline;
   final List<Map<String, dynamic>> photos;
   final List<Map<String, dynamic>> pricingBreakdown;
+  final double durationHours;
+  final double unitPrice;
+  final double extraFee;
+  final double discountAmount;
+  final String notes;
+  final Map<String, dynamic> optionAnswers;
+  final List<Map<String, dynamic>> bookingQuestions;
 
   final String? addressText;
   final double? latitude;
@@ -31,9 +41,17 @@ class Booking {
     this.worker,
     this.scheduledStartTime,
     this.updatedAt,
+    this.createdAt,
     this.statusTimeline = const [],
     this.photos = const [],
     this.pricingBreakdown = const [],
+    this.durationHours = 0,
+    this.unitPrice = 0,
+    this.extraFee = 0,
+    this.discountAmount = 0,
+    this.notes = '',
+    this.optionAnswers = const {},
+    this.bookingQuestions = const [],
     this.addressText,
     this.latitude,
     this.longitude,
@@ -52,6 +70,8 @@ class Booking {
       status == BookingStatusName.completed;
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    final answers = _jsonMap(json['optionAnswers']);
+    final schema = _jsonMap(json['bookingFormSchema']);
     String date = '';
     String time = '';
     final rawScheduled =
@@ -87,15 +107,34 @@ class Booking {
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
       scheduledStartTime: rawScheduled == null ? null : DateTime.tryParse(rawScheduled)?.toLocal(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toLocal(),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
       statusTimeline: List<Map<String, dynamic>>.from(json['statusTimeline'] as List? ?? const []),
       photos: List<Map<String, dynamic>>.from(json['photos'] as List? ?? const []),
       pricingBreakdown: List<Map<String, dynamic>>.from(
         (json['pricingBreakdown'] as Map?)?['breakdown'] as List? ?? const [],
       ),
+      durationHours: (json['durationHours'] as num?)?.toDouble() ?? 0,
+      unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0,
+      extraFee: (json['extraFee'] as num?)?.toDouble() ?? 0,
+      discountAmount: (json['discountAmount'] as num?)?.toDouble() ?? 0,
+      notes: json['notes']?.toString() ?? '',
+      optionAnswers: answers,
+      bookingQuestions: List<Map<String, dynamic>>.from(schema['questions'] as List? ?? const []),
 
       addressText: json['addressText'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
     );
+  }
+
+  static Map<String, dynamic> _jsonMap(Object? value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    }
+    return const {};
   }
 }

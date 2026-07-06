@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart'; // THƯ VIỆN MỞ LINK
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/dispatch_repository.dart';
+import '../../data/services/dispatch_hub_service.dart';
 
 class WorkerJobsScreen extends ConsumerStatefulWidget {
   const WorkerJobsScreen({super.key});
@@ -15,6 +19,7 @@ class WorkerJobsScreen extends ConsumerStatefulWidget {
 
 class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Set<String> _hiddenBookingIds = {};
 
   @override
   void initState() {
@@ -24,6 +29,10 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    // Keeps the dispatch hub connected for as long as this screen is visible, so newly posted/taken/
+    // cancelled jobs refresh the Available tab live instead of only on manual pull-to-refresh.
+    ref.watch(dispatchLiveFeedProvider);
+
     // Gọi 2 nguồn dữ liệu khác biệt
     final myBookingsAsync = ref.watch(workerBookingsProvider); // Đơn của tôi (Active, Completed)
     final availableBookingsAsync = ref.watch(availableBookingsProvider); // Đơn đang trống chờ nhận (Pending)
@@ -70,7 +79,10 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
             error: (err, _) => Center(child: Text('Lỗi: $err')),
             data: (bookings) => RefreshIndicator(
               onRefresh: () async => ref.invalidate(availableBookingsProvider),
-              child: _buildJobList(bookings, isAvailableTab: true),
+              child: _buildJobList(
+                bookings.where((booking) => !_hiddenBookingIds.contains(booking.id)).toList(),
+                isAvailableTab: true,
+              ),
             ),
           ),
 
@@ -102,10 +114,40 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _RealJobCard(booking: list[i], isAvailableJob: isAvailableTab),
+      itemBuilder: (context, i) {
+        final card = _RealJobCard(booking: list[i], isAvailableJob: isAvailableTab);
+        if (!isAvailableTab) return card;
+        return Dismissible(
+          key: ValueKey('available-${list[i].id}'),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            color: Colors.red,
+            child: const Icon(Icons.visibility_off, color: Colors.white),
+          ),
+          onDismissed: (_) async {
+            setState(() => _hiddenBookingIds.add(list[i].id));
+            try {
+              await ref.read(dispatchRepositoryProvider).hideBooking(list[i].id);
+              ref.invalidate(availableBookingsProvider);
+            } catch (error) {
+              ref.invalidate(availableBookingsProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$error'), backgroundColor: Colors.red),
+                );
+              }
+            }
+          },
+          child: card,
+        );
+      },
     );
   }
 }
+
+final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
 class _RealJobCard extends ConsumerWidget {
   final Booking booking;
@@ -145,7 +187,10 @@ class _RealJobCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    return Card(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push('/worker/jobs/booking/${booking.id}'),
+      child: Card(
       elevation: 0,
       color: isAvailableJob ? kPrimaryContainer : theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -166,7 +211,7 @@ class _RealJobCard extends ConsumerWidget {
                       )
                   ),
                 ),
-                Text('\$${booking.price.toStringAsFixed(2)}',
+                Text(_vnd.format(booking.price),
                     style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800, color: kPrimary
                     )
@@ -259,6 +304,7 @@ class _RealJobCard extends ConsumerWidget {
               )
           ],
         ),
+      ),
       ),
     );
   }

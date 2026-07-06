@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/booking_enums.dart';
 import '../../../core/constants/user_role.dart';
 
-/// D.8 action matrix (MASTER_FEATURE_SPEC.md EPIC D): renders the buttons a participant sees for a
-/// booking's current status, wired to their role. Reschedule Approve/Reject/Withdraw collapse into a
-/// single "Accept new time" / "Cancel booking" pair for either participant, since the backend does not
-/// track which side requested the reschedule (§ 4.1 only distinguishes Accepted <-> RescheduleRequested).
 class BookingActionBar extends StatelessWidget {
   final String status;
   final UserRole viewerRole;
   final bool isScheduled;
+  final List<Map<String, dynamic>> statusTimeline;
   final VoidCallback onChat;
   final Future<void> Function() onGoingThere;
+  final Future<void> Function()? onAccept;
   final Future<void> Function() onStart;
   final Future<void> Function() onFinish;
   final Future<void> Function() onConfirmCash;
@@ -30,8 +28,10 @@ class BookingActionBar extends StatelessWidget {
     required this.status,
     required this.viewerRole,
     required this.isScheduled,
+    this.statusTimeline = const [],
     required this.onChat,
     required this.onGoingThere,
+    this.onAccept,
     required this.onStart,
     required this.onFinish,
     required this.onConfirmCash,
@@ -50,80 +50,123 @@ class BookingActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttons = <Widget>[];
+    var showChat = false;
+    var showReschedule = false;
+    Widget? primary;
+    Widget? secondary;
+    final overflow = <_OverflowAction>[];
 
     switch (status) {
       case BookingStatusName.awaitingWorker:
-        if (_isClient) buttons.add(_danger(context, 'Cancel booking', () => onReport('')));
+        if (_isClient) secondary = _danger(context, 'Cancel booking', () => onReport(''));
+        if (_isWorker && onAccept != null) primary = _primary(context, 'Accept Job', onAccept!);
 
       case BookingStatusName.accepted:
-        buttons.add(_chat(context));
-        if (isScheduled) {
-          buttons.add(_outlined(context, 'Request reschedule', onRequestReschedule));
-        }
+        showChat = true;
+        showReschedule = isScheduled;
         if (_isWorker) {
-          buttons.add(_primary(context, 'Going there', onGoingThere));
-          buttons.add(_outlined(context, 'Cancel this job', onReleaseJob));
+          primary = _primary(context, 'Going there', onGoingThere);
+          overflow.add(_OverflowAction('Cancel this job', onReleaseJob));
         }
-        buttons.add(_danger(context, 'Report', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
 
       case BookingStatusName.rescheduleRequested:
-        buttons.add(_chat(context));
-        buttons.add(_primary(context, 'Accept new time', onApproveReschedule));
-        buttons.add(_danger(context, 'Cancel booking', () => _promptReason(context, onReport)));
+        showChat = true;
+        primary = _primary(context, 'Accept new time', onApproveReschedule);
+        secondary = _danger(context, 'Cancel booking', () => _promptReason(context, onReport));
 
       case BookingStatusName.onTheWay:
-        buttons.add(_chat(context));
-        if (_isWorker) buttons.add(_primary(context, 'Start job', onStart));
-        buttons.add(_danger(context, 'Report', () => _promptReason(context, onReport)));
+        showChat = true;
+        if (_isWorker) primary = _primary(context, 'Start job', onStart);
+        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
 
       case BookingStatusName.inProgress:
-        buttons.add(_chat(context));
-        if (_isWorker) buttons.add(_primary(context, 'Finish', onFinish));
-        buttons.add(_danger(context, 'Report', () => _promptReason(context, onReport)));
+        showChat = true;
+        if (_isWorker) primary = _primary(context, 'Finish', onFinish);
+        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
 
       case BookingStatusName.pendingPayment:
-        buttons.add(_chat(context));
-        if (_isClient) buttons.add(_primarySync(context, 'Pay now', onPayNow));
-        if (_isWorker) buttons.add(_primary(context, 'Confirm cash received', onConfirmCash));
-        buttons.add(_danger(context, 'Report', () => _promptReason(context, onReport)));
+        showChat = true;
+        if (_isClient) primary = _primarySync(context, 'Pay now', onPayNow);
+        if (_isWorker) primary = _primary(context, 'Confirm cash received', onConfirmCash);
+        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
 
       case BookingStatusName.completed:
-        buttons.add(_chat(context));
-        if (_isClient) buttons.add(_outlinedSync(context, 'Review', onReview));
-        if (_isWorker) buttons.add(_outlinedSync(context, 'View earning', onViewEarning));
+        showChat = true;
+        if (_isClient) secondary = _outlinedSync(context, 'Review', onReview);
+        if (_isWorker) secondary = _outlinedSync(context, 'View earning', onViewEarning);
 
       case BookingStatusName.cancelled:
-        buttons.add(_outlinedSync(context, 'View reason', onViewReason));
+        secondary = _outlinedSync(context, 'View reason', onViewReason);
     }
 
-    if (buttons.isEmpty) return const SizedBox.shrink();
+    final utilityIcons = <Widget>[
+      if (showChat) _iconAction(context, icon: Icons.chat_bubble_outline_rounded, tooltip: 'Chat', onPressed: onChat),
+      if (showReschedule)
+        _iconAction(
+          context,
+          icon: Icons.event_repeat_rounded,
+          tooltip: 'Request reschedule',
+          onPressed: () => onRequestReschedule(),
+        ),
+      if (statusTimeline.isNotEmpty)
+        _iconAction(
+          context,
+          icon: Icons.history_rounded,
+          tooltip: 'History',
+          onPressed: () => _showHistory(context),
+        ),
+    ];
+
+    if (utilityIcons.isEmpty && primary == null && secondary == null && overflow.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final button in buttons) ...[button, const SizedBox(height: 12)],
+        if (utilityIcons.isNotEmpty || overflow.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: utilityIcons),
+              if (overflow.isNotEmpty) _overflowMenu(context, overflow),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (primary != null) ...[primary, const SizedBox(height: 12)],
+        if (secondary != null) secondary,
       ],
     );
   }
 
-  Widget _chat(BuildContext context) => TextButton.icon(
-        onPressed: onChat,
-        icon: const Icon(Icons.chat_bubble_outline_rounded),
-        label: const Text('Chat'),
+  Widget _iconAction(
+    BuildContext context, {
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) =>
+      IconButton.filledTonal(
+        icon: Icon(icon),
+        tooltip: tooltip,
+        onPressed: onPressed,
+      );
+
+  Widget _overflowMenu(BuildContext context, List<_OverflowAction> actions) => PopupMenuButton<int>(
+        tooltip: 'More actions',
+        icon: const Icon(Icons.more_horiz_rounded),
+        onSelected: (index) => actions[index].onSelected(),
+        itemBuilder: (context) => [
+          for (var i = 0; i < actions.length; i++)
+            PopupMenuItem<int>(value: i, child: Text(actions[i].label)),
+        ],
       );
 
   Widget _primary(BuildContext context, String label, Future<void> Function() onPressed) =>
       FilledButton(
         onPressed: () => onPressed(),
         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-        child: Text(label),
-      );
-
-  Widget _outlined(BuildContext context, String label, Future<void> Function() onPressed) =>
-      OutlinedButton(
-        onPressed: () => onPressed(),
-        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
         child: Text(label),
       );
 
@@ -172,4 +215,47 @@ class BookingActionBar extends StatelessWidget {
     );
     if (reason != null) await onConfirm(reason);
   }
+
+  void _showHistory(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Status history', style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: statusTimeline.length,
+                  itemBuilder: (context, index) {
+                    final entry = statusTimeline[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.check_circle_outline_rounded),
+                      title: Text(entry['newStatus']?.toString() ?? ''),
+                      subtitle: (entry['reason']?.toString() ?? '').isEmpty
+                          ? null
+                          : Text(entry['reason'].toString()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OverflowAction {
+  final String label;
+  final Future<void> Function() onSelected;
+  const _OverflowAction(this.label, this.onSelected);
 }

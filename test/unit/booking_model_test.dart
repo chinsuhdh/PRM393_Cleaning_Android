@@ -98,6 +98,20 @@ void main() {
   );
 
   test(
+    '[UT-FE-BOOKMODEL-08] parses createdAt so the newest posted job can be identified',
+    () {
+      final booking = Booking.fromJson({
+        'id': 'b1',
+        'serviceName': 'Dọn nhà',
+        'status': 'AwaitingWorker',
+        'createdAt': '2026-07-06T10:15:00Z',
+      });
+
+      expect(booking.createdAt, DateTime.parse('2026-07-06T10:15:00Z').toLocal());
+    },
+  );
+
+  test(
     '[UT-FE-BOOKMODEL-07] hasWorkerAssigned is true for Accepted/InProgress/Completed',
     () {
       Booking withStatus(String status) => Booking.fromJson({

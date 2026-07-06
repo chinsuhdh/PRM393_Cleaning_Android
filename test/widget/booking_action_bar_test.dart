@@ -7,6 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 // D.8 action matrix (MASTER_FEATURE_SPEC.md EPIC D). Reschedule Approve/Reject/Withdraw collapse into
 // a single "Accept new time" / "Cancel booking" pair for either participant, since the backend does not
 // track which side requested the reschedule.
+//
+// Layout: exactly one prominent primary action per status (if any); Chat/Reschedule are compact icon
+// buttons (found by tooltip, since they carry no label); Report and other rare/destructive actions live
+// behind the overflow ("More actions") menu so they never compete visually with the primary action.
 void main() {
   Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -14,8 +18,10 @@ void main() {
     required String status,
     required UserRole viewerRole,
     bool isScheduled = true,
+    List<Map<String, dynamic>> statusTimeline = const [],
     VoidCallback? onChat,
     Future<void> Function()? onGoingThere,
+    Future<void> Function()? onAccept,
     Future<void> Function()? onStart,
     Future<void> Function()? onFinish,
     Future<void> Function()? onConfirmCash,
@@ -32,8 +38,10 @@ void main() {
         status: status,
         viewerRole: viewerRole,
         isScheduled: isScheduled,
+        statusTimeline: statusTimeline,
         onChat: onChat ?? () {},
         onGoingThere: onGoingThere ?? () async {},
+        onAccept: onAccept,
         onStart: onStart ?? () async {},
         onFinish: onFinish ?? () async {},
         onConfirmCash: onConfirmCash ?? () async {},
@@ -47,8 +55,16 @@ void main() {
         onViewReason: onViewReason ?? () {},
       );
 
+  /// Opens the overflow menu and taps the named entry.
+  Future<void> tapOverflow(WidgetTester tester, String label) async {
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets(
-    '[UT-FE-BOOKACT-01] AwaitingWorker (client) shows only Cancel booking',
+    '[UT-FE-BOOKACT-01] AwaitingWorker (client) shows only Cancel booking, no chat or overflow',
     (tester) async {
       var cancelled = false;
       await tester.pumpWidget(wrap(bar(
@@ -58,8 +74,8 @@ void main() {
       )));
 
       expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Chat'), findsNothing);
-      expect(find.text('Going there'), findsNothing);
+      expect(find.byTooltip('Chat'), findsNothing);
+      expect(find.byTooltip('More actions'), findsNothing);
 
       await tester.tap(find.text('Cancel booking'));
       await tester.pumpAndSettle();
@@ -68,39 +84,46 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-02] Accepted (worker, scheduled) shows Chat, Going there, Release job, Report, Reschedule',
+    '[UT-FE-BOOKACT-02] Accepted (worker, scheduled): Going there is the sole primary action; '
+    'Chat/Reschedule are icons; Cancel this job/Report are behind the overflow menu',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.accepted,
         viewerRole: UserRole.worker,
       )));
 
-      expect(find.text('Chat'), findsOneWidget);
-      expect(find.text('Going there'), findsOneWidget);
-      expect(find.text('Cancel this job'), findsOneWidget);
-      expect(find.text('Report'), findsOneWidget);
-      expect(find.text('Request reschedule'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Going there'), findsOneWidget);
+      expect(find.byTooltip('Chat'), findsOneWidget);
+      expect(find.byTooltip('Request reschedule'), findsOneWidget);
+      expect(find.text('Cancel this job'), findsNothing);
+      expect(find.text('Report'), findsNothing);
+
+      await tapOverflow(tester, 'Cancel this job');
+      expect(find.text('Report'), findsNothing); // menu closed after selecting
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-03] Accepted (client) shows Chat, Reschedule, Report but no worker-only actions',
+    '[UT-FE-BOOKACT-03] Accepted (client): no primary action; Chat/Reschedule icons; Report in overflow',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.accepted,
         viewerRole: UserRole.client,
       )));
 
-      expect(find.text('Chat'), findsOneWidget);
-      expect(find.text('Request reschedule'), findsOneWidget);
-      expect(find.text('Report'), findsOneWidget);
+      expect(find.byTooltip('Chat'), findsOneWidget);
+      expect(find.byTooltip('Request reschedule'), findsOneWidget);
       expect(find.text('Going there'), findsNothing);
       expect(find.text('Cancel this job'), findsNothing);
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      expect(find.text('Report'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-04] Accepted (worker, immediate) hides the reschedule button',
+    '[UT-FE-BOOKACT-04] Accepted (worker, immediate) hides the reschedule icon',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.accepted,
@@ -108,12 +131,12 @@ void main() {
         isScheduled: false,
       )));
 
-      expect(find.text('Request reschedule'), findsNothing);
+      expect(find.byTooltip('Request reschedule'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-05] OnTheWay: worker sees Start job, client does not',
+    '[UT-FE-BOOKACT-05] OnTheWay: worker sees a primary Start job action, client does not',
     (tester) async {
       var started = false;
       await tester.pumpWidget(wrap(bar(
@@ -122,8 +145,9 @@ void main() {
         onStart: () async => started = true,
       )));
 
-      expect(find.text('Start job'), findsOneWidget);
-      await tester.tap(find.text('Start job'));
+      final startButton = find.widgetWithText(FilledButton, 'Start job');
+      expect(startButton, findsOneWidget);
+      await tester.tap(startButton);
       await tester.pumpAndSettle();
       expect(started, isTrue);
 
@@ -132,12 +156,12 @@ void main() {
         viewerRole: UserRole.client,
       )));
       expect(find.text('Start job'), findsNothing);
-      expect(find.text('Chat'), findsOneWidget);
+      expect(find.byTooltip('Chat'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-06] InProgress: worker sees Finish, client does not',
+    '[UT-FE-BOOKACT-06] InProgress: worker sees a primary Finish action, client does not',
     (tester) async {
       var finished = false;
       await tester.pumpWidget(wrap(bar(
@@ -146,8 +170,9 @@ void main() {
         onFinish: () async => finished = true,
       )));
 
-      expect(find.text('Finish'), findsOneWidget);
-      await tester.tap(find.text('Finish'));
+      final finishButton = find.widgetWithText(FilledButton, 'Finish');
+      expect(finishButton, findsOneWidget);
+      await tester.tap(finishButton);
       await tester.pumpAndSettle();
       expect(finished, isTrue);
 
@@ -160,26 +185,26 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-07] PendingPayment: client sees Pay now, worker sees Confirm cash received',
+    '[UT-FE-BOOKACT-07] PendingPayment: client sees primary Pay now, worker sees primary Confirm cash received',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.client,
       )));
-      expect(find.text('Pay now'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Pay now'), findsOneWidget);
       expect(find.text('Confirm cash received'), findsNothing);
 
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.worker,
       )));
-      expect(find.text('Confirm cash received'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Confirm cash received'), findsOneWidget);
       expect(find.text('Pay now'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-08] Completed: client sees Review, worker sees View earning',
+    '[UT-FE-BOOKACT-08] Completed: client sees Review, worker sees View earning, no overflow menu',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.completed,
@@ -187,6 +212,7 @@ void main() {
       )));
       expect(find.text('Review'), findsOneWidget);
       expect(find.text('View earning'), findsNothing);
+      expect(find.byTooltip('More actions'), findsNothing);
 
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.completed,
@@ -198,7 +224,7 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-09] Cancelled shows only View reason, no Chat',
+    '[UT-FE-BOOKACT-09] Cancelled shows only View reason, no chat or overflow',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.cancelled,
@@ -206,13 +232,32 @@ void main() {
       )));
 
       expect(find.text('View reason'), findsOneWidget);
-      expect(find.text('Chat'), findsNothing);
-      expect(find.text('Report'), findsNothing);
+      expect(find.byTooltip('Chat'), findsNothing);
+      expect(find.byTooltip('More actions'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-10] RescheduleRequested shows Accept new time and Cancel booking for either role',
+    '[UT-FE-BOOKACT-11] AwaitingWorker worker can accept an eligible booking',
+    (tester) async {
+      var accepted = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.awaitingWorker,
+        viewerRole: UserRole.worker,
+        onAccept: () async => accepted = true,
+      )));
+
+      final acceptButton = find.widgetWithText(FilledButton, 'Accept Job');
+      expect(acceptButton, findsOneWidget);
+      await tester.tap(acceptButton);
+      await tester.pumpAndSettle();
+      expect(accepted, isTrue);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-10] RescheduleRequested: Accept new time is primary; Cancel booking stays directly '
+    'visible (it is one of only two real choices here, not a rare/destructive extra)',
     (tester) async {
       var approved = false;
       await tester.pumpWidget(wrap(bar(
@@ -221,13 +266,71 @@ void main() {
         onApproveReschedule: () async => approved = true,
       )));
 
-      expect(find.text('Accept new time'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Accept new time'), findsOneWidget);
       expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Chat'), findsOneWidget);
+      expect(find.byTooltip('Chat'), findsOneWidget);
 
-      await tester.tap(find.text('Accept new time'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Accept new time'));
       await tester.pumpAndSettle();
       expect(approved, isTrue);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-12] Report reason prompt still reaches onReport when confirmed from the overflow menu',
+    (tester) async {
+      String? reportedReason;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.onTheWay,
+        viewerRole: UserRole.worker,
+        onReport: (reason) async => reportedReason = reason,
+      )));
+
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Report').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Client not home');
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(reportedReason, 'Client not home');
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-13] A non-empty status timeline shows a History icon that opens it in a sheet',
+    (tester) async {
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.completed,
+        viewerRole: UserRole.client,
+        statusTimeline: const [
+          {'newStatus': 'Accepted', 'reason': ''},
+          {'newStatus': 'Completed', 'reason': ''},
+        ],
+      )));
+
+      final historyIcon = find.byTooltip('History');
+      expect(historyIcon, findsOneWidget);
+
+      await tester.tap(historyIcon);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Accepted'), findsOneWidget);
+      expect(find.text('Completed'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-14] No History icon when the status timeline is empty',
+    (tester) async {
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.completed,
+        viewerRole: UserRole.client,
+      )));
+
+      expect(find.byTooltip('History'), findsNothing);
     },
   );
 }

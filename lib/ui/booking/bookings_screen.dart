@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
@@ -161,7 +162,10 @@ class BookingCard extends StatelessWidget {
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/booking/${booking.id}'),
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +260,7 @@ class BookingCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '\$${booking.price.toStringAsFixed(0)}',
+                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(booking.price),
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: kPrimary,
@@ -266,6 +270,7 @@ class BookingCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );
