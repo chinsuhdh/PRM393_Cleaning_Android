@@ -19,7 +19,7 @@ abstract class BookingRepository {
   });
   Future<void> cancelBooking(String bookingId);
   Future<void> acceptBooking(String bookingId);
-  Future<void> updateBookingStatus(String bookingId, String newStatus);
+  Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason});
   Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos);
 }
 
@@ -200,11 +200,14 @@ class ApiBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<void> updateBookingStatus(String bookingId, String newStatus) async {
+  Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {
     try {
       await _dio.patch(
         '/Bookings/$bookingId/status',
-        data: {'newStatus': newStatus},
+        data: {
+          'newStatus': newStatus,
+          if (reason != null) 'reason': reason,
+        },
       );
     } on DioException catch (error) {
       throw Exception(

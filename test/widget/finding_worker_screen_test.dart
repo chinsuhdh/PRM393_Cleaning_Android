@@ -227,7 +227,7 @@ class _FakeBookingRepository implements BookingRepository {
   Future<List<Booking>> getWorkerBookings() async => [];
 
   @override
-  Future<void> updateBookingStatus(String bookingId, String newStatus) async {}
+  Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
 }
 
 class _FakeWorkerRepository implements WorkerRepository {

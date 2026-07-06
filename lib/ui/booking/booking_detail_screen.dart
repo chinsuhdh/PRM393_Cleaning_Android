@@ -6,7 +6,9 @@ import '../../core/network/dio_client.dart';
 import '../../data/models/booking.dart';
 // ĐÃ FIX: Thêm import Repository để dùng các provider
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../core/constants/booking_enums.dart';
+import 'widgets/booking_action_bar.dart';
 
 // API Gọi chi tiết Booking bằng ID
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
@@ -135,50 +137,80 @@ class BookingDetailScreen extends ConsumerWidget {
                   )
                 ],
 
-                if (booking.status == BookingStatusName.awaitingWorker)
-                  OutlinedButton(
-                    onPressed: () async {
-                      try {
-                        await ref.read(bookingRepositoryProvider).cancelBooking(bookingId);
-                        ref.invalidate(bookingDetailProvider(bookingId));
-                        ref.invalidate(bookingsProvider);
-
-                        // ĐÃ FIX: Kiểm tra context mounted trước khi hiển thị SnackBar sau hàm await
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
-                      } catch (e) {
-                        // ĐÃ FIX: Kiểm tra context mounted
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red));
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Cancel Booking'),
-                  ),
-                if (booking.status == BookingStatusName.pendingPayment)
-                  FilledButton.icon(
-                    onPressed: () => context.push('/payment/${booking.id}'),
-                    icon: const Icon(Icons.payment),
-                    label: const Text('Pay now'),
-                  ),
-                if (booking.status == BookingStatusName.accepted ||
-                    booking.status == BookingStatusName.onTheWay ||
-                    booking.status == BookingStatusName.inProgress ||
-                    booking.status == BookingStatusName.pendingPayment)
-                  TextButton.icon(
-                    onPressed: () => context.push('/chat'),
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Chat'),
-                  ),
+                BookingActionBar(
+                  status: booking.status,
+                  viewerRole: ref.watch(authProvider).role,
+                  isScheduled: booking.bookingType == BookingTypeName.scheduled,
+                  onChat: () => context.push('/chat'),
+                  onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
+                  onStart: () => _advance(context, ref, BookingStatusName.inProgress),
+                  onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
+                  onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+                  onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
+                  onReport: (reason) => _cancel(context, ref, reason),
+                  onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
+                  onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
+                  onPayNow: () => context.push('/payment/${booking.id}'),
+                  onReview: () => context.push('/review/${booking.id}'),
+                  onViewEarning: () => context.push('/worker/wallet'),
+                  onViewReason: () => _showCancellationReason(context, booking),
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _advance(BuildContext context, WidgetRef ref, String newStatus) async {
+    try {
+      await ref.read(bookingRepositoryProvider).updateBookingStatus(bookingId, newStatus);
+      ref.invalidate(bookingDetailProvider(bookingId));
+      ref.invalidate(bookingsProvider);
+      ref.invalidate(workerBookingsProvider);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật trạng thái: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _cancel(BuildContext context, WidgetRef ref, String reason) async {
+    try {
+      await ref.read(bookingRepositoryProvider).updateBookingStatus(
+            bookingId,
+            BookingStatusName.cancelled,
+            reason: reason.isEmpty ? null : reason,
+          );
+      ref.invalidate(bookingDetailProvider(bookingId));
+      ref.invalidate(bookingsProvider);
+      ref.invalidate(workerBookingsProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showCancellationReason(BuildContext context, Booking booking) {
+    final cancelEntry = booking.statusTimeline.lastWhere(
+      (entry) => entry['newStatus']?.toString() == BookingStatusName.cancelled,
+      orElse: () => const {},
+    );
+    final reason = (cancelEntry['reason'] as String?)?.trim();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Lý do hủy đơn'),
+        content: Text(reason == null || reason.isEmpty ? 'Không có lý do được cung cấp.' : reason),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng')),
+        ],
       ),
     );
   }

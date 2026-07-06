@@ -24,6 +24,36 @@ void main() {
   );
 
   test(
+    '[UT-FE-BOOK-STATUS-03] updateBookingStatus sends an optional reason for report/cancel actions (D.8)',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Bookings/b1/status',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'newStatus': BookingStatusName.cancelled, 'reason': 'Khach vang mat'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.updateBookingStatus('b1', BookingStatusName.cancelled, reason: 'Khach vang mat');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-STATUS-04] updateBookingStatus omits the reason field when none is given',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Bookings/b1/status',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'newStatus': BookingStatusName.onTheWay},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.updateBookingStatus('b1', BookingStatusName.onTheWay);
+    },
+  );
+
+  test(
     '[UT-FE-BOOK-ACCEPT-01] acceptBooking PATCHes the accept endpoint',
     () async {
       final harness = DioTestHarness();

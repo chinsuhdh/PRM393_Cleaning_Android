@@ -119,7 +119,7 @@ class BookingDateTimeStep extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Lịch hẹn cần trước ít nhất 2 giờ và trong giờ hoạt động của dịch vụ.',
+                    'Lịch hẹn cần trước ít nhất 2 giờ và trong vòng 30 ngày tới.',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ),
