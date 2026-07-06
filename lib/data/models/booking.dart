@@ -10,6 +10,11 @@ class Booking {
   final String status;
   final String bookingType;
   final Worker? worker;
+  final DateTime? scheduledStartTime;
+  final DateTime? updatedAt;
+  final List<Map<String, dynamic>> statusTimeline;
+  final List<Map<String, dynamic>> photos;
+  final List<Map<String, dynamic>> pricingBreakdown;
 
   final String? addressText;
   final double? latitude;
@@ -24,6 +29,11 @@ class Booking {
     required this.status,
     this.bookingType = '',
     this.worker,
+    this.scheduledStartTime,
+    this.updatedAt,
+    this.statusTimeline = const [],
+    this.photos = const [],
+    this.pricingBreakdown = const [],
     this.addressText,
     this.latitude,
     this.longitude,
@@ -75,6 +85,13 @@ class Booking {
       status: statusStr,
       bookingType: (json['bookingType'] as String?) ?? '',
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
+      scheduledStartTime: rawScheduled == null ? null : DateTime.tryParse(rawScheduled)?.toLocal(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toLocal(),
+      statusTimeline: List<Map<String, dynamic>>.from(json['statusTimeline'] as List? ?? const []),
+      photos: List<Map<String, dynamic>>.from(json['photos'] as List? ?? const []),
+      pricingBreakdown: List<Map<String, dynamic>>.from(
+        (json['pricingBreakdown'] as Map?)?['breakdown'] as List? ?? const [],
+      ),
 
       addressText: json['addressText'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),

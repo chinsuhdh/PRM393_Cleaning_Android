@@ -13,6 +13,7 @@ class BookingSummaryStep extends StatelessWidget {
   final PaymentMethod selectedPaymentMethod;
   final ValueChanged<PaymentMethod> onPaymentMethodChanged;
   final VoidCallback onRetry;
+  final Map<String, dynamic>? quote;
 
   const BookingSummaryStep({
     super.key,
@@ -24,6 +25,7 @@ class BookingSummaryStep extends StatelessWidget {
     required this.selectedPaymentMethod,
     required this.onPaymentMethodChanged,
     required this.onRetry,
+    required this.quote,
   });
 
   @override
@@ -44,9 +46,8 @@ class BookingSummaryStep extends StatelessWidget {
       ),
       data: (service) {
         final addressText = selectedAddress?['addressText'] ?? 'Chưa chọn địa chỉ';
-        final price = service['basePrice'] ?? service['price'] ?? 0.0;
-        final tax = (price * 0.05);
-        final total = price + tax;
+        final lines = List<Map<String, dynamic>>.from(quote?['breakdown'] as List? ?? const []);
+        final total = quote?['totalPrice'] ?? 0;
 
         return SingleChildScrollView(
           child: Column(
@@ -79,16 +80,20 @@ class BookingSummaryStep extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 12),
-                      _SummaryRow(label: 'Phí dịch vụ', value: '$price VND'),
-                      const SizedBox(height: 6),
-                      _SummaryRow(label: 'Thuế (5%)', value: '$tax VND'),
+                      ...lines.map((line) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: _SummaryRow(
+                          label: line['label']?.toString() ?? '',
+                          value: NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(line['amount'] ?? 0),
+                        ),
+                      )),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Tổng cộng',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                          Text('$total VND',
+                          Text(NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(total),
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary)),
                         ],

@@ -30,6 +30,15 @@ void main() {
         data: null,
       );
       harness.adapter.onPost(
+        '/Bookings/quote',
+        (server) => server.reply(200, {
+          'serviceVersion': 1,
+          'totalPrice': 200000,
+          'breakdown': [{'label': 'Base', 'amount': 200000}],
+        }),
+        data: {'serviceId': 'service-1', 'optionAnswers': <String, dynamic>{}},
+      );
+      harness.adapter.onPost(
         '/Bookings',
         (server) => server.reply(200, {
           'success': true,
@@ -47,7 +56,8 @@ void main() {
           'serviceId': 'service-1',
           'addressId': 'address-1',
           'bookingType': 'Immediate',
-          'durationHours': 2,
+          'serviceVersion': 1,
+          'optionAnswers': <String, dynamic>{},
           'notes': 'Không có ghi chú',
         },
       );
@@ -79,6 +89,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đặt ngay'));
@@ -116,6 +128,15 @@ void main() {
         data: null,
       );
       harness.adapter.onPost(
+        '/Bookings/quote',
+        (server) => server.reply(200, {
+          'serviceVersion': 1,
+          'totalPrice': 200000,
+          'breakdown': [{'label': 'Base', 'amount': 200000}],
+        }),
+        data: {'serviceId': 'service-1', 'optionAnswers': <String, dynamic>{}},
+      );
+      harness.adapter.onPost(
         '/Bookings',
         (server) => server.reply(400, {
           'success': false,
@@ -127,7 +148,8 @@ void main() {
           'serviceId': 'service-1',
           'addressId': 'address-1',
           'bookingType': 'Immediate',
-          'durationHours': 2,
+          'serviceVersion': 1,
+          'optionAnswers': <String, dynamic>{},
           'notes': 'Không có ghi chú',
         },
       );
@@ -155,6 +177,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đặt ngay'));

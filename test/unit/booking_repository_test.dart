@@ -137,7 +137,7 @@ void main() {
   );
 
   test(
-    '[UT-FE-BOOK-LIST-03] getAvailableBookings returns [] on a server error',
+    '[UT-FE-BOOK-LIST-03] getAvailableBookings surfaces a server error',
     () async {
       final harness = DioTestHarness();
       harness.adapter.onGet(
@@ -147,9 +147,7 @@ void main() {
       );
       final repository = ApiBookingRepository(harness.dio);
 
-      final bookings = await repository.getAvailableBookings();
-
-      expect(bookings, isEmpty);
+      expect(repository.getAvailableBookings(), throwsA(isA<Exception>()));
     },
   );
 

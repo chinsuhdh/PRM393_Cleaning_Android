@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 
 void main() {
   testWidgets(
@@ -191,6 +192,12 @@ class _FakeBookingRepository implements BookingRepository {
 
   final Booking booking;
   int cancelCount = 0;
+
+  @override
+  Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async => {};
+
+  @override
+  Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos) async {}
 
   @override
   Future<Booking?> getBookingById(String bookingId) async => booking;

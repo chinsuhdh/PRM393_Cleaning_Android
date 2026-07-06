@@ -12,6 +12,7 @@ abstract class BookingRepository {
   Future<List<Booking>> getAvailableBookings();
   Future<Booking?> getBookingById(String bookingId);
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data);
+  Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data);
   Future<Booking> createBooking(
     Map<String, dynamic> data, {
     required String idempotencyKey,
@@ -19,6 +20,11 @@ abstract class BookingRepository {
   Future<void> cancelBooking(String bookingId);
   Future<void> acceptBooking(String bookingId);
   Future<void> updateBookingStatus(String bookingId, String newStatus);
+  Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos);
+}
+
+class QuoteStaleException implements Exception {
+  const QuoteStaleException();
 }
 
 class ApiBookingRepository implements BookingRepository {
@@ -38,8 +44,8 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (_) {
-      return [];
+    } on DioException catch (error) {
+      throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải lịch đặt.'));
     }
   }
 
@@ -55,8 +61,8 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (_) {
-      return [];
+    } on DioException catch (error) {
+      throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải công việc.'));
     }
   }
 
@@ -72,8 +78,8 @@ class ApiBookingRepository implements BookingRepository {
             .toList();
       }
       return [];
-    } catch (_) {
-      return [];
+    } on DioException catch (error) {
+      throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải công việc khả dụng.'));
     }
   }
 
@@ -131,6 +137,9 @@ class ApiBookingRepository implements BookingRepository {
       );
       return Booking.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (error) {
+      if (backendErrorCodeFromDioException(error) == 'QUOTE_STALE') {
+        throw const QuoteStaleException();
+      }
       throw Exception(
         backendMessageFromDioException(
           error,
@@ -138,6 +147,25 @@ class ApiBookingRepository implements BookingRepository {
         ),
       );
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/Bookings/quote', data: data);
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (error) {
+      throw Exception(backendMessageFromDioException(error, fallback: 'Không thể lấy báo giá.'));
+    }
+  }
+
+  @override
+  Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos) async {
+    if (photos.isEmpty) return;
+    await _dio.post(
+      '/Bookings/$bookingId/photos',
+      data: FormData.fromMap({'photos': photos}),
+    );
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:cleanai/ui/booking/create_booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 
 import '../support/dio_test_harness.dart';
 
@@ -18,6 +19,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
 
       expect(find.text('Đặt dịch vụ'), findsOneWidget);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       expect(find.text('Home'), findsOneWidget);
 
@@ -48,6 +51,8 @@ void main() {
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       expect(find.text('Bạn chưa có địa chỉ để đặt dịch vụ.'), findsOneWidget);
       expect(find.text('Thêm địa chỉ'), findsOneWidget);
     },
@@ -70,6 +75,8 @@ void main() {
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       expect(find.text('Không thể tải danh sách địa chỉ'), findsOneWidget);
       expect(find.text('Thử lại'), findsOneWidget);
     },
@@ -84,6 +91,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
@@ -104,6 +113,8 @@ void main() {
       await _pumpScreen(tester, harness, repository);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Đặt ngay'));
@@ -128,6 +139,8 @@ void main() {
       _stubBookingData(harness);
       final repository = _FakeBookingRepository();
       await _pumpScreen(tester, harness, repository);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
       expect(find.text('Thêm địa chỉ mới'), findsOneWidget);
@@ -200,6 +213,16 @@ Future<void> _pumpScreen(
 }
 
 class _FakeBookingRepository implements BookingRepository {
+  @override
+  Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data) async => {
+    'serviceVersion': 1,
+    'totalPrice': 100000,
+    'breakdown': [{'label': 'Base', 'amount': 100000}],
+  };
+
+  @override
+  Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos) async {}
+
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {'slots': <Object>[]};
 

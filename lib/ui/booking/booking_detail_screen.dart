@@ -6,6 +6,7 @@ import '../../core/network/dio_client.dart';
 import '../../data/models/booking.dart';
 // ĐÃ FIX: Thêm import Repository để dùng các provider
 import '../../data/repositories/booking_repository.dart';
+import '../../core/constants/booking_enums.dart';
 
 // API Gọi chi tiết Booking bằng ID
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
@@ -71,6 +72,31 @@ class BookingDetailScreen extends ConsumerWidget {
                 _DetailRow(icon: Icons.access_time_rounded, label: 'Time', value: booking.time),
                 // ĐÃ FIX: Dùng `booking.price` theo chuẩn model cũ của bạn
                 _DetailRow(icon: Icons.attach_money_rounded, label: 'Total', value: '${booking.price} VND'),
+                if (booking.statusTimeline.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text('Status timeline', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ...booking.statusTimeline.map((entry) => ListTile(
+                    leading: const Icon(Icons.check_circle_outline, color: kPrimary),
+                    title: Text(entry['newStatus']?.toString() ?? ''),
+                    subtitle: Text(entry['reason']?.toString() ?? ''),
+                  )),
+                ],
+                if (booking.photos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 96,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: booking.photos.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, index) => Image.network(
+                        booking.photos[index]['photoUrl'].toString(),
+                        width: 96,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
 
                 if (booking.worker != null) ...[
@@ -109,7 +135,7 @@ class BookingDetailScreen extends ConsumerWidget {
                   )
                 ],
 
-                if (booking.status == 'Pending' || booking.status == 'Upcoming')
+                if (booking.status == BookingStatusName.awaitingWorker)
                   OutlinedButton(
                     onPressed: () async {
                       try {
@@ -133,6 +159,21 @@ class BookingDetailScreen extends ConsumerWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Cancel Booking'),
+                  ),
+                if (booking.status == BookingStatusName.pendingPayment)
+                  FilledButton.icon(
+                    onPressed: () => context.push('/payment/${booking.id}'),
+                    icon: const Icon(Icons.payment),
+                    label: const Text('Pay now'),
+                  ),
+                if (booking.status == BookingStatusName.accepted ||
+                    booking.status == BookingStatusName.onTheWay ||
+                    booking.status == BookingStatusName.inProgress ||
+                    booking.status == BookingStatusName.pendingPayment)
+                  TextButton.icon(
+                    onPressed: () => context.push('/chat'),
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('Chat'),
                   ),
               ],
             ),
