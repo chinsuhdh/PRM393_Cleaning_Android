@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'active_booking_bar.dart';
+
 class ClientShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   const ClientShell({super.key, required this.navigationShell});
@@ -37,17 +39,23 @@ class ClientShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-        destinations: _destinations,
-        animationDuration: const Duration(milliseconds: 400),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const ActiveBookingBar(),
+          NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: (index) {
+              navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
+              );
+            },
+            destinations: _destinations,
+            animationDuration: const Duration(milliseconds: 400),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          ),
+        ],
       ),
     );
   }
