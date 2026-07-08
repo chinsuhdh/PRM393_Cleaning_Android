@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/constants/booking_enums.dart';
 import '../../../core/constants/user_role.dart';
+import '../../shared/destructive_dialog_actions.dart';
 
 class BookingActionBar extends StatelessWidget {
   final String status;
   final UserRole viewerRole;
   final bool isScheduled;
+
+  /// Enum name from the API ('Cash' | 'Vnpay'). Auto-payment: the client never pays in-app —
+  /// Cash keeps the worker's confirm step, VNPay auto-charges server-side on Finish.
+  final String paymentMethod;
   final List<Map<String, dynamic>> statusTimeline;
   final VoidCallback onChat;
   final Future<void> Function() onGoingThere;
@@ -19,7 +25,6 @@ class BookingActionBar extends StatelessWidget {
   final VoidCallback onRetryAsNewBooking;
   final Future<void> Function() onRequestReschedule;
   final Future<void> Function() onApproveReschedule;
-  final VoidCallback onPayNow;
   final VoidCallback onReview;
   final VoidCallback onViewEarning;
   final VoidCallback onViewReason;
@@ -29,6 +34,7 @@ class BookingActionBar extends StatelessWidget {
     required this.status,
     required this.viewerRole,
     required this.isScheduled,
+    this.paymentMethod = 'Cash',
     this.statusTimeline = const [],
     required this.onChat,
     required this.onGoingThere,
@@ -41,7 +47,6 @@ class BookingActionBar extends StatelessWidget {
     required this.onRetryAsNewBooking,
     required this.onRequestReschedule,
     required this.onApproveReschedule,
-    required this.onPayNow,
     required this.onReview,
     required this.onViewEarning,
     required this.onViewReason,
@@ -64,7 +69,7 @@ class BookingActionBar extends StatelessWidget {
           // Immediate: still broadcasting with no deadline — offer Cancel alongside Retry (starts a
           // brand new request) side by side, instead of only Cancel. Scheduled keeps just Cancel.
           secondary = isScheduled
-              ? _danger(context, 'Cancel booking', () => onReport(''))
+              ? _danger(context, 'Cancel booking', () => _promptCancelReason(context))
               : _cancelAndRetryRow(context);
         }
         if (_isWorker && onAccept != null) primary = _primary(context, 'Accept Job', onAccept!);
@@ -81,7 +86,7 @@ class BookingActionBar extends StatelessWidget {
       case BookingStatusName.rescheduleRequested:
         showChat = true;
         primary = _primary(context, 'Accept new time', onApproveReschedule);
-        secondary = _danger(context, 'Cancel booking', () => _promptReason(context, onReport));
+        secondary = _danger(context, 'Cancel booking', () => _promptCancelReason(context));
 
       case BookingStatusName.onTheWay:
         showChat = true;
@@ -95,8 +100,20 @@ class BookingActionBar extends StatelessWidget {
 
       case BookingStatusName.pendingPayment:
         showChat = true;
-        if (_isClient) primary = _primarySync(context, 'Pay now', onPayNow);
-        if (_isWorker) primary = _primary(context, 'Confirm cash received', onConfirmCash);
+        // Auto-payment: no client "Pay now" anymore. Cash ends with the worker confirming they
+        // got paid; VNPay is charged automatically server-side, so this state is transient and
+        // everyone just sees a processing hint until the Completed push lands.
+        final isCash = paymentMethod == 'Cash';
+        if (_isWorker && isCash) {
+          primary = _primary(context, 'Confirm cash received', onConfirmCash);
+        } else {
+          secondary = _hint(
+            context,
+            isCash
+                ? 'Vui lòng thanh toán tiền mặt cho nhân viên.'
+                : 'Đang xử lý thanh toán VNPay…',
+          );
+        }
         overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
 
       case BookingStatusName.completed:
@@ -183,12 +200,6 @@ class BookingActionBar extends StatelessWidget {
         child: Text(label),
       );
 
-  Widget _primarySync(BuildContext context, String label, VoidCallback onPressed) => FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-        child: Text(label),
-      );
-
   Widget _outlinedSync(BuildContext context, String label, VoidCallback onPressed) => OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
@@ -197,10 +208,27 @@ class BookingActionBar extends StatelessWidget {
 
   Widget _cancelAndRetryRow(BuildContext context) => Row(
         children: [
-          Expanded(child: _danger(context, 'Cancel booking', () => onReport(''))),
+          Expanded(child: _danger(context, 'Cancel booking', () => _promptCancelReason(context))),
           const SizedBox(width: 12),
           Expanded(child: _outlinedSync(context, 'Retry', onRetryAsNewBooking)),
         ],
+      );
+
+  /// Passive status row for states where the viewer has nothing to do (auto-payment in flight,
+  /// or waiting on the other party) — informational only, deliberately not a button.
+  Widget _hint(BuildContext context, String message) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: Theme.of(context).textTheme.bodyMedium)),
+          ],
+        ),
       );
 
   Widget _danger(BuildContext context, String label, VoidCallback onPressed) => OutlinedButton(
@@ -213,23 +241,31 @@ class BookingActionBar extends StatelessWidget {
         child: Text(label),
       );
 
-  Future<void> _promptReason(BuildContext context, Future<void> Function(String reason) onConfirm) async {
+  /// Every cancel path funnels through here so cancelling always asks why — the reason lands in the
+  /// status log / cancellation record and is what "View reason" shows the other party afterwards.
+  Future<void> _promptCancelReason(BuildContext context) =>
+      _promptReason(context, onReport, title: 'Cancel this booking?');
+
+  Future<void> _promptReason(
+    BuildContext context,
+    Future<void> Function(String reason) onConfirm, {
+    String title = 'Report this booking',
+  }) async {
     final controller = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Report this booking'),
+        title: Text(title),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(hintText: 'Reason (optional)'),
           maxLines: 3,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Back')),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Confirm'),
+          DestructiveDialogActions(
+            confirmLabel: 'Confirm',
+            onConfirm: () => Navigator.pop(dialogContext, controller.text),
+            onCancel: () => Navigator.pop(dialogContext),
           ),
         ],
       ),
@@ -256,13 +292,20 @@ class BookingActionBar extends StatelessWidget {
                   itemCount: statusTimeline.length,
                   itemBuilder: (context, index) {
                     final entry = statusTimeline[index];
+                    final createdAt =
+                        DateTime.tryParse(entry['createdAt']?.toString() ?? '')?.toLocal();
+                    final timestamp =
+                        createdAt == null ? null : DateFormat('dd/MM/yyyy HH:mm').format(createdAt);
+                    final reason = entry['reason']?.toString() ?? '';
+                    final subtitle = [
+                      if (timestamp != null) timestamp,
+                      if (reason.isNotEmpty) reason,
+                    ].join('\n');
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.check_circle_outline_rounded),
                       title: Text(entry['newStatus']?.toString() ?? ''),
-                      subtitle: (entry['reason']?.toString() ?? '').isEmpty
-                          ? null
-                          : Text(entry['reason'].toString()),
+                      subtitle: subtitle.isEmpty ? null : Text(subtitle),
                     );
                   },
                 ),

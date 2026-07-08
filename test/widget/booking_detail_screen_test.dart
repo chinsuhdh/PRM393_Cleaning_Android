@@ -305,6 +305,12 @@ void main() {
         find.ancestor(of: find.text('Cancel booking'), matching: find.byType(OutlinedButton)),
       );
       cancelButton.onPressed!();
+      // Cancelling now asks why first — confirm through the reason dialog. Plain pump()s, not
+      // pumpAndSettle: the searching card is still animating behind the dialog, so settle would
+      // spin until timeout.
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Confirm'));
       // The fake repository doesn't mutate the booking itself — mirror what the real backend would
       // return on refetch, exactly like WT-FE-BOOKDETAIL-16 does for the other-party-cancel case.
       booking = const Booking(
@@ -374,6 +380,12 @@ void main() {
         find.ancestor(of: find.text('Cancel booking'), matching: find.byType(OutlinedButton)),
       );
       cancelButton.onPressed!();
+      // Cancelling now asks why first — confirm through the reason dialog. Plain pump()s, not
+      // pumpAndSettle: the searching card is still animating behind the dialog, so settle would
+      // spin until timeout.
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Confirm'));
       booking = const Booking(
         id: 'cancel-from-map-notransition', serviceName: 'Home Cleaning', date: '', time: '',
         price: 200000, status: BookingStatusName.cancelled, bookingType: BookingTypeName.immediate,

@@ -11,6 +11,8 @@ class Booking {
   final String time;
   final double price;
   final String status;
+  // Enum name from the API: 'Cash' | 'Vnpay'. Drives which PendingPayment action the worker sees.
+  final String paymentMethod;
   final String bookingType;
   final Worker? worker;
   final DateTime? scheduledStartTime;
@@ -39,6 +41,7 @@ class Booking {
     required this.time,
     required this.price,
     required this.status,
+    this.paymentMethod = 'Cash',
     this.bookingType = '',
     this.worker,
     this.scheduledStartTime,
@@ -106,6 +109,7 @@ class Booking {
       time: time,
       price: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
       status: statusStr,
+      paymentMethod: (json['paymentMethod'] as String?) ?? 'Cash',
       bookingType: (json['bookingType'] as String?) ?? '',
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
       scheduledStartTime: rawScheduled == null ? null : DateTime.tryParse(rawScheduled)?.toLocal(),

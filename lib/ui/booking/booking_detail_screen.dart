@@ -296,6 +296,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     status: booking.status,
                     viewerRole: role,
                     isScheduled: booking.bookingType == BookingTypeName.scheduled,
+                    paymentMethod: booking.paymentMethod,
                     statusTimeline: booking.statusTimeline,
                     onChat: () => context.push('/chat/${widget.bookingId}'),
                     onAccept: () => _accept(context, ref),
@@ -308,7 +309,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
                     onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
                     onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
-                    onPayNow: () => context.push('/payment/${booking.id}'),
                     onReview: () => context.push('/review/${booking.id}'),
                     onViewEarning: () => context.push('/worker/wallet'),
                     onViewReason: () => _showCancellationReason(context, booking),
@@ -488,6 +488,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             status: booking.status,
             viewerRole: role,
             isScheduled: booking.bookingType == BookingTypeName.scheduled,
+            paymentMethod: booking.paymentMethod,
             statusTimeline: booking.statusTimeline,
             onChat: () => context.push('/chat/${widget.bookingId}'),
             onAccept: () => _accept(context, ref),
@@ -500,7 +501,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
             onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
             onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
-            onPayNow: () => context.push('/payment/${booking.id}'),
             onReview: () => context.push('/review/${booking.id}'),
             onViewEarning: () => context.push('/worker/wallet'),
             onViewReason: () => _showCancellationReason(context, booking),
@@ -617,7 +617,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       // Not yet accepted: everyone sees the nearby-workers map — client and worker alike, Immediate
       // and Scheduled alike. Only the searching countdown card stays Immediate-client-only
       // (isSearching), since a Scheduled booking has no live "finding you someone now" phase.
-      return NearbyWorkersGoogleMap(booking: booking);
+      // A worker viewing the job also gets the route from their own position to the job address.
+      return NearbyWorkersGoogleMap(booking: booking, viewerRole: role);
     }
     // Accepted onward (Accepted, OnTheWay, InProgress, PendingPayment, RescheduleRequested): a worker
     // is assigned, so the map — and their live GPS position — stays up for the rest of the lifecycle.

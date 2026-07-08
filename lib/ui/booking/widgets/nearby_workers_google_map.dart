@@ -5,9 +5,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/constants/user_role.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
 import '../../../data/repositories/dispatch_repository.dart';
+import '../../../data/services/directions_service.dart';
+import '../../../data/services/worker_location_sender.dart';
 
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
@@ -15,13 +18,20 @@ const _osmUserAgentPackageName = 'com.example.cleanai';
 /// Map shown while broadcasting a booking: the job address, plus anonymous dots for nearby online,
 /// non-busy workers (no name/rating/tap target — dispatch is broadcast first-accept-wins, so
 /// candidate *identity* is still never exposed to the client, only their rough presence nearby).
+///
+/// A worker viewing the job additionally gets the driving route from their own GPS position to the
+/// job address (line + distance/ETA chip), so they can judge the trip before accepting. This reads
+/// the device position directly — deliberately independent of the online toggle and of
+/// `workerLocationSenderProvider` (nothing is sent to the backend from here).
 class NearbyWorkersGoogleMap extends ConsumerStatefulWidget {
   const NearbyWorkersGoogleMap({
     super.key,
     required this.booking,
+    this.viewerRole = UserRole.client,
   });
 
   final Booking booking;
+  final UserRole viewerRole;
 
   @override
   ConsumerState<NearbyWorkersGoogleMap> createState() => _NearbyWorkersGoogleMapState();
@@ -31,12 +41,15 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
   static const _pollInterval = Duration(seconds: 6);
   Timer? _timer;
   List<({double lat, double lng})> _nearbyWorkers = [];
+  LatLng? _myPosition;
+  DirectionsRoute? _route;
 
   @override
   void initState() {
     super.initState();
     _refresh();
     _timer = Timer.periodic(_pollInterval, (_) => _refresh());
+    if (widget.viewerRole == UserRole.worker) _loadWorkerRoute();
   }
 
   @override
@@ -48,6 +61,24 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
   Future<void> _refresh() async {
     final locations = await ref.read(dispatchRepositoryProvider).getNearbyWorkerLocations(widget.booking.id);
     if (mounted) setState(() => _nearbyWorkers = locations);
+  }
+
+  /// One-shot (the worker isn't moving toward a job they haven't accepted): own GPS fix first, then
+  /// the OSRM route to the job. Best-effort — denied permission or no route just means no line drawn.
+  Future<void> _loadWorkerRoute() async {
+    if (!_hasBookingLocation) return;
+    final position = await ref.read(deviceLocationSourceProvider).getCurrentPosition();
+    if (position == null || !mounted) return;
+    setState(() => _myPosition = LatLng(position.latitude, position.longitude));
+
+    final route = await ref.read(directionsServiceProvider).fetchRoute(
+          originLat: position.latitude,
+          originLng: position.longitude,
+          destLat: widget.booking.latitude!,
+          destLng: widget.booking.longitude!,
+        );
+    if (route == null || !mounted) return;
+    setState(() => _route = route);
   }
 
   bool get _hasBookingLocation =>
@@ -87,43 +118,86 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
     }
 
     final serviceLocation = LatLng(widget.booking.latitude!, widget.booking.longitude!);
+    final theme = Theme.of(context);
 
-    return FlutterMap(
-      key: const ValueKey('nearby-workers-map'),
-      options: MapOptions(
-        initialCenter: serviceLocation,
-        initialZoom: 14,
-      ),
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: _osmTileUrlTemplate,
-          userAgentPackageName: _osmUserAgentPackageName,
-        ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              key: const ValueKey('service-location'),
-              point: serviceLocation,
-              width: 40,
-              height: 40,
-              child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+        Positioned.fill(
+          child: FlutterMap(
+            key: const ValueKey('nearby-workers-map'),
+            options: MapOptions(
+              initialCenter: serviceLocation,
+              initialZoom: 14,
             ),
-            for (var i = 0; i < _nearbyWorkers.length; i++)
-              Marker(
-                key: ValueKey('nearby-worker-$i'),
-                point: LatLng(_nearbyWorkers[i].lat, _nearbyWorkers[i].lng),
-                width: 16,
-                height: 16,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: kTertiary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
+            children: [
+              TileLayer(
+                urlTemplate: _osmTileUrlTemplate,
+                userAgentPackageName: _osmUserAgentPackageName,
               ),
-          ],
+              // Painted before the markers so the route renders under them (layers paint in order).
+              if (_route != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _route!.points,
+                      color: theme.colorScheme.primary,
+                      strokeWidth: 4,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    key: const ValueKey('service-location'),
+                    point: serviceLocation,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+                  ),
+                  if (_myPosition != null)
+                    Marker(
+                      key: const ValueKey('worker-self'),
+                      point: _myPosition!,
+                      width: 36,
+                      height: 36,
+                      child: const Icon(Icons.person_pin_circle, color: kSecondary, size: 36),
+                    ),
+                  for (var i = 0; i < _nearbyWorkers.length; i++)
+                    Marker(
+                      key: ValueKey('nearby-worker-$i'),
+                      point: LatLng(_nearbyWorkers[i].lat, _nearbyWorkers[i].lng),
+                      width: 16,
+                      height: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: kTertiary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
+        if (_route != null)
+          Positioned(
+            left: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
+              ),
+              child: Text(
+                'Cách ${_route!.distanceText} · ${_route!.durationText}',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+            ),
+          ),
       ],
     );
   }

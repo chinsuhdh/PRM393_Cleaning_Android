@@ -1,6 +1,7 @@
 import 'package:cleanai/core/network/dio_client.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
+import 'package:cleanai/data/repositories/payment_repository.dart';
 import 'package:cleanai/ui/booking/create_booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -233,6 +234,110 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-PAY-001-01] The create payload carries the chosen payment method by enum name — '
+    'Cash by default, without the client ever touching the picker',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository();
+      await _pumpScreen(tester, harness, repository);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đặt ngay'));
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Xác nhận'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCreatePayload?['paymentMethod'], 'Cash');
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-PAY-001-02] Picking VNPay while unlinked prompts the link dialog (simulated gateway); '
+    'once linked the selection sticks and the create payload sends paymentMethod=Vnpay',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository();
+      final payments = _FakePaymentRepository(); // starts unlinked
+      await _pumpScreen(tester, harness, repository, paymentRepository: payments);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đặt ngay'));
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      // Open the payment picker sheet and choose VNPay (the picker sits below the fold).
+      await tester.ensureVisible(find.text('Thay đổi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Thay đổi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('VNPay').last);
+      await tester.pumpAndSettle();
+
+      // Not linked yet -> the link dialog appears instead of silently switching.
+      expect(find.text('Liên kết VNPay'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, '0901234567');
+      await tester.tap(find.text('Liên kết'));
+      await tester.pumpAndSettle();
+
+      expect(payments.linkedAccount, '0901234567');
+      // The picker row now shows VNPay as the selected method.
+      expect(find.text('VNPay'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Xác nhận'));
+      await tester.pumpAndSettle();
+      expect(repository.lastCreatePayload?['paymentMethod'], 'Vnpay');
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-PAY-001-03] Backing out of the VNPay link dialog keeps Cash selected',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository();
+      final payments = _FakePaymentRepository();
+      await _pumpScreen(tester, harness, repository, paymentRepository: payments);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Đặt ngay'));
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Thay đổi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Thay đổi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('VNPay').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hủy'));
+      await tester.pumpAndSettle();
+
+      expect(payments.linkedAccount, isNull);
+      expect(find.text('Tiền mặt'), findsOneWidget); // picker row still shows Cash
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Xác nhận'));
+      await tester.pumpAndSettle();
+      expect(repository.lastCreatePayload?['paymentMethod'], 'Cash');
+    },
+  );
+
+  testWidgets(
     '[UT-FE-BOOK-001-05] "Quay lại" and "Tiếp tục" buttons have matching minimum heights',
     (tester) async {
       final harness = DioTestHarness();
@@ -281,19 +386,39 @@ void _stubBookingData(DioTestHarness harness) {
 Future<void> _pumpScreen(
   WidgetTester tester,
   DioTestHarness harness,
-  BookingRepository repository,
-) {
+  BookingRepository repository, {
+  PaymentRepository? paymentRepository,
+}) {
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         dioProvider.overrideWithValue(harness.dio),
         bookingRepositoryProvider.overrideWithValue(repository),
+        if (paymentRepository != null)
+          paymentRepositoryProvider.overrideWithValue(paymentRepository),
       ],
       child: const MaterialApp(
         home: CreateBookingScreen(serviceId: 'service-1'),
       ),
     ),
   );
+}
+
+class _FakePaymentRepository implements PaymentRepository {
+  String? linkedAccount;
+  int getCallCount = 0;
+
+  @override
+  Future<String?> getVnpayAccount() async {
+    getCallCount++;
+    return linkedAccount;
+  }
+
+  @override
+  Future<String?> linkVnpayAccount(String vnpayAccount) async {
+    linkedAccount = vnpayAccount;
+    return vnpayAccount;
+  }
 }
 
 class _FakeBookingRepository implements BookingRepository {
@@ -325,9 +450,12 @@ class _FakeBookingRepository implements BookingRepository {
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {'slots': <Object>[]};
 
+  Map<String, dynamic>? lastCreatePayload;
+
   @override
   Future<Booking> createBooking(Map<String, dynamic> data, {required String idempotencyKey}) async {
     createCallCount++;
+    lastCreatePayload = data;
     if (failCreateOnce && createCallCount == 1) throw const QuoteStaleException();
     return const Booking(
       id: 'booking-1',

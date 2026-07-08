@@ -18,6 +18,7 @@ void main() {
     required String status,
     required UserRole viewerRole,
     bool isScheduled = true,
+    String paymentMethod = 'Cash',
     List<Map<String, dynamic>> statusTimeline = const [],
     VoidCallback? onChat,
     Future<void> Function()? onGoingThere,
@@ -30,7 +31,6 @@ void main() {
     VoidCallback? onRetryAsNewBooking,
     Future<void> Function()? onRequestReschedule,
     Future<void> Function()? onApproveReschedule,
-    VoidCallback? onPayNow,
     VoidCallback? onReview,
     VoidCallback? onViewEarning,
     VoidCallback? onViewReason,
@@ -39,6 +39,7 @@ void main() {
         status: status,
         viewerRole: viewerRole,
         isScheduled: isScheduled,
+        paymentMethod: paymentMethod,
         statusTimeline: statusTimeline,
         onChat: onChat ?? () {},
         onGoingThere: onGoingThere ?? () async {},
@@ -51,7 +52,6 @@ void main() {
         onRetryAsNewBooking: onRetryAsNewBooking ?? () {},
         onRequestReschedule: onRequestReschedule ?? () async {},
         onApproveReschedule: onApproveReschedule ?? () async {},
-        onPayNow: onPayNow ?? () {},
         onReview: onReview ?? () {},
         onViewEarning: onViewEarning ?? () {},
         onViewReason: onViewReason ?? () {},
@@ -66,13 +66,14 @@ void main() {
   }
 
   testWidgets(
-    '[UT-FE-BOOKACT-01] AwaitingWorker (client) shows only Cancel booking, no chat or overflow',
+    '[UT-FE-BOOKACT-01] AwaitingWorker (client) shows only Cancel booking, no chat or overflow; '
+    'cancelling first asks for a reason, which is what gets sent',
     (tester) async {
-      var cancelled = false;
+      String? cancelReason;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.awaitingWorker,
         viewerRole: UserRole.client,
-        onReport: (_) async => cancelled = true,
+        onReport: (reason) async => cancelReason = reason,
       )));
 
       expect(find.text('Cancel booking'), findsOneWidget);
@@ -81,7 +82,35 @@ void main() {
 
       await tester.tap(find.text('Cancel booking'));
       await tester.pumpAndSettle();
-      expect(cancelled, isTrue);
+
+      // Cancelling never fires straight away — the reason dialog comes first.
+      expect(cancelReason, isNull);
+      expect(find.text('Cancel this booking?'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Đặt nhầm giờ');
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+      expect(cancelReason, 'Đặt nhầm giờ');
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-18] Backing out of the cancel-reason dialog does not cancel',
+    (tester) async {
+      var cancelled = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.awaitingWorker,
+        viewerRole: UserRole.client,
+        onReport: (_) async => cancelled = true,
+      )));
+
+      await tester.tap(find.text('Cancel booking'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Back'));
+      await tester.pumpAndSettle();
+
+      expect(cancelled, isFalse);
+      expect(find.text('Cancel this booking?'), findsNothing);
     },
   );
 
@@ -208,14 +237,16 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-07] PendingPayment: client sees primary Pay now, worker sees primary Confirm cash received',
+    '[UT-FE-BOOKACT-07] PendingPayment (Cash): the client has no Pay now anymore (auto-payment) — '
+    'just a pay-the-worker hint; the worker keeps the primary Confirm cash received',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.client,
       )));
-      expect(find.widgetWithText(FilledButton, 'Pay now'), findsOneWidget);
+      expect(find.text('Pay now'), findsNothing);
       expect(find.text('Confirm cash received'), findsNothing);
+      expect(find.text('Vui lòng thanh toán tiền mặt cho nhân viên.'), findsOneWidget);
 
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
@@ -223,6 +254,23 @@ void main() {
       )));
       expect(find.widgetWithText(FilledButton, 'Confirm cash received'), findsOneWidget);
       expect(find.text('Pay now'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-16] PendingPayment (VNPay): nobody gets a button — both roles see the transient '
+    'auto-charge hint while the backend completes the booking on its own',
+    (tester) async {
+      for (final role in [UserRole.client, UserRole.worker]) {
+        await tester.pumpWidget(wrap(bar(
+          status: BookingStatusName.pendingPayment,
+          viewerRole: role,
+          paymentMethod: 'Vnpay',
+        )));
+        expect(find.text('Pay now'), findsNothing, reason: '$role');
+        expect(find.text('Confirm cash received'), findsNothing, reason: '$role');
+        expect(find.text('Đang xử lý thanh toán VNPay…'), findsOneWidget, reason: '$role');
+      }
     },
   );
 
@@ -324,14 +372,15 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-13] A non-empty status timeline shows a History icon that opens it in a sheet',
+    '[UT-FE-BOOKACT-13] A non-empty status timeline shows a History icon that opens it in a sheet, '
+    'with each entry dated dd/MM/yyyy HH:mm in local time',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.completed,
         viewerRole: UserRole.client,
         statusTimeline: const [
-          {'newStatus': 'Accepted', 'reason': ''},
-          {'newStatus': 'Completed', 'reason': ''},
+          {'newStatus': 'Accepted', 'reason': '', 'createdAt': '2026-07-08T09:30:00.000'},
+          {'newStatus': 'Completed', 'reason': 'Đã xong', 'createdAt': '2026-07-08T11:05:00.000'},
         ],
       )));
 
@@ -343,6 +392,27 @@ void main() {
 
       expect(find.text('Accepted'), findsOneWidget);
       expect(find.text('Completed'), findsOneWidget);
+      expect(find.text('08/07/2026 09:30'), findsOneWidget);
+      // Timestamp and reason share the subtitle, newline-separated.
+      expect(find.text('08/07/2026 11:05\nĐã xong'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-17] History entries without a parseable createdAt still render, just undated',
+    (tester) async {
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.completed,
+        viewerRole: UserRole.client,
+        statusTimeline: const [
+          {'newStatus': 'Accepted', 'reason': ''},
+        ],
+      )));
+
+      await tester.tap(find.byTooltip('History'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Accepted'), findsOneWidget);
     },
   );
 

@@ -1,10 +1,14 @@
+import 'package:cleanai/core/constants/user_role.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/dispatch_repository.dart';
+import 'package:cleanai/data/services/directions_service.dart';
+import 'package:cleanai/data/services/worker_location_sender.dart';
 import 'package:cleanai/ui/booking/widgets/nearby_workers_google_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 void main() {
   const booking = Booking(
@@ -93,6 +97,120 @@ void main() {
       expect(repository.callCount, countAtDispose);
     },
   );
+
+  testWidgets(
+    '[UT-FE-NEARBYMAP-05] A worker viewing the job gets the route from their own GPS position to the '
+    'job address: polyline, own-position marker, and a distance/ETA chip — independent of the online '
+    'toggle (this reads the device location directly, nothing backend-side gates it)',
+    (tester) async {
+      final repository = _FakeDispatchRepository(locations: const []);
+      final locationSource = _FakeLocationSource(position: (latitude: 10.80, longitude: 106.65));
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          dispatchRepositoryProvider.overrideWithValue(repository),
+          deviceLocationSourceProvider.overrideWithValue(locationSource),
+          directionsServiceProvider.overrideWithValue(_FakeDirectionsService(
+            route: const DirectionsRoute(
+              points: [LatLng(10.80, 106.65), LatLng(10.77, 106.70)],
+              distanceText: '6.2 km',
+              durationText: '14 phút',
+              duration: Duration(minutes: 14),
+            ),
+          )),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: NearbyWorkersGoogleMap(booking: booking, viewerRole: UserRole.worker),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(PolylineLayer), findsOneWidget);
+      final markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
+      expect(markerLayer.markers.where((m) => m.key == const ValueKey('worker-self')), hasLength(1));
+      expect(find.text('Cách 6.2 km · 14 phút'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-NEARBYMAP-06] A client never triggers the own-position/route lookup, and a worker with no '
+    'GPS fix (permission denied) just gets the plain map — no polyline, no chip, no crash',
+    (tester) async {
+      final repository = _FakeDispatchRepository(locations: const []);
+      final clientLocationSource = _FakeLocationSource(position: (latitude: 10.80, longitude: 106.65));
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          dispatchRepositoryProvider.overrideWithValue(repository),
+          deviceLocationSourceProvider.overrideWithValue(clientLocationSource),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            // Keyed so the second pump below builds a fresh State (initState) instead of Flutter
+            // patching this one in place, which would skip the route lookup being tested.
+            body: NearbyWorkersGoogleMap(
+              key: const ValueKey('client-map'),
+              booking: booking,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(clientLocationSource.calls, 0);
+      expect(find.byType(PolylineLayer), findsNothing);
+
+      final deniedSource = _FakeLocationSource(position: null);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          dispatchRepositoryProvider.overrideWithValue(repository),
+          deviceLocationSourceProvider.overrideWithValue(deniedSource),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: NearbyWorkersGoogleMap(
+              key: const ValueKey('worker-map'),
+              booking: booking,
+              viewerRole: UserRole.worker,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(deniedSource.calls, 1);
+      expect(find.byType(PolylineLayer), findsNothing);
+      final markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
+      expect(markerLayer.markers.where((m) => m.key == const ValueKey('worker-self')), isEmpty);
+    },
+  );
+}
+
+class _FakeLocationSource implements DeviceLocationSource {
+  _FakeLocationSource({required this.position});
+  final ({double latitude, double longitude})? position;
+  int calls = 0;
+
+  @override
+  Future<({double latitude, double longitude})?> getCurrentPosition() async {
+    calls++;
+    return position;
+  }
+}
+
+class _FakeDirectionsService extends DirectionsService {
+  _FakeDirectionsService({required this.route});
+  final DirectionsRoute route;
+
+  @override
+  Future<DirectionsRoute?> fetchRoute({
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+  }) async =>
+      route;
 }
 
 class _FakeDispatchRepository implements DispatchRepository {

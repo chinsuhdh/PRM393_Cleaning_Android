@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
+import '../shared/destructive_dialog_actions.dart';
 
 class _OnlineStatusToggle extends ConsumerWidget {
   const _OnlineStatusToggle();
@@ -113,16 +115,10 @@ class WorkerDashboardScreen extends ConsumerWidget {
                         'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?',
                       ),
                       actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Hủy'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.red,
-                          ),
-                          child: const Text('Đăng xuất'),
+                        DestructiveDialogActions(
+                          confirmLabel: 'Đăng xuất',
+                          onConfirm: () => Navigator.pop(context, true),
+                          onCancel: () => Navigator.pop(context, false),
                         ),
                       ],
                     ),
