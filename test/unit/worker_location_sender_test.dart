@@ -3,9 +3,6 @@ import 'package:cleanai/data/repositories/worker_repository.dart';
 import 'package:cleanai/data/services/worker_location_sender.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// F-T5: while a worker is OnTheWay, their device pushes its position every ~10s so the client's
-// live map has something real to show. This is the pure timer/dispatch logic, decoupled from the
-// actual geolocator plugin (which can't run in a unit test) via DeviceLocationSource.
 void main() {
   test('[UT-FE-WORKERLOC-01] start() sends an immediate position update, then again on each tick', () async {
     final locationSource = _FakeLocationSource(position: (lat: 10.77, lng: 106.70));
@@ -78,4 +75,7 @@ class _FakeWorkerRepository implements WorkerRepository {
 
   @override
   Future<void> updateOnlineStatus(bool online) async {}
+
+  @override
+  Future<WorkerOnlineStatus> getMyOnlineStatus() async => WorkerOnlineStatus.offline;
 }

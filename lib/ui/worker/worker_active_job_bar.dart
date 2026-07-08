@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
 class WorkerActiveJobBar extends ConsumerStatefulWidget {
-  const WorkerActiveJobBar({super.key, this.pollInterval = const Duration(seconds: 6)});
+  const WorkerActiveJobBar({super.key, this.pollInterval = AppConstants.activeBookingPollInterval});
 
   final Duration pollInterval;
 
@@ -22,15 +23,7 @@ class _WorkerActiveJobBarState extends ConsumerState<WorkerActiveJobBar> {
   Timer? _timer;
   Booking? _active;
 
-  // Lower rank = more urgent to surface: a job actually being worked right now matters more than one
-  // that's merely been accepted.
-  static const _statusRank = {
-    BookingStatusName.inProgress: 0,
-    BookingStatusName.onTheWay: 1,
-    BookingStatusName.pendingPayment: 2,
-    BookingStatusName.accepted: 3,
-    BookingStatusName.rescheduleRequested: 4,
-  };
+  static const _statusRank = kCoreActiveBookingRank;
 
   @override
   void initState() {
@@ -49,7 +42,8 @@ class _WorkerActiveJobBarState extends ConsumerState<WorkerActiveJobBar> {
     List<Booking> bookings;
     try {
       bookings = await ref.read(bookingRepositoryProvider).getWorkerBookings();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[WorkerActiveJobBar] refresh failed: $e');
       return;
     }
     if (!mounted) return;

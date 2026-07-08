@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/search_timeout.dart';
@@ -11,7 +12,7 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
 class ActiveBookingBar extends ConsumerStatefulWidget {
-  const ActiveBookingBar({super.key, this.pollInterval = const Duration(seconds: 6)});
+  const ActiveBookingBar({super.key, this.pollInterval = AppConstants.activeBookingPollInterval});
 
   final Duration pollInterval;
 
@@ -41,8 +42,6 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   static bool _isSearchingImmediate(Booking? booking) =>
       booking != null && booking.isImmediate && booking.status == BookingStatusName.awaitingWorker;
 
-  /// A UI-only per-second tick so the elapsed timer reads smoothly, independent of the (much slower)
-  /// network poll interval that refreshes `_active` itself.
   void _ensureElapsedTicker(bool searching) {
     if (searching && _elapsedTicker == null) {
       _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -54,22 +53,14 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
     }
   }
 
-  // Lower rank = more urgent to surface: a job actually happening right now matters more than one
-  // that's merely been accepted or is still searching for a worker (D.7's Active tab, prioritized).
-  static const _statusRank = {
-    BookingStatusName.inProgress: 0,
-    BookingStatusName.onTheWay: 1,
-    BookingStatusName.pendingPayment: 2,
-    BookingStatusName.accepted: 3,
-    BookingStatusName.rescheduleRequested: 4,
-    BookingStatusName.awaitingWorker: 5,
-  };
+  static final _statusRank = {...kCoreActiveBookingRank, BookingStatusName.awaitingWorker: 5};
 
   Future<void> _refresh() async {
     List<Booking> bookings;
     try {
       bookings = await ref.read(bookingRepositoryProvider).getClientBookings();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[ActiveBookingBar] refresh failed: $e');
       return;
     }
     if (!mounted) return;

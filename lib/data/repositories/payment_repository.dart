@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/backend_error_message.dart';
@@ -23,6 +24,7 @@ class ApiPaymentRepository implements PaymentRepository {
       final response = await _dio.get('/Payments/vnpay-account');
       return (response.data as Map?)?['vnpayAccount'] as String?;
     } on DioException catch (error) {
+      debugPrint('[PaymentRepository] getVnpayAccount failed: $error');
       throw Exception(
         backendMessageFromDioException(error, fallback: 'Không thể tải thông tin VNPay.'),
       );
@@ -38,6 +40,7 @@ class ApiPaymentRepository implements PaymentRepository {
       );
       return (response.data as Map?)?['vnpayAccount'] as String?;
     } on DioException catch (error) {
+      debugPrint('[PaymentRepository] linkVnpayAccount failed: $error');
       throw Exception(
         backendMessageFromDioException(error, fallback: 'Không thể liên kết tài khoản VNPay.'),
       );

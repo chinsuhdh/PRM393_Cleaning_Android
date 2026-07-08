@@ -53,6 +53,7 @@ class _BookingReviewSectionState extends ConsumerState<BookingReviewSection> {
         );
       }
     } catch (e) {
+      debugPrint('[BookingReviewSection] submit failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$e'), backgroundColor: Colors.red),

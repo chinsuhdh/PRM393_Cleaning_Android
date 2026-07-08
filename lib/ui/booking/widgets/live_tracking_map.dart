@@ -16,9 +16,6 @@ import '../booking_detail_screen.dart' show bookingDetailProvider;
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
 
-/// Straight-line distance in meters between the worker's last-reported position and the job
-/// address, or null if either side is missing. Pulled out as a pure function so it's testable
-/// without needing a map widget or a device GPS fix.
 double? onTheWayDistanceMeters(Booking booking) {
   final worker = booking.worker;
   if (worker?.latitude == null || worker?.longitude == null) return null;
@@ -34,23 +31,13 @@ double? onTheWayDistanceMeters(Booking booking) {
 String formatDistance(double meters) =>
     meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '${meters.round()} m';
 
-/// OnTheWay live map, shown to both roles on Booking Detail: the worker's last-reported position
-/// (from WorkerRepository.updateLocation, sent every ~10s via WorkerLocationSender while OnTheWay)
-/// plus the job address, with a distance readout. Polls the booking on the same cadence so the
-/// worker's marker actually moves as they get closer.
 class LiveTrackingMap extends ConsumerStatefulWidget {
   final String bookingId;
   final Booking booking;
   final UserRole viewerRole;
 
-  /// When true, fills whatever space its parent gives it (a full-screen `Positioned.fill` background)
-  /// instead of the fixed-height rounded card used inline elsewhere.
   final bool fullBleed;
 
-  /// Whether to fetch/draw the driving route + ETA from the worker's position to the job address.
-  /// Only meaningful up through `OnTheWay` — once `InProgress` the worker has already arrived, so
-  /// there's nothing left to route to (the map still shows, just without a line — see
-  /// `BookingDetailScreen._fullBleedMapFor`).
   final bool showRoute;
 
   const LiveTrackingMap({
@@ -94,9 +81,6 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
 
   void _refresh() => ref.invalidate(bookingDetailProvider(widget.bookingId));
 
-  /// Re-fetches the route whenever the worker's reported position has actually moved (each
-  /// `_refresh()` tick pulls a fresh `booking.worker` from the backend) — not on every rebuild, so a
-  /// stationary worker doesn't spam the Directions API every 10s for the same unchanged route.
   void _maybeFetchRoute() {
     if (!widget.showRoute) return;
     final workerLat = widget.booking.worker?.latitude;
@@ -121,8 +105,6 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
 
   @override
   Widget build(BuildContext context) {
-    // Keeps this worker's own position updates flowing to the backend for as long as this map is
-    // visible on their side — that's what the client's marker above is actually reading.
     if (widget.viewerRole == UserRole.worker) {
       ref.watch(workerLocationSenderProvider);
     }
@@ -140,7 +122,7 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
             Positioned.fill(
               child: !hasDestination
                   ? ColoredBox(
-                      color: const Color(0xFFEAF0F4),
+                      color: kMapPlaceholderBg,
                       child: Center(
                         child: Text(
                           'Không có tọa độ để hiển thị bản đồ.',
@@ -151,7 +133,7 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                     )
                   : !hasWorkerFix
                       ? ColoredBox(
-                          color: const Color(0xFFEAF0F4),
+                          color: kMapPlaceholderBg,
                           child: Center(
                             child: Text(
                               widget.viewerRole == UserRole.worker
@@ -216,9 +198,6 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
                   ),
                   child: Text(
-                    // Prefers the Directions route's own driving distance/ETA over the straight-line
-                    // fallback once it's back — the route call only ever fires when `showRoute` is set,
-                    // so outside Accepted/OnTheWay this always reads as the plain straight-line text.
                     widget.showRoute && _route != null
                         ? 'Cách ${_route!.distanceText} · ${_route!.durationText}'
                         : 'Cách ${formatDistance(distance)}',

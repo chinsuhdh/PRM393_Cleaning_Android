@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart'; // THƯ VIỆN MỞ LINK
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
@@ -29,26 +29,24 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    // Keeps the dispatch hub connected for as long as this screen is visible, so newly posted/taken/
-    // cancelled jobs refresh the Available tab live instead of only on manual pull-to-refresh.
     ref.watch(dispatchLiveFeedProvider);
 
     // Gọi 2 nguồn dữ liệu khác biệt
-    final myBookingsAsync = ref.watch(workerBookingsProvider); // Đơn của tôi (Active, Completed)
-    final availableBookingsAsync = ref.watch(availableBookingsProvider); // Đơn đang trống chờ nhận (Pending)
+    final myBookingsAsync = ref.watch(workerBookingsProvider);
+    final availableBookingsAsync = ref.watch(availableBookingsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Jobs', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Việc của tôi', style: TextStyle(fontWeight: FontWeight.w800)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: kPrimary,
           unselectedLabelColor: Colors.grey,
           indicatorColor: kPrimary,
           tabs: const [
-            Tab(text: 'Active'),
-            Tab(text: 'Available'),
-            Tab(text: 'Completed')
+            Tab(text: 'Đang làm'),
+            Tab(text: 'Có sẵn'),
+            Tab(text: 'Đã xong')
           ],
         ),
       ),
@@ -72,8 +70,6 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
             ),
           ),
 
-          // TAB 2: AVAILABLE — incoming tasks offered by dispatch (server already filters to
-          // unassigned jobs this worker is eligible for), ready to accept.
           availableBookingsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
@@ -86,12 +82,11 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
             ),
           ),
 
-          // TAB 3: COMPLETED
           myBookingsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
             data: (bookings) => _buildJobList(
-              bookings.where((b) => b.status == 'Completed').toList(),
+              bookings.where((b) => b.status == BookingStatusName.completed).toList(),
               isAvailableTab: false,
             ),
           ),
@@ -132,6 +127,7 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
               await ref.read(dispatchRepositoryProvider).hideBooking(list[i].id);
               ref.invalidate(availableBookingsProvider);
             } catch (error) {
+              debugPrint('[WorkerJobsScreen] hideBooking failed: $error');
               ref.invalidate(availableBookingsProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +170,12 @@ class _RealJobCard extends ConsumerWidget {
         }
       }
     } catch (e) {
-      debugPrint('Lỗi mở Google Maps: $e');
+      debugPrint('[WorkerJobsScreen] openGoogleMaps failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở bản đồ.')),
+        );
+      }
     }
   }
 
@@ -218,17 +219,14 @@ class _RealJobCard extends ConsumerWidget {
               children: [
                 Icon(Icons.calendar_today_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
-                // Format ngày tuỳ theo format bạn cấu hình
                 Text(booking.date, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
                 const SizedBox(width: 16),
                 Icon(Icons.access_time_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
-                // Format giờ tuỳ theo format bạn cấu hình
                 Text(booking.time, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
 
-            // KHU VỰC HIỂN THỊ ĐỊA CHỈ & NÚT MAPS
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
@@ -259,7 +257,6 @@ class _RealJobCard extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // Xử lý hiển thị nút bấm tùy theo Tab
             if (isAvailableJob)
               FilledButton(
                 onPressed: () async {
@@ -272,27 +269,30 @@ class _RealJobCard extends ConsumerWidget {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nhận đơn thành công!')));
                     }
                   } catch (e) {
+                    debugPrint('[WorkerJobsScreen] acceptBooking failed: $e');
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
                     }
                   }
                 },
                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
-                child: const Text('Accept Job'),
+                child: const Text('Nhận việc'),
               )
             else
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                    color: booking.status == 'Completed' ? Colors.green.withValues(alpha: 0.1) : kPrimary.withValues(alpha: 0.1),
+                    color: booking.status == BookingStatusName.completed
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : kPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8)
                 ),
                 child: Text(
                   booking.status.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: booking.status == 'Completed' ? Colors.green : kPrimary,
+                    color: booking.status == BookingStatusName.completed ? Colors.green : kPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

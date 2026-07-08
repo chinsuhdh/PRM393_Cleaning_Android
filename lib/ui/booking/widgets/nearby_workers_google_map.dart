@@ -15,14 +15,6 @@ import '../../../data/services/worker_location_sender.dart';
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
 
-/// Map shown while broadcasting a booking: the job address, plus anonymous dots for nearby online,
-/// non-busy workers (no name/rating/tap target — dispatch is broadcast first-accept-wins, so
-/// candidate *identity* is still never exposed to the client, only their rough presence nearby).
-///
-/// A worker viewing the job additionally gets the driving route from their own GPS position to the
-/// job address (line + distance/ETA chip), so they can judge the trip before accepting. This reads
-/// the device position directly — deliberately independent of the online toggle and of
-/// `workerLocationSenderProvider` (nothing is sent to the backend from here).
 class NearbyWorkersGoogleMap extends ConsumerStatefulWidget {
   const NearbyWorkersGoogleMap({
     super.key,
@@ -63,8 +55,6 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
     if (mounted) setState(() => _nearbyWorkers = locations);
   }
 
-  /// One-shot (the worker isn't moving toward a job they haven't accepted): own GPS fix first, then
-  /// the OSRM route to the job. Best-effort — denied permission or no route just means no line drawn.
   Future<void> _loadWorkerRoute() async {
     if (!_hasBookingLocation) return;
     final position = await ref.read(deviceLocationSourceProvider).getCurrentPosition();
@@ -91,7 +81,7 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
   Widget build(BuildContext context) {
     if (!_hasBookingLocation) {
       return ColoredBox(
-        color: const Color(0xFFEAF0F4),
+        color: kMapPlaceholderBg,
         child: Center(
           child: Card(
             margin: const EdgeInsets.all(32),
@@ -134,7 +124,6 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
                 urlTemplate: _osmTileUrlTemplate,
                 userAgentPackageName: _osmUserAgentPackageName,
               ),
-              // Painted before the markers so the route renders under them (layers paint in order).
               if (_route != null)
                 PolylineLayer(
                   polylines: [

@@ -20,12 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-// Regression for a real crash: Booking Detail's Chat button used to push the
-// bare '/chat' path, which is a StatefulShellRoute branch (the AI-assistant
-// tab), not a standalone route. Pushing a shell-branch path from a root route
-// while that shell is already mounted elsewhere in the stack reuses the
-// branch's static NavigatorState GlobalKey for a second Navigator, which
-// throws go_router's "_debugCheckDuplicatedPageKeys" assertion.
 void main() {
   testWidgets(
     '[WT-FE-BOOKDETAIL-01] Chat button opens a chat screen without duplicating the shell navigator',
@@ -85,7 +79,7 @@ void main() {
       router.push('/booking/b1');
       await tester.pumpAndSettle();
 
-      final chatButton = find.byTooltip('Chat');
+      final chatButton = find.byTooltip('Trò chuyện');
       await tester.ensureVisible(chatButton);
       await tester.pumpAndSettle();
       await tester.tap(chatButton);
@@ -212,18 +206,12 @@ void main() {
       await pumpDetail(tester, booking: booking, role: UserRole.client);
       await tester.pump();
 
-      // No AppBar for map-bearing states — the map fills the screen instead, with a floating back
-      // button over it.
-      expect(find.text('Booking Detail'), findsNothing);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsNothing);
       expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
-      // Cancel and Retry side by side — no deadline, so Retry is always available, not just after
-      // some timeout.
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      // The map + elapsed timer appear inline, not as a separate screen/widget.
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
       expect(find.byType(NearbyWorkersGoogleMap), findsOneWidget);
       expect(find.textContaining('Đang tìm nhân viên'), findsOneWidget);
-      // No progress bar / deadline — just an elapsed-time readout.
       expect(find.byType(LinearProgressIndicator), findsNothing);
     },
   );
@@ -271,10 +259,6 @@ void main() {
         routes: [
           GoRoute(
             path: '/booking/:id',
-            // Mirrors app_router.dart's real pageBuilder for '/booking/:id' (like WT-FE-BOOKDETAIL-20
-            // does) rather than a plain `builder:` — production stopped using a plain builder for this
-            // route specifically to support the transition-skip reload, so a plain builder here no
-            // longer exercises what actually ships.
             pageBuilder: (context, state) {
               final child = BookingDetailScreen(bookingId: state.pathParameters['id']!);
               if (state.extra == kBookingDetailSkipTransitionExtra) {
@@ -297,37 +281,27 @@ void main() {
       ));
       await tester.pump();
 
-      // Starts in the map layout (no AppBar, floating back button instead).
       expect(find.byType(NearbyWorkersGoogleMap), findsOneWidget);
-      expect(find.text('Booking Detail'), findsNothing);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsNothing);
 
       final cancelButton = tester.widget<OutlinedButton>(
-        find.ancestor(of: find.text('Cancel booking'), matching: find.byType(OutlinedButton)),
+        find.ancestor(of: find.text('Hủy đặt lịch'), matching: find.byType(OutlinedButton)),
       );
       cancelButton.onPressed!();
-      // Cancelling now asks why first — confirm through the reason dialog. Plain pump()s, not
-      // pumpAndSettle: the searching card is still animating behind the dialog, so settle would
-      // spin until timeout.
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Confirm'));
-      // The fake repository doesn't mutate the booking itself — mirror what the real backend would
-      // return on refetch, exactly like WT-FE-BOOKDETAIL-16 does for the other-party-cancel case.
+      await tester.tap(find.text('Xác nhận'));
       booking = const Booking(
         id: 'cancel-from-map', serviceName: 'Home Cleaning', date: '', time: '',
         price: 200000, status: BookingStatusName.cancelled, bookingType: BookingTypeName.immediate,
       );
-      // _reloadFresh now tears the live map down under its own rebuild (a non-animating placeholder,
-      // `_mapTornDown`) and waits several real frames *before* the route replace — all driven by plain
-      // `setState`/`endOfFrame`, so a normal `pumpAndSettle` carries it through like any other rebuild.
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(repo.cancelledBookingId, 'cancel-from-map');
-      // Now the plain layout: AppBar back, no more map, "View reason" is the only footer action left.
-      expect(find.text('Booking Detail'), findsOneWidget);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsOneWidget);
       expect(find.byType(NearbyWorkersGoogleMap), findsNothing);
-      expect(find.text('View reason'), findsOneWidget);
+      expect(find.text('Xem lý do'), findsOneWidget);
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
       expect(scaffold.bottomNavigationBar, isNotNull);
     },
@@ -352,8 +326,6 @@ void main() {
         routes: [
           GoRoute(
             path: '/booking/:id',
-            // Mirrors app_router.dart's real pageBuilder for '/booking/:id' so this test exercises
-            // the same transition-selection logic that ships to production, not a stand-in for it.
             pageBuilder: (context, state) {
               final child = BookingDetailScreen(bookingId: state.pathParameters['id']!);
               if (state.extra == kBookingDetailSkipTransitionExtra) {
@@ -377,30 +349,21 @@ void main() {
       await tester.pump();
 
       final cancelButton = tester.widget<OutlinedButton>(
-        find.ancestor(of: find.text('Cancel booking'), matching: find.byType(OutlinedButton)),
+        find.ancestor(of: find.text('Hủy đặt lịch'), matching: find.byType(OutlinedButton)),
       );
       cancelButton.onPressed!();
-      // Cancelling now asks why first — confirm through the reason dialog. Plain pump()s, not
-      // pumpAndSettle: the searching card is still animating behind the dialog, so settle would
-      // spin until timeout.
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Confirm'));
+      await tester.tap(find.text('Xác nhận'));
       booking = const Booking(
         id: 'cancel-from-map-notransition', serviceName: 'Home Cleaning', date: '', time: '',
         price: 200000, status: BookingStatusName.cancelled, bookingType: BookingTypeName.immediate,
       );
-      // See the equivalent comment in WT-FE-BOOKDETAIL-19: _reloadFresh's map-teardown wait is
-      // frame-driven, so a normal `pumpAndSettle` carries it through.
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('View reason'), findsOneWidget);
-      // The type of Page behind the current route is what actually determines whether the
-      // transition animated (MaterialPage, ~300ms) or not (NoTransitionPage, zero-duration) — not
-      // whether the animation has finished, which is true for both after pumpAndSettle. This is
-      // the assertion that distinguishes the fix from the pre-fix behavior.
-      final route = ModalRoute.of(tester.element(find.text('View reason')));
+      expect(find.text('Xem lý do'), findsOneWidget);
+      final route = ModalRoute.of(tester.element(find.text('Xem lý do')));
       expect(route!.settings, isA<NoTransitionPage<void>>());
     },
   );
@@ -438,7 +401,7 @@ void main() {
       await tester.pump();
 
       // Still loading — AppBar visible, no exception yet.
-      expect(find.text('Booking Detail'), findsOneWidget);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       completer.complete(cancelled);
@@ -446,8 +409,8 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Booking Detail'), findsOneWidget);
-      expect(find.text('View reason'), findsOneWidget);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsOneWidget);
+      expect(find.text('Xem lý do'), findsOneWidget);
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
       expect(scaffold.bottomNavigationBar, isNotNull);
       expect(scaffold.body, isNotNull);
@@ -466,7 +429,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Đang tìm nhân viên'), findsNothing);
-      expect(find.text('Booking Details'), findsOneWidget);
+      expect(find.text('Thông tin đặt lịch'), findsOneWidget);
     },
   );
 
@@ -723,13 +686,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Status timeline'), findsNothing);
-      expect(find.byTooltip('History'), findsOneWidget);
+      expect(find.byTooltip('Lịch sử'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('History'));
+      await tester.tap(find.byTooltip('Lịch sử'));
       await tester.pumpAndSettle();
 
       expect(find.text('Accepted'), findsOneWidget);
-      expect(find.text('Completed'), findsWidgets); // once as the status badge, once in the history sheet
+      expect(find.text('Completed'), findsWidgets); 
     },
   );
 
@@ -746,9 +709,7 @@ void main() {
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
       expect(scaffold.bottomNavigationBar, isNotNull);
-      // Completed always shows the chat action in the sticky footer, regardless of role — used
-      // here as a stand-in proof the footer actually rendered its content.
-      expect(find.byTooltip('Chat'), findsOneWidget);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
     },
   );
 
@@ -765,8 +726,6 @@ void main() {
       await pumpDetail(tester, booking: booking, role: UserRole.client);
       await tester.pump();
 
-      // 4 minutes have already elapsed — the timer reflects that immediately instead of starting
-      // from 0 the way a screen-local timer used to.
       final elapsed = find.byWidgetPredicate(
         (widget) => widget is Text && RegExp(r'^\d{2}:\d{2}$').hasMatch(widget.data ?? ''),
       );
@@ -795,8 +754,8 @@ void main() {
       await tester.pump();
 
       expect(find.byType(NearbyWorkersGoogleMap), findsOneWidget);
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
       expect(repo.cancelledBookingId, isNull);
       expect(find.byType(AlertDialog), findsNothing);
     },
@@ -837,7 +796,7 @@ void main() {
       await tester.pump();
 
       final retryButton = tester.widget<OutlinedButton>(
-        find.ancestor(of: find.text('Retry'), matching: find.byType(OutlinedButton)),
+        find.ancestor(of: find.text('Thử lại'), matching: find.byType(OutlinedButton)),
       );
       retryButton.onPressed!();
       await tester.pumpAndSettle();
@@ -879,8 +838,6 @@ void main() {
       router.push('/booking/${booking.id}');
       await tester.pumpAndSettle();
 
-      // Simulate the other party cancelling: the next fetch (triggered by the live push, exactly like
-      // production) now returns a Cancelled booking.
       booking = Booking(
         id: booking.id,
         serviceName: booking.serviceName,
@@ -959,11 +916,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final screen = tester.getSize(find.byType(BookingDetailScreen));
-      final footerActionTop = tester.getRect(find.text('View reason')).top;
-      // Footer content must sit near the bottom edge, not at the top of the screen.
+      final footerActionTop = tester.getRect(find.text('Xem lý do')).top;
       expect(footerActionTop, greaterThan(screen.height * 0.7),
           reason: 'sticky footer should be at the bottom of the screen, not stretched to the top');
-      // Body content must be laid out in its normal spot right under the app bar.
       expect(tester.getRect(find.text('Apartment Cleaning')).top, lessThan(screen.height * 0.4));
     },
   );
@@ -981,23 +936,16 @@ void main() {
       await pumpDetail(tester, booking: booking, role: UserRole.client);
       await tester.pump();
 
-      // Map layout: nearby-workers map + floating back button, no AppBar.
       expect(find.byType(NearbyWorkersGoogleMap), findsOneWidget);
-      expect(find.text('Booking Detail'), findsNothing);
+      expect(find.text('Chi tiết đơn đặt lịch'), findsNothing);
       expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
-      // No live-search countdown for Scheduled — that treatment stays Immediate-only.
       expect(find.textContaining('Đang tìm nhân viên'), findsNothing);
-      // Scheduled keeps just Cancel (no Retry row).
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.text('Thử lại'), findsNothing);
     },
   );
 }
 
-/// initState() always subscribes to the dispatch hub (E-T3/booking-scoped live updates), even before
-/// the booking has loaded — every test that doesn't specifically exercise that hub needs this no-op
-/// stand-in, or the real SignalrDispatchHubClient attempts a network connection and leaves a pending
-/// timer behind after the widget tree is disposed.
 class _NoOpDispatchHubClient implements DispatchHubClient {
   @override
   Future<void> connect() async {}
@@ -1021,9 +969,6 @@ class _NoOpDispatchHubClient implements DispatchHubClient {
   void onBookingStatusChanged(void Function() handler) {}
 }
 
-/// Default stand-in so a Completed+worker booking's inline BookingReviewSection (which fetches
-/// reviews on watch) never makes a real network call in tests that aren't specifically exercising
-/// the review flow. Individual tests can still override reviewRepositoryProvider via extraOverrides.
 class _NoOpReviewRepository implements ReviewRepository {
   _NoOpReviewRepository({List<Review> reviews = const []}) : _reviews = reviews;
   final List<Review> _reviews;

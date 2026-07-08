@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/backend_error_message.dart';
@@ -42,7 +43,8 @@ class ApiDispatchRepository implements DispatchRepository {
         final lng = (json['longitude'] as num).toDouble();
         return (lat: lat, lng: lng);
       }).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DispatchRepository] getNearbyWorkerLocations failed: $e');
       // A failed nearby-worker fetch shouldn't block or error out the whole search map — it's
       // reassurance UI, not load-bearing data.
       return [];
@@ -53,6 +55,7 @@ class ApiDispatchRepository implements DispatchRepository {
     try {
       await _dio.post(path);
     } on DioException catch (error) {
+      debugPrint('[DispatchRepository] POST $path failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: fallback));
     }
   }

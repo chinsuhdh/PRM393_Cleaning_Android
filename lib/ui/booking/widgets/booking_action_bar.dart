@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/booking_enums.dart';
+import '../../../core/constants/payment_methods.dart';
 import '../../../core/constants/user_role.dart';
 import '../../shared/destructive_dialog_actions.dart';
 
@@ -9,10 +10,7 @@ class BookingActionBar extends StatelessWidget {
   final String status;
   final UserRole viewerRole;
   final bool isScheduled;
-
-  /// Enum name from the API ('Cash' | 'Vnpay'). Auto-payment: the client never pays in-app —
-  /// Cash keeps the worker's confirm step, VNPay auto-charges server-side on Finish.
-  final String paymentMethod;
+  final PaymentMethod paymentMethod;
   final List<Map<String, dynamic>> statusTimeline;
   final VoidCallback onChat;
   final Future<void> Function() onGoingThere;
@@ -34,7 +32,7 @@ class BookingActionBar extends StatelessWidget {
     required this.status,
     required this.viewerRole,
     required this.isScheduled,
-    this.paymentMethod = 'Cash',
+    this.paymentMethod = PaymentMethod.cash,
     this.statusTimeline = const [],
     required this.onChat,
     required this.onGoingThere,
@@ -66,80 +64,72 @@ class BookingActionBar extends StatelessWidget {
     switch (status) {
       case BookingStatusName.awaitingWorker:
         if (_isClient) {
-          // Immediate: still broadcasting with no deadline — offer Cancel alongside Retry (starts a
-          // brand new request) side by side, instead of only Cancel. Scheduled keeps just Cancel.
           secondary = isScheduled
-              ? _danger(context, 'Cancel booking', () => _promptCancelReason(context))
+              ? _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context))
               : _cancelAndRetryRow(context);
         }
-        if (_isWorker && onAccept != null) primary = _primary(context, 'Accept Job', onAccept!);
+        if (_isWorker && onAccept != null) primary = _primary(context, 'Nhận việc', onAccept!);
 
       case BookingStatusName.accepted:
         showChat = true;
         showReschedule = isScheduled;
         if (_isWorker) {
-          primary = _primary(context, 'Going there', onGoingThere);
-          overflow.add(_OverflowAction('Cancel this job', onReleaseJob));
+          primary = _primary(context, 'Đang di chuyển', onGoingThere);
+          overflow.add(_OverflowAction('Hủy công việc này', onReleaseJob));
         }
-        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
 
       case BookingStatusName.rescheduleRequested:
         showChat = true;
-        primary = _primary(context, 'Accept new time', onApproveReschedule);
-        secondary = _danger(context, 'Cancel booking', () => _promptCancelReason(context));
+        primary = _primary(context, 'Chấp nhận giờ mới', onApproveReschedule);
+        secondary = _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context));
 
       case BookingStatusName.onTheWay:
         showChat = true;
-        if (_isWorker) primary = _primary(context, 'Start job', onStart);
-        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
+        if (_isWorker) primary = _primary(context, 'Bắt đầu công việc', onStart);
+        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
 
       case BookingStatusName.inProgress:
         showChat = true;
-        if (_isWorker) primary = _primary(context, 'Finish', onFinish);
-        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
+        if (_isWorker) primary = _primary(context, 'Hoàn thành', onFinish);
+        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
 
       case BookingStatusName.pendingPayment:
         showChat = true;
-        // Auto-payment: no client "Pay now" anymore. Cash ends with the worker confirming they
-        // got paid; VNPay is charged automatically server-side, so this state is transient and
-        // everyone just sees a processing hint until the Completed push lands.
-        final isCash = paymentMethod == 'Cash';
+        final isCash = paymentMethod == PaymentMethod.cash;
         if (_isWorker && isCash) {
-          primary = _primary(context, 'Confirm cash received', onConfirmCash);
+          primary = _primary(context, 'Xác nhận đã nhận tiền mặt', onConfirmCash);
         } else {
           secondary = _hint(
             context,
-            isCash
-                ? 'Vui lòng thanh toán tiền mặt cho nhân viên.'
-                : 'Đang xử lý thanh toán VNPay…',
+            isCash ? 'Vui lòng thanh toán tiền mặt cho nhân viên.' : 'Đang xử lý thanh toán VNPay…',
           );
         }
-        overflow.add(_OverflowAction('Report', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
 
       case BookingStatusName.completed:
         showChat = true;
-        // Client review is now inline on the Booking Detail page itself (BookingReviewSection),
-        // not a separate button — leaving the onReview callback/route in place, just unused here.
-        if (_isWorker) secondary = _outlinedSync(context, 'View earning', onViewEarning);
+        if (_isWorker) secondary = _outlinedSync(context, 'Xem thu nhập', onViewEarning);
 
       case BookingStatusName.cancelled:
-        secondary = _outlinedSync(context, 'View reason', onViewReason);
+        secondary = _outlinedSync(context, 'Xem lý do', onViewReason);
     }
 
     final utilityIcons = <Widget>[
-      if (showChat) _iconAction(context, icon: Icons.chat_bubble_outline_rounded, tooltip: 'Chat', onPressed: onChat),
+      if (showChat)
+        _iconAction(context, icon: Icons.chat_bubble_outline_rounded, tooltip: 'Trò chuyện', onPressed: onChat),
       if (showReschedule)
         _iconAction(
           context,
           icon: Icons.event_repeat_rounded,
-          tooltip: 'Request reschedule',
+          tooltip: 'Yêu cầu đổi lịch',
           onPressed: () => onRequestReschedule(),
         ),
       if (statusTimeline.isNotEmpty)
         _iconAction(
           context,
           icon: Icons.history_rounded,
-          tooltip: 'History',
+          tooltip: 'Lịch sử',
           onPressed: () => _showHistory(context),
         ),
     ];
@@ -149,9 +139,6 @@ class BookingActionBar extends StatelessWidget {
     }
 
     return Column(
-      // min, not max: inside Scaffold.bottomNavigationBar the slot offers the whole remaining
-      // screen height as a loose constraint — a max-size Column stretches the footer full-screen,
-      // its opaque Material then covers the AppBar and body (white screen with only the buttons).
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -184,7 +171,7 @@ class BookingActionBar extends StatelessWidget {
       );
 
   Widget _overflowMenu(BuildContext context, List<_OverflowAction> actions) => PopupMenuButton<int>(
-        tooltip: 'More actions',
+        tooltip: 'Thêm thao tác',
         icon: const Icon(Icons.more_horiz_rounded),
         onSelected: (index) => actions[index].onSelected(),
         itemBuilder: (context) => [
@@ -208,14 +195,12 @@ class BookingActionBar extends StatelessWidget {
 
   Widget _cancelAndRetryRow(BuildContext context) => Row(
         children: [
-          Expanded(child: _danger(context, 'Cancel booking', () => _promptCancelReason(context))),
+          Expanded(child: _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context))),
           const SizedBox(width: 12),
-          Expanded(child: _outlinedSync(context, 'Retry', onRetryAsNewBooking)),
+          Expanded(child: _outlinedSync(context, 'Thử lại', onRetryAsNewBooking)),
         ],
       );
 
-  /// Passive status row for states where the viewer has nothing to do (auto-payment in flight,
-  /// or waiting on the other party) — informational only, deliberately not a button.
   Widget _hint(BuildContext context, String message) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -241,15 +226,13 @@ class BookingActionBar extends StatelessWidget {
         child: Text(label),
       );
 
-  /// Every cancel path funnels through here so cancelling always asks why — the reason lands in the
-  /// status log / cancellation record and is what "View reason" shows the other party afterwards.
   Future<void> _promptCancelReason(BuildContext context) =>
-      _promptReason(context, onReport, title: 'Cancel this booking?');
+      _promptReason(context, onReport, title: 'Hủy đơn đặt lịch này?');
 
   Future<void> _promptReason(
     BuildContext context,
     Future<void> Function(String reason) onConfirm, {
-    String title = 'Report this booking',
+    String title = 'Báo cáo đơn đặt lịch này',
   }) async {
     final controller = TextEditingController();
     final reason = await showDialog<String>(
@@ -258,12 +241,12 @@ class BookingActionBar extends StatelessWidget {
         title: Text(title),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Reason (optional)'),
+          decoration: const InputDecoration(hintText: 'Lý do (không bắt buộc)'),
           maxLines: 3,
         ),
         actions: [
           DestructiveDialogActions(
-            confirmLabel: 'Confirm',
+            confirmLabel: 'Xác nhận',
             onConfirm: () => Navigator.pop(dialogContext, controller.text),
             onCancel: () => Navigator.pop(dialogContext),
           ),
@@ -284,7 +267,7 @@ class BookingActionBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Status history', style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Lịch sử trạng thái', style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Flexible(
                 child: ListView.builder(

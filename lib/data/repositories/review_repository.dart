@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/backend_error_message.dart';
@@ -39,6 +40,7 @@ class ApiReviewRepository implements ReviewRepository {
       );
       return Review.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (error) {
+      debugPrint('[ReviewRepository] createReview failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể gửi đánh giá.'));
     }
   }
@@ -53,6 +55,7 @@ class ApiReviewRepository implements ReviewRepository {
       }
       return [];
     } on DioException catch (error) {
+      debugPrint('[ReviewRepository] getReviewsForUser failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải đánh giá.'));
     }
   }

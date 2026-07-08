@@ -27,7 +27,7 @@ void main() {
         ],
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Available'));
+      await tester.tap(find.text('Có sẵn'));
       await tester.pumpAndSettle();
 
       expect(client.connected, isTrue);
@@ -93,7 +93,7 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Available'));
+      await tester.tap(find.text('Có sẵn'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Deep clean'));
@@ -103,7 +103,7 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
-      expect(find.text('My Jobs'), findsOneWidget);
+      expect(find.text('Việc của tôi'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -128,7 +128,7 @@ void main() {
         ],
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Available'));
+      await tester.tap(find.text('Có sẵn'));
       await tester.pumpAndSettle();
 
       await tester.drag(find.text('Deep clean'), const Offset(-500, 0));
@@ -162,11 +162,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Available'));
+      await tester.tap(find.text('Có sẵn'));
       await tester.pumpAndSettle();
 
       expect(find.text('Dọn nhà'), findsOneWidget);
-      expect(find.text('Accept Job'), findsOneWidget);
+      expect(find.text('Nhận việc'), findsOneWidget);
       // Prices are VND everywhere in this app (D.2/HOME-001) — never a dollar sign.
       expect(find.textContaining('\$'), findsNothing);
       expect(find.textContaining('₫'), findsOneWidget);
@@ -187,7 +187,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Available'));
+      await tester.tap(find.text('Có sẵn'));
       await tester.pumpAndSettle();
 
       expect(find.text('Không có đơn đặt lịch mới nào.'), findsOneWidget);

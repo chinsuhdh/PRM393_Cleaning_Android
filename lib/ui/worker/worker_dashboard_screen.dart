@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -10,51 +11,7 @@ import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../shared/destructive_dialog_actions.dart';
-
-class _OnlineStatusToggle extends ConsumerWidget {
-  const _OnlineStatusToggle();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isOnline = ref.watch(workerOnlineStatusProvider);
-    return GestureDetector(
-      key: const ValueKey('online-status-toggle'),
-      onTap: () async {
-        try {
-          await ref.read(workerOnlineStatusProvider.notifier).toggle(!isOnline);
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-            );
-          }
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.circle, color: isOnline ? kSecondary : Colors.white70, size: 10),
-            const SizedBox(width: 6),
-            Text(
-              isOnline ? 'Available' : 'Offline',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import 'widgets/worker_dashboard_stats.dart';
 
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
@@ -68,7 +25,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
     ref.watch(dispatchLiveFeedProvider);
 
     final authState = ref.watch(authProvider);
-    final userName = authState.userName ?? 'Worker';
+    final userName = authState.userName ?? 'Nhân viên';
     final initials = userName.isNotEmpty ? userName[0].toUpperCase() : 'W';
 
     final workerBookingsAsync = ref.watch(workerBookingsProvider);
@@ -77,7 +34,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
 
     final now = DateTime.now();
     bool completedToday(dynamic b) =>
-        b.status == 'Completed' &&
+        b.status == BookingStatusName.completed &&
         b.updatedAt != null &&
         b.updatedAt.year == now.year &&
         b.updatedAt.month == now.month &&
@@ -87,14 +44,26 @@ class WorkerDashboardScreen extends ConsumerWidget {
       data: (bookings) => bookings.where(completedToday).toList(),
       orElse: () => const [],
     );
-    final todaysEarnings = todaysCompleted.fold<double>(0, (sum, b) => sum + b.price);
-    final rating = profileAsync.maybeWhen(data: (worker) => worker?.rating ?? 0.0, orElse: () => 0.0);
-    final availableJobs = availableJobsAsync.maybeWhen(data: (jobs) => jobs, orElse: () => const <Booking>[]);
+    final todaysEarnings = todaysCompleted.fold<double>(
+      0,
+      (sum, b) => sum + b.price,
+    );
+    final rating = profileAsync.maybeWhen(
+      data: (worker) => worker?.rating ?? 0.0,
+      orElse: () => 0.0,
+    );
+    final availableJobs = availableJobsAsync.maybeWhen(
+      data: (jobs) => jobs,
+      orElse: () => const <Booking>[],
+    );
     final newestJob = availableJobs.isEmpty
         ? null
-        : (availableJobs.toList()
-              ..sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0))))
-            .first;
+        : (availableJobs.toList()..sort(
+                (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+                  a.createdAt ?? DateTime(0),
+                ),
+              ))
+              .first;
 
     return Scaffold(
       body: CustomScrollView(
@@ -137,7 +106,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [kPrimary, Color(0xFF1D4ED8)],
+                    colors: [kPrimary, kPrimaryGradientEnd],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -153,7 +122,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Good Morning,',
+                              'Chào buổi sáng,',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 14,
@@ -183,7 +152,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const _OnlineStatusToggle(),
+                    const OnlineStatusToggle(),
                   ],
                 ),
               ),
@@ -197,27 +166,27 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: _StatCard(
+                      child: WorkerStatCard(
                         icon: Icons.attach_money_rounded,
-                        label: "Today's Earn",
+                        label: 'Thu nhập hôm nay',
                         value: _vnd.format(todaysEarnings),
                         color: kSecondary,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _StatCard(
+                      child: WorkerStatCard(
                         icon: Icons.work_rounded,
-                        label: 'Jobs Today',
+                        label: 'Việc hôm nay',
                         value: '${todaysCompleted.length}',
                         color: kPrimary,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _StatCard(
+                      child: WorkerStatCard(
                         icon: Icons.star_rounded,
-                        label: 'Rating',
+                        label: 'Đánh giá',
                         value: rating.toStringAsFixed(1),
                         color: kTertiary,
                       ),
@@ -226,7 +195,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Quick Actions',
+                  'Thao tác nhanh',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -234,35 +203,34 @@ class WorkerDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _QuickAction(
+                    WorkerQuickAction(
                       icon: Icons.work_rounded,
-                      label: 'My Jobs',
+                      label: 'Việc của tôi',
                       onTap: () => context.go('/worker/jobs'),
                     ),
                     const SizedBox(width: 12),
-                    _QuickAction(
+                    WorkerQuickAction(
                       icon: Icons.account_balance_wallet_rounded,
-                      label: 'Wallet',
+                      label: 'Ví tiền',
                       onTap: () => context.push('/worker/wallet'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Shows the newest posted job's real details directly — not just a count with a
-                // button to another screen — so the worker can see what it actually is at a glance.
-                // The full live/hideable list still lives in the Jobs tab; this is just a preview.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'New Job',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      'Việc mới',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     if (availableJobs.length > 1)
                       TextButton(
                         onPressed: () => context.go('/worker/jobs'),
-                        child: const Text('View all'),
+                        child: const Text('Xem tất cả'),
                       ),
                   ],
                 ),
@@ -271,13 +239,21 @@ class WorkerDashboardScreen extends ConsumerWidget {
                   Card(
                     elevation: 0,
                     color: kPrimaryContainer,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: const ListTile(
                       contentPadding: EdgeInsets.all(16),
-                      leading: Icon(Icons.notifications_active_rounded, color: kPrimary),
+                      leading: Icon(
+                        Icons.notifications_active_rounded,
+                        color: kPrimary,
+                      ),
                       title: Text(
-                        'No jobs available right now',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: kOnPrimaryContainer),
+                        'Hiện chưa có công việc nào',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: kOnPrimaryContainer,
+                        ),
                       ),
                     ),
                   )
@@ -285,25 +261,38 @@ class WorkerDashboardScreen extends ConsumerWidget {
                   Card(
                     elevation: 0,
                     color: kPrimaryContainer,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
                       onTap: () => context.push('/booking/${newestJob.id}'),
                       leading: const CircleAvatar(
                         backgroundColor: kPrimary,
-                        child: Icon(Icons.cleaning_services_rounded, color: Colors.white),
+                        child: Icon(
+                          Icons.cleaning_services_rounded,
+                          color: Colors.white,
+                        ),
                       ),
                       title: Text(
                         newestJob.serviceName,
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: kOnPrimaryContainer),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: kOnPrimaryContainer,
+                        ),
                       ),
                       subtitle: Text(
-                        newestJob.isImmediate ? 'Now · ${newestJob.time}' : '${newestJob.date} · ${newestJob.time}',
+                        newestJob.isImmediate
+                            ? 'Ngay bây giờ · ${newestJob.time}'
+                            : '${newestJob.date} · ${newestJob.time}',
                         style: const TextStyle(color: kOnPrimaryContainer),
                       ),
                       trailing: Text(
                         _vnd.format(newestJob.price),
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: kPrimary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: kPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -311,95 +300,6 @@ class WorkerDashboardScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: color.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: color.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: kPrimary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

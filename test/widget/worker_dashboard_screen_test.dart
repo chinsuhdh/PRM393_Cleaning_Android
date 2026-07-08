@@ -22,24 +22,46 @@ void main() {
         tester,
         child: const WorkerDashboardScreen(),
         overrides: [
-          workerBookingsProvider.overrideWith((ref) async => [
-                Booking(
-                  id: 'today-1', serviceName: 'Home Cleaning', date: '', time: '',
-                  price: 150000, status: 'Completed', updatedAt: today,
-                ),
-                Booking(
-                  id: 'today-2', serviceName: 'Deep Cleaning', date: '', time: '',
-                  price: 250000, status: 'Completed', updatedAt: today,
-                ),
-                Booking(
-                  id: 'old', serviceName: 'Home Cleaning', date: '', time: '',
-                  price: 999000, status: 'Completed', updatedAt: lastWeek,
-                ),
-                Booking(
-                  id: 'in-progress', serviceName: 'Home Cleaning', date: '', time: '',
-                  price: 500000, status: 'InProgress', updatedAt: today,
-                ),
-              ]),
+          workerBookingsProvider.overrideWith(
+            (ref) async => [
+              Booking(
+                id: 'today-1',
+                serviceName: 'Home Cleaning',
+                date: '',
+                time: '',
+                price: 150000,
+                status: 'Completed',
+                updatedAt: today,
+              ),
+              Booking(
+                id: 'today-2',
+                serviceName: 'Deep Cleaning',
+                date: '',
+                time: '',
+                price: 250000,
+                status: 'Completed',
+                updatedAt: today,
+              ),
+              Booking(
+                id: 'old',
+                serviceName: 'Home Cleaning',
+                date: '',
+                time: '',
+                price: 999000,
+                status: 'Completed',
+                updatedAt: lastWeek,
+              ),
+              Booking(
+                id: 'in-progress',
+                serviceName: 'Home Cleaning',
+                date: '',
+                time: '',
+                price: 500000,
+                status: 'InProgress',
+                updatedAt: today,
+              ),
+            ],
+          ),
           availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
           workerProfileProvider.overrideWith((ref) async => null),
           dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
@@ -48,7 +70,38 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('2'), findsOneWidget); // Jobs Today
-      expect(find.textContaining('400.000'), findsOneWidget); // 150k + 250k, VND
+      expect(
+        find.textContaining('400.000'),
+        findsOneWidget,
+      ); // 150k + 250k, VND
+    },
+  );
+
+  testWidgets(
+    '[WT-FE-WORKERDASH-09] Backend Busy is displayed accurately and tapping requests Offline, not Online',
+    (tester) async {
+      final repository = _FakeWorkerRepository(
+        initialStatus: WorkerOnlineStatus.busy,
+      );
+      await pumpTestApp(
+        tester,
+        child: const WorkerDashboardScreen(),
+        overrides: [
+          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          workerProfileProvider.overrideWith((ref) async => null),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+          workerRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đang bận'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('online-status-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, [false]);
+      expect(find.text('Ngoại tuyến'), findsOneWidget);
     },
   );
 
@@ -61,9 +114,10 @@ void main() {
         overrides: [
           workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
           availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
-          workerProfileProvider.overrideWith((ref) async => const Worker(
-                id: 'w1', name: 'Alex', rating: 4.7, reviews: 32,
-              )),
+          workerProfileProvider.overrideWith(
+            (ref) async =>
+                const Worker(id: 'w1', name: 'Alex', rating: 4.7, reviews: 32),
+          ),
           dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
         ],
       );
@@ -79,27 +133,40 @@ void main() {
       final router = GoRouter(
         initialLocation: '/dashboard',
         routes: [
-          GoRoute(path: '/dashboard', builder: (_, __) => const WorkerDashboardScreen()),
-          GoRoute(path: '/worker/jobs', builder: (_, __) => const Text('JOBS_STUB')),
-          GoRoute(path: '/worker/wallet', builder: (_, __) => const Text('WALLET_STUB')),
+          GoRoute(
+            path: '/dashboard',
+            builder: (_, __) => const WorkerDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/worker/jobs',
+            builder: (_, __) => const Text('JOBS_STUB'),
+          ),
+          GoRoute(
+            path: '/worker/wallet',
+            builder: (_, __) => const Text('WALLET_STUB'),
+          ),
         ],
       );
 
-      await tester.pumpWidget(ProviderScope(
-        overrides: [
-          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
-          availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
-          workerProfileProvider.overrideWith((ref) async => null),
-          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+            availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
+            workerProfileProvider.overrideWith((ref) async => null),
+            dispatchHubClientProvider.overrideWithValue(
+              _FakeDispatchHubClient(),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Schedule'), findsNothing);
       expect(find.text('Support'), findsNothing);
 
-      await tester.tap(find.text('My Jobs'));
+      await tester.tap(find.text('Việc của tôi'));
       await tester.pumpAndSettle();
       expect(find.text('JOBS_STUB'), findsOneWidget);
     },
@@ -120,7 +187,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No jobs available right now'), findsOneWidget);
+      expect(find.text('Hiện chưa có công việc nào'), findsOneWidget);
     },
   );
 
@@ -131,34 +198,56 @@ void main() {
       final router = GoRouter(
         initialLocation: '/dashboard',
         routes: [
-          GoRoute(path: '/dashboard', builder: (_, __) => const WorkerDashboardScreen()),
+          GoRoute(
+            path: '/dashboard',
+            builder: (_, __) => const WorkerDashboardScreen(),
+          ),
           GoRoute(
             path: '/booking/:id',
             builder: (_, state) => Text('DETAIL:${state.pathParameters['id']}'),
           ),
-          GoRoute(path: '/worker/jobs', builder: (_, __) => const Text('JOBS_STUB')),
+          GoRoute(
+            path: '/worker/jobs',
+            builder: (_, __) => const Text('JOBS_STUB'),
+          ),
         ],
       );
       final now = DateTime.now();
 
-      await tester.pumpWidget(ProviderScope(
-        overrides: [
-          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
-          availableBookingsProvider.overrideWith((ref) async => [
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+            availableBookingsProvider.overrideWith(
+              (ref) async => [
                 Booking(
-                  id: 'a1', serviceName: 'Home Cleaning', date: '06/07/2026', time: '09:00',
-                  price: 150000, status: 'AwaitingWorker', createdAt: now.subtract(const Duration(minutes: 10)),
+                  id: 'a1',
+                  serviceName: 'Home Cleaning',
+                  date: '06/07/2026',
+                  time: '09:00',
+                  price: 150000,
+                  status: 'AwaitingWorker',
+                  createdAt: now.subtract(const Duration(minutes: 10)),
                 ),
                 Booking(
-                  id: 'a2', serviceName: 'Deep Cleaning', date: '06/07/2026', time: '10:00',
-                  price: 250000, status: 'AwaitingWorker', createdAt: now,
+                  id: 'a2',
+                  serviceName: 'Deep Cleaning',
+                  date: '06/07/2026',
+                  time: '10:00',
+                  price: 250000,
+                  status: 'AwaitingWorker',
+                  createdAt: now,
                 ),
-              ]),
-          workerProfileProvider.overrideWith((ref) async => null),
-          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ));
+              ],
+            ),
+            workerProfileProvider.overrideWith((ref) async => null),
+            dispatchHubClientProvider.overrideWithValue(
+              _FakeDispatchHubClient(),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // The most recently posted job (a2) is shown with its real details, not just a count.
@@ -178,37 +267,59 @@ void main() {
       final router = GoRouter(
         initialLocation: '/dashboard',
         routes: [
-          GoRoute(path: '/dashboard', builder: (_, __) => const WorkerDashboardScreen()),
+          GoRoute(
+            path: '/dashboard',
+            builder: (_, __) => const WorkerDashboardScreen(),
+          ),
           GoRoute(
             path: '/booking/:id',
             builder: (_, state) => Text('DETAIL:${state.pathParameters['id']}'),
           ),
-          GoRoute(path: '/worker/jobs', builder: (_, __) => const Text('JOBS_STUB')),
+          GoRoute(
+            path: '/worker/jobs',
+            builder: (_, __) => const Text('JOBS_STUB'),
+          ),
         ],
       );
       final now = DateTime.now();
 
-      await tester.pumpWidget(ProviderScope(
-        overrides: [
-          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
-          availableBookingsProvider.overrideWith((ref) async => [
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+            availableBookingsProvider.overrideWith(
+              (ref) async => [
                 Booking(
-                  id: 'a1', serviceName: 'Home Cleaning', date: '06/07/2026', time: '09:00',
-                  price: 150000, status: 'AwaitingWorker', createdAt: now.subtract(const Duration(minutes: 10)),
+                  id: 'a1',
+                  serviceName: 'Home Cleaning',
+                  date: '06/07/2026',
+                  time: '09:00',
+                  price: 150000,
+                  status: 'AwaitingWorker',
+                  createdAt: now.subtract(const Duration(minutes: 10)),
                 ),
                 Booking(
-                  id: 'a2', serviceName: 'Deep Cleaning', date: '06/07/2026', time: '10:00',
-                  price: 250000, status: 'AwaitingWorker', createdAt: now,
+                  id: 'a2',
+                  serviceName: 'Deep Cleaning',
+                  date: '06/07/2026',
+                  time: '10:00',
+                  price: 250000,
+                  status: 'AwaitingWorker',
+                  createdAt: now,
                 ),
-              ]),
-          workerProfileProvider.overrideWith((ref) async => null),
-          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ));
+              ],
+            ),
+            workerProfileProvider.overrideWith((ref) async => null),
+            dispatchHubClientProvider.overrideWithValue(
+              _FakeDispatchHubClient(),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('View all'));
+      await tester.tap(find.text('Xem tất cả'));
       await tester.pumpAndSettle();
       expect(find.text('JOBS_STUB'), findsOneWidget);
     },
@@ -231,11 +342,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Offline'), findsOneWidget);
+      expect(find.text('Ngoại tuyến'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('online-status-toggle')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Available'), findsOneWidget);
+      expect(find.text('Đang hoạt động'), findsOneWidget);
       expect(repository.calls, [true]);
     },
   );
@@ -260,8 +371,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('online-status-toggle')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Offline'), findsOneWidget);
-      expect(find.textContaining('Không thể chuyển sang Online'), findsOneWidget);
+      expect(find.text('Ngoại tuyến'), findsOneWidget);
+      expect(
+        find.textContaining('Không thể chuyển sang Online'),
+        findsOneWidget,
+      );
     },
   );
 }
@@ -290,12 +404,19 @@ class _FakeDispatchHubClient implements DispatchHubClient {
 }
 
 class _FakeWorkerRepository implements WorkerRepository {
-  _FakeWorkerRepository({this.shouldFail = false});
+  _FakeWorkerRepository({
+    this.shouldFail = false,
+    this.initialStatus = WorkerOnlineStatus.offline,
+  });
   final bool shouldFail;
+  final WorkerOnlineStatus initialStatus;
   final calls = <bool>[];
 
   @override
   Future<Worker?> getMyWorkerProfile() async => null;
+
+  @override
+  Future<WorkerOnlineStatus> getMyOnlineStatus() async => initialStatus;
 
   @override
   Future<void> updateLocation(double lat, double lng) async {}

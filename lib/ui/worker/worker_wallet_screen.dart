@@ -4,7 +4,6 @@ import '../../core/theme/app_colors.dart';
 class WorkerWalletScreen extends StatelessWidget {
   const WorkerWalletScreen({super.key});
 
-  // Transactions are empty until wallet API is implemented
   static const List<Map<String, String>> _transactions = [];
 
   @override
@@ -13,7 +12,7 @@ class WorkerWalletScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Wallet',
+          'Ví tiền',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
@@ -30,7 +29,7 @@ class WorkerWalletScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [kPrimary, Color(0xFF1D4ED8)],
+                        colors: [kPrimary, kPrimaryGradientEnd],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -47,7 +46,7 @@ class WorkerWalletScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Available Balance',
+                          'Số dư khả dụng',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 14,
@@ -66,9 +65,9 @@ class WorkerWalletScreen extends StatelessWidget {
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            _BalanceStat(label: 'This Month', value: '\$0'),
+                            _BalanceStat(label: 'Tháng này', value: '\$0'),
                             const SizedBox(width: 24),
-                            _BalanceStat(label: 'Total Earned', value: '\$0'),
+                            _BalanceStat(label: 'Tổng thu nhập', value: '\$0'),
                           ],
                         ),
                       ],
@@ -82,7 +81,7 @@ class WorkerWalletScreen extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.arrow_upward_rounded),
-                          label: const Text('Withdraw'),
+                          label: const Text('Rút tiền'),
                           style: FilledButton.styleFrom(
                             backgroundColor: kSecondary,
                             minimumSize: const Size.fromHeight(50),
@@ -94,7 +93,7 @@ class WorkerWalletScreen extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.history_rounded),
-                          label: const Text('Full History'),
+                          label: const Text('Xem toàn bộ lịch sử'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(50),
                             shape: RoundedRectangleBorder(
@@ -110,14 +109,14 @@ class WorkerWalletScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Transactions',
+                        'Giao dịch',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       TextButton(
                         onPressed: () {},
-                        child: const Text('See All'),
+                        child: const Text('Xem tất cả'),
                       ),
                     ],
                   ),
@@ -145,7 +144,7 @@ class WorkerWalletScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isCredit
                             ? kSecondaryContainer
-                            : const Color(0xFFFFDAD6),
+                            : kErrorContainer,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(

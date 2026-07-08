@@ -20,4 +20,5 @@ class AppConstants {
   static const double radiusXl = 20.0;
   static const double radiusFull = 100.0;
 
+  static const Duration activeBookingPollInterval = Duration(seconds: 6);
 }

@@ -1,16 +1,10 @@
 import 'package:cleanai/core/constants/booking_enums.dart';
+import 'package:cleanai/core/constants/payment_methods.dart';
 import 'package:cleanai/core/constants/user_role.dart';
 import 'package:cleanai/ui/booking/widgets/booking_action_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// D.8 action matrix (MASTER_FEATURE_SPEC.md EPIC D). Reschedule Approve/Reject/Withdraw collapse into
-// a single "Accept new time" / "Cancel booking" pair for either participant, since the backend does not
-// track which side requested the reschedule.
-//
-// Layout: exactly one prominent primary action per status (if any); Chat/Reschedule are compact icon
-// buttons (found by tooltip, since they carry no label); Report and other rare/destructive actions live
-// behind the overflow ("More actions") menu so they never compete visually with the primary action.
 void main() {
   Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -18,7 +12,7 @@ void main() {
     required String status,
     required UserRole viewerRole,
     bool isScheduled = true,
-    String paymentMethod = 'Cash',
+    PaymentMethod paymentMethod = PaymentMethod.cash,
     List<Map<String, dynamic>> statusTimeline = const [],
     VoidCallback? onChat,
     Future<void> Function()? onGoingThere,
@@ -59,7 +53,7 @@ void main() {
 
   /// Opens the overflow menu and taps the named entry.
   Future<void> tapOverflow(WidgetTester tester, String label) async {
-    await tester.tap(find.byTooltip('More actions'));
+    await tester.tap(find.byTooltip('Thêm thao tác'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(label).last);
     await tester.pumpAndSettle();
@@ -76,19 +70,18 @@ void main() {
         onReport: (reason) async => cancelReason = reason,
       )));
 
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.byTooltip('Chat'), findsNothing);
-      expect(find.byTooltip('More actions'), findsNothing);
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.byTooltip('Trò chuyện'), findsNothing);
+      expect(find.byTooltip('Thêm thao tác'), findsNothing);
 
-      await tester.tap(find.text('Cancel booking'));
+      await tester.tap(find.text('Hủy đặt lịch'));
       await tester.pumpAndSettle();
 
-      // Cancelling never fires straight away — the reason dialog comes first.
       expect(cancelReason, isNull);
-      expect(find.text('Cancel this booking?'), findsOneWidget);
+      expect(find.text('Hủy đơn đặt lịch này?'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'Đặt nhầm giờ');
-      await tester.tap(find.text('Confirm'));
+      await tester.tap(find.text('Xác nhận'));
       await tester.pumpAndSettle();
       expect(cancelReason, 'Đặt nhầm giờ');
     },
@@ -104,13 +97,13 @@ void main() {
         onReport: (_) async => cancelled = true,
       )));
 
-      await tester.tap(find.text('Cancel booking'));
+      await tester.tap(find.text('Hủy đặt lịch'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Back'));
+      await tester.tap(find.text('Hủy'));
       await tester.pumpAndSettle();
 
       expect(cancelled, isFalse);
-      expect(find.text('Cancel this booking?'), findsNothing);
+      expect(find.text('Hủy đơn đặt lịch này?'), findsNothing);
     },
   );
 
@@ -126,10 +119,10 @@ void main() {
         onRetryAsNewBooking: () => retried = true,
       )));
 
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
 
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
       expect(retried, isTrue);
     },
@@ -144,14 +137,14 @@ void main() {
         viewerRole: UserRole.worker,
       )));
 
-      expect(find.widgetWithText(FilledButton, 'Going there'), findsOneWidget);
-      expect(find.byTooltip('Chat'), findsOneWidget);
-      expect(find.byTooltip('Request reschedule'), findsOneWidget);
-      expect(find.text('Cancel this job'), findsNothing);
-      expect(find.text('Report'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Đang di chuyển'), findsOneWidget);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
+      expect(find.byTooltip('Yêu cầu đổi lịch'), findsOneWidget);
+      expect(find.text('Hủy công việc này'), findsNothing);
+      expect(find.text('Báo cáo'), findsNothing);
 
-      await tapOverflow(tester, 'Cancel this job');
-      expect(find.text('Report'), findsNothing); // menu closed after selecting
+      await tapOverflow(tester, 'Hủy công việc này');
+      expect(find.text('Báo cáo'), findsNothing); // menu closed after selecting
     },
   );
 
@@ -163,14 +156,14 @@ void main() {
         viewerRole: UserRole.client,
       )));
 
-      expect(find.byTooltip('Chat'), findsOneWidget);
-      expect(find.byTooltip('Request reschedule'), findsOneWidget);
-      expect(find.text('Going there'), findsNothing);
-      expect(find.text('Cancel this job'), findsNothing);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
+      expect(find.byTooltip('Yêu cầu đổi lịch'), findsOneWidget);
+      expect(find.text('Đang di chuyển'), findsNothing);
+      expect(find.text('Hủy công việc này'), findsNothing);
 
-      await tester.tap(find.byTooltip('More actions'));
+      await tester.tap(find.byTooltip('Thêm thao tác'));
       await tester.pumpAndSettle();
-      expect(find.text('Report'), findsOneWidget);
+      expect(find.text('Báo cáo'), findsOneWidget);
     },
   );
 
@@ -183,7 +176,7 @@ void main() {
         isScheduled: false,
       )));
 
-      expect(find.byTooltip('Request reschedule'), findsNothing);
+      expect(find.byTooltip('Yêu cầu đổi lịch'), findsNothing);
     },
   );
 
@@ -197,7 +190,7 @@ void main() {
         onStart: () async => started = true,
       )));
 
-      final startButton = find.widgetWithText(FilledButton, 'Start job');
+      final startButton = find.widgetWithText(FilledButton, 'Bắt đầu công việc');
       expect(startButton, findsOneWidget);
       await tester.tap(startButton);
       await tester.pumpAndSettle();
@@ -207,8 +200,8 @@ void main() {
         status: BookingStatusName.onTheWay,
         viewerRole: UserRole.client,
       )));
-      expect(find.text('Start job'), findsNothing);
-      expect(find.byTooltip('Chat'), findsOneWidget);
+      expect(find.text('Bắt đầu công việc'), findsNothing);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
     },
   );
 
@@ -222,7 +215,7 @@ void main() {
         onFinish: () async => finished = true,
       )));
 
-      final finishButton = find.widgetWithText(FilledButton, 'Finish');
+      final finishButton = find.widgetWithText(FilledButton, 'Hoàn thành');
       expect(finishButton, findsOneWidget);
       await tester.tap(finishButton);
       await tester.pumpAndSettle();
@@ -232,7 +225,7 @@ void main() {
         status: BookingStatusName.inProgress,
         viewerRole: UserRole.client,
       )));
-      expect(find.text('Finish'), findsNothing);
+      expect(find.text('Hoàn thành'), findsNothing);
     },
   );
 
@@ -245,14 +238,14 @@ void main() {
         viewerRole: UserRole.client,
       )));
       expect(find.text('Pay now'), findsNothing);
-      expect(find.text('Confirm cash received'), findsNothing);
+      expect(find.text('Xác nhận đã nhận tiền mặt'), findsNothing);
       expect(find.text('Vui lòng thanh toán tiền mặt cho nhân viên.'), findsOneWidget);
 
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.worker,
       )));
-      expect(find.widgetWithText(FilledButton, 'Confirm cash received'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Xác nhận đã nhận tiền mặt'), findsOneWidget);
       expect(find.text('Pay now'), findsNothing);
     },
   );
@@ -265,10 +258,10 @@ void main() {
         await tester.pumpWidget(wrap(bar(
           status: BookingStatusName.pendingPayment,
           viewerRole: role,
-          paymentMethod: 'Vnpay',
+          paymentMethod: PaymentMethod.vnpay,
         )));
         expect(find.text('Pay now'), findsNothing, reason: '$role');
-        expect(find.text('Confirm cash received'), findsNothing, reason: '$role');
+        expect(find.text('Xác nhận đã nhận tiền mặt'), findsNothing, reason: '$role');
         expect(find.text('Đang xử lý thanh toán VNPay…'), findsOneWidget, reason: '$role');
       }
     },
@@ -283,14 +276,14 @@ void main() {
         viewerRole: UserRole.client,
       )));
       expect(find.text('Review'), findsNothing);
-      expect(find.text('View earning'), findsNothing);
-      expect(find.byTooltip('More actions'), findsNothing);
+      expect(find.text('Xem thu nhập'), findsNothing);
+      expect(find.byTooltip('Thêm thao tác'), findsNothing);
 
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.completed,
         viewerRole: UserRole.worker,
       )));
-      expect(find.text('View earning'), findsOneWidget);
+      expect(find.text('Xem thu nhập'), findsOneWidget);
       expect(find.text('Review'), findsNothing);
     },
   );
@@ -303,9 +296,9 @@ void main() {
         viewerRole: UserRole.client,
       )));
 
-      expect(find.text('View reason'), findsOneWidget);
-      expect(find.byTooltip('Chat'), findsNothing);
-      expect(find.byTooltip('More actions'), findsNothing);
+      expect(find.text('Xem lý do'), findsOneWidget);
+      expect(find.byTooltip('Trò chuyện'), findsNothing);
+      expect(find.byTooltip('Thêm thao tác'), findsNothing);
     },
   );
 
@@ -319,7 +312,7 @@ void main() {
         onAccept: () async => accepted = true,
       )));
 
-      final acceptButton = find.widgetWithText(FilledButton, 'Accept Job');
+      final acceptButton = find.widgetWithText(FilledButton, 'Nhận việc');
       expect(acceptButton, findsOneWidget);
       await tester.tap(acceptButton);
       await tester.pumpAndSettle();
@@ -338,11 +331,11 @@ void main() {
         onApproveReschedule: () async => approved = true,
       )));
 
-      expect(find.widgetWithText(FilledButton, 'Accept new time'), findsOneWidget);
-      expect(find.text('Cancel booking'), findsOneWidget);
-      expect(find.byTooltip('Chat'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Chấp nhận giờ mới'), findsOneWidget);
+      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Accept new time'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Chấp nhận giờ mới'));
       await tester.pumpAndSettle();
       expect(approved, isTrue);
     },
@@ -358,13 +351,13 @@ void main() {
         onReport: (reason) async => reportedReason = reason,
       )));
 
-      await tester.tap(find.byTooltip('More actions'));
+      await tester.tap(find.byTooltip('Thêm thao tác'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Report').last);
+      await tester.tap(find.text('Báo cáo').last);
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'Client not home');
-      await tester.tap(find.text('Confirm'));
+      await tester.tap(find.text('Xác nhận'));
       await tester.pumpAndSettle();
 
       expect(reportedReason, 'Client not home');
@@ -384,7 +377,7 @@ void main() {
         ],
       )));
 
-      final historyIcon = find.byTooltip('History');
+      final historyIcon = find.byTooltip('Lịch sử');
       expect(historyIcon, findsOneWidget);
 
       await tester.tap(historyIcon);
@@ -409,7 +402,7 @@ void main() {
         ],
       )));
 
-      await tester.tap(find.byTooltip('History'));
+      await tester.tap(find.byTooltip('Lịch sử'));
       await tester.pumpAndSettle();
 
       expect(find.text('Accepted'), findsOneWidget);
@@ -424,7 +417,7 @@ void main() {
         viewerRole: UserRole.client,
       )));
 
-      expect(find.byTooltip('History'), findsNothing);
+      expect(find.byTooltip('Lịch sử'), findsNothing);
     },
   );
 }

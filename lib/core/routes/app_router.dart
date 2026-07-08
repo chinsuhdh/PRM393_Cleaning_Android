@@ -80,7 +80,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: AppRoutes.verifyOtp, builder: (context, state) => const VerifyOtpScreen()),
     GoRoute(path: AppRoutes.forgotPassword, builder: (context, state) => const ForgotPasswordScreen()),
 
-    // [THÊM MỚI] Route Reset Password nhận email truyền qua state
     GoRoute(
       path: AppRoutes.resetPassword,
       builder: (context, state) {
@@ -106,10 +105,6 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) {
         final child = BookingDetailScreen(bookingId: state.pathParameters['id'] ?? '');
-        // _reloadFresh (booking_detail_screen.dart) marks its self-replace navigations with this
-        // extra to skip the animated transition — see kBookingDetailSkipTransitionExtra's doc
-        // comment for why: animating over a live GoogleMap platform view's teardown corrupts the
-        // render on real devices.
         if (state.extra == kBookingDetailSkipTransitionExtra) {
           return NoTransitionPage<void>(
             key: state.pageKey,
@@ -149,16 +144,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/review/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Write a Review')), body: const Center(child: Text('ReviewScreen'))),
+      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Viết đánh giá')), body: const Center(child: Text('ReviewScreen'))),
     ),
 
-    // Standalone route so Booking Detail's Chat button can push it from the root
-    // navigator. Do not reuse the bare '/chat' path here: that one is a
-    // StatefulShellBranch (the client shell's AI-assistant tab) and pushing a
-    // shell-branch path from outside the shell reuses its branch NavigatorState
-    // GlobalKey for a second Navigator, which crashes with a duplicated-page-key
-    // assertion. There is no real per-booking chat yet (EPIC J-T1/J-T2) so this
-    // still opens the AI assistant for now.
     GoRoute(
       path: '/chat/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,

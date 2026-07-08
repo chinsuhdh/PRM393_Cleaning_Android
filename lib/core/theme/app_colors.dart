@@ -38,3 +38,7 @@ const Color kError = Color(0xFFBA1A1A);
 const Color kOnError = Color(0xFFFFFFFF);
 const Color kErrorContainer = Color(0xFFFFDAD6);
 const Color kOnErrorContainer = Color(0xFF410002);
+
+// ─── Booking-flow specifics ──────────────────────────────────────────────────
+const Color kMapPlaceholderBg = Color(0xFFEAF0F4);
+const Color kPrimaryGradientEnd = Color(0xFF1D4ED8);

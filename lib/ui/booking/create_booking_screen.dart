@@ -28,6 +28,7 @@ final bookingServiceDetailProvider = FutureProvider.autoDispose.family<Map<Strin
     final response = await ref.read(dioProvider).get('/ServiceCatalog/services/$id');
     return response.data;
   } catch (e) {
+    debugPrint('[CreateBookingScreen] direct service fetch failed, falling back to list: $e');
     final res = await ref.read(dioProvider).get('/ServiceCatalog/services');
     final list = List<Map<String, dynamic>>.from(res.data);
     return list.firstWhere((s) => s['id'] == id);
@@ -126,6 +127,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       }
       setState(() => _paymentMethod = PaymentMethod.vnpay);
     } catch (e) {
+      debugPrint('[CreateBookingScreen] change payment method failed: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
@@ -204,6 +206,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         return _submitBooking();
       }
     } catch (e) {
+      debugPrint('[CreateBookingScreen] submit booking failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
