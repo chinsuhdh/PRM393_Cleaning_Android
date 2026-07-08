@@ -47,35 +47,35 @@ void main() {
   );
 
   testWidgets(
-    '[WT-FE-WORKERJOBS-04] Worker Jobs opens branch-local detail and Back returns safely',
+    '[WT-FE-WORKERJOBS-04] Worker Jobs opens the shared root-level Booking Detail (not a nested '
+    'shell-branch route, which used to leave the WorkerShell bottom tabs showing under it) and Back '
+    'returns safely',
     (tester) async {
+      final rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
       final router = GoRouter(
+        navigatorKey: rootKey,
         initialLocation: '/worker/jobs',
         routes: [
           StatefulShellRoute.indexedStack(
             builder: (_, __, shell) => shell,
             branches: [
               StatefulShellBranch(routes: [
-                GoRoute(
-                  path: '/worker/jobs',
-                  builder: (_, __) => const WorkerJobsScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'booking/:id',
-                      builder: (context, state) => Scaffold(
-                        appBar: AppBar(
-                          leading: IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            onPressed: () => context.pop(),
-                          ),
-                        ),
-                        body: Text('DETAIL:${state.pathParameters['id']}'),
-                      ),
-                    ),
-                  ],
-                ),
+                GoRoute(path: '/worker/jobs', builder: (_, __) => const WorkerJobsScreen()),
               ]),
             ],
+          ),
+          GoRoute(
+            path: '/booking/:id',
+            parentNavigatorKey: rootKey,
+            builder: (context, state) => Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.pop(),
+                ),
+              ),
+              body: Text('DETAIL:${state.pathParameters['id']}'),
+            ),
           ),
         ],
       );
@@ -214,6 +214,12 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   @override
   void onJobCancelled(void Function() handler) {}
 
+  @override
+  Future<void> subscribeToBooking(String bookingId) async {}
+
+  @override
+  void onBookingStatusChanged(void Function() handler) {}
+
   void fireJobPosted() => _onPosted?.call();
 }
 
@@ -225,4 +231,7 @@ class _FakeDispatchRepository implements DispatchRepository {
 
   @override
   Future<void> retryBroadcast(String bookingId) async {}
+
+  @override
+  Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId) async => [];
 }

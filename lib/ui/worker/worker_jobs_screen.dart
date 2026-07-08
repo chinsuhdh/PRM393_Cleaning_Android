@@ -154,16 +154,11 @@ class _RealJobCard extends ConsumerWidget {
   final bool isAvailableJob;
   const _RealJobCard({required this.booking, required this.isAvailableJob});
 
-  // ==========================================
-  // HÀM MỞ GOOGLE MAPS (PHIÊN BẢN CHUẨN)
-  // ==========================================
   Future<void> _openGoogleMaps(BuildContext context, double? lat, double? lng) async {
     if (lat == null || lng == null) return;
 
-    // 1. Link gọi thẳng App Bản đồ
     final Uri geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
 
-    // 2. Link web xịn của Google Maps (phòng hờ)
     final Uri webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
 
     try {
@@ -189,7 +184,7 @@ class _RealJobCard extends ConsumerWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/worker/jobs/booking/${booking.id}'),
+      onTap: () => context.push('/booking/${booking.id}'),
       child: Card(
       elevation: 0,
       color: isAvailableJob ? kPrimaryContainer : theme.colorScheme.surfaceContainerHighest,

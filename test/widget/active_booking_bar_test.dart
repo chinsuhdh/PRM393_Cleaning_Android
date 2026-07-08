@@ -180,6 +180,32 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-ACTBAR-11] An Immediate AwaitingWorker booking shows an elapsed timer, not just the '
+    '"searching" subtitle alone — no progress bar, no deadline, it just counts up',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: [
+        Booking(
+          id: 'searching-timer',
+          serviceName: 'Dọn nhà',
+          date: '',
+          time: '',
+          price: 200000,
+          status: 'AwaitingWorker',
+          bookingType: 'Immediate',
+          createdAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        ),
+      ]));
+      await tester.pump();
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      final elapsed = find.byWidgetPredicate(
+        (widget) => widget is Text && RegExp(r'^\d{2}:\d{2}$').hasMatch(widget.data ?? ''),
+      );
+      expect(elapsed, findsOneWidget);
+    },
+  );
+
+  testWidgets(
     '[UT-FE-ACTBAR-05] A repository error is swallowed and the bar stays hidden',
     (tester) async {
       await pump(tester, _FailingBookingRepository());

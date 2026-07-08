@@ -9,8 +9,6 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
-/// Worker-side mirror of ActiveBookingBar (F.8 "pinned active job"): a persistent bar so the worker
-/// always sees their current job's state without digging into the Jobs tab.
 class WorkerActiveJobBar extends ConsumerStatefulWidget {
   const WorkerActiveJobBar({super.key, this.pollInterval = const Duration(seconds: 6)});
 
@@ -109,7 +107,7 @@ class _WorkerActiveJobBarState extends ConsumerState<WorkerActiveJobBar> {
       child: Material(
         color: kPrimaryContainer,
         child: InkWell(
-          onTap: () => context.push('/worker/jobs/booking/${booking.id}'),
+          onTap: () => context.push('/booking/${booking.id}'),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(

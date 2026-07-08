@@ -9,6 +9,51 @@ import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 
+class _OnlineStatusToggle extends ConsumerWidget {
+  const _OnlineStatusToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(workerOnlineStatusProvider);
+    return GestureDetector(
+      key: const ValueKey('online-status-toggle'),
+      onTap: () async {
+        try {
+          await ref.read(workerOnlineStatusProvider.notifier).toggle(!isOnline);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.circle, color: isOnline ? kSecondary : Colors.white70, size: 10),
+            const SizedBox(width: 6),
+            Text(
+              isOnline ? 'Available' : 'Offline',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
 class WorkerDashboardScreen extends ConsumerWidget {
@@ -18,8 +63,6 @@ class WorkerDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    // Keeps the dispatch hub connected while the dashboard is visible, so the newest-job preview
-    // below updates live instead of only refreshing when the worker navigates away and back.
     ref.watch(dispatchLiveFeedProvider);
 
     final authState = ref.watch(authProvider);
@@ -144,31 +187,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.circle, color: kSecondary, size: 10),
-                          SizedBox(width: 6),
-                          Text(
-                            'Available',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const _OnlineStatusToggle(),
                   ],
                 ),
               ),
@@ -273,7 +292,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
-                      onTap: () => context.push('/worker/jobs/booking/${newestJob.id}'),
+                      onTap: () => context.push('/booking/${newestJob.id}'),
                       leading: const CircleAvatar(
                         backgroundColor: kPrimary,
                         child: Icon(Icons.cleaning_services_rounded, color: Colors.white),

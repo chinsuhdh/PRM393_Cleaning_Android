@@ -27,6 +27,7 @@ void main() {
     Future<void> Function()? onConfirmCash,
     Future<void> Function()? onReleaseJob,
     Future<void> Function(String reason)? onReport,
+    VoidCallback? onRetryAsNewBooking,
     Future<void> Function()? onRequestReschedule,
     Future<void> Function()? onApproveReschedule,
     VoidCallback? onPayNow,
@@ -47,6 +48,7 @@ void main() {
         onConfirmCash: onConfirmCash ?? () async {},
         onReleaseJob: onReleaseJob ?? () async {},
         onReport: onReport ?? (_) async {},
+        onRetryAsNewBooking: onRetryAsNewBooking ?? () {},
         onRequestReschedule: onRequestReschedule ?? () async {},
         onApproveReschedule: onApproveReschedule ?? () async {},
         onPayNow: onPayNow ?? () {},
@@ -80,6 +82,27 @@ void main() {
       await tester.tap(find.text('Cancel booking'));
       await tester.pumpAndSettle();
       expect(cancelled, isTrue);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-15] AwaitingWorker (client, Immediate/not scheduled) shows Cancel booking and '
+    'Retry side by side — Retry starts a whole new request instead of re-broadcasting this one',
+    (tester) async {
+      var retried = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.awaitingWorker,
+        viewerRole: UserRole.client,
+        isScheduled: false,
+        onRetryAsNewBooking: () => retried = true,
+      )));
+
+      expect(find.text('Cancel booking'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(retried, isTrue);
     },
   );
 
@@ -204,13 +227,14 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-08] Completed: client sees Review, worker sees View earning, no overflow menu',
+    '[UT-FE-BOOKACT-08] Completed: client sees no secondary action (review is now inline on the page), '
+    'worker sees View earning, no overflow menu',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.completed,
         viewerRole: UserRole.client,
       )));
-      expect(find.text('Review'), findsOneWidget);
+      expect(find.text('Review'), findsNothing);
       expect(find.text('View earning'), findsNothing);
       expect(find.byTooltip('More actions'), findsNothing);
 

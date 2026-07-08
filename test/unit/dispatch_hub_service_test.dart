@@ -144,9 +144,11 @@ void main() {
 class _FakeDispatchHubClient implements DispatchHubClient {
   bool connected = false;
   bool disconnected = false;
+  final List<String> subscribedBookingIds = [];
   void Function()? _onPosted;
   void Function()? _onTaken;
   void Function()? _onCancelled;
+  void Function()? _onBookingStatusChanged;
 
   @override
   Future<void> connect() async => connected = true;
@@ -163,7 +165,14 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   @override
   void onJobCancelled(void Function() handler) => _onCancelled = handler;
 
+  @override
+  Future<void> subscribeToBooking(String bookingId) async => subscribedBookingIds.add(bookingId);
+
+  @override
+  void onBookingStatusChanged(void Function() handler) => _onBookingStatusChanged = handler;
+
   void fireJobPosted() => _onPosted?.call();
   void fireJobTaken() => _onTaken?.call();
   void fireJobCancelled() => _onCancelled?.call();
+  void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
 }

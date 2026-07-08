@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/search_timeout.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
@@ -20,6 +21,7 @@ class ActiveBookingBar extends ConsumerStatefulWidget {
 
 class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   Timer? _timer;
+  Timer? _elapsedTicker;
   Booking? _active;
 
   @override
@@ -32,7 +34,24 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   @override
   void dispose() {
     _timer?.cancel();
+    _elapsedTicker?.cancel();
     super.dispose();
+  }
+
+  static bool _isSearchingImmediate(Booking? booking) =>
+      booking != null && booking.isImmediate && booking.status == BookingStatusName.awaitingWorker;
+
+  /// A UI-only per-second tick so the elapsed timer reads smoothly, independent of the (much slower)
+  /// network poll interval that refreshes `_active` itself.
+  void _ensureElapsedTicker(bool searching) {
+    if (searching && _elapsedTicker == null) {
+      _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!searching && _elapsedTicker != null) {
+      _elapsedTicker!.cancel();
+      _elapsedTicker = null;
+    }
   }
 
   // Lower rank = more urgent to surface: a job actually happening right now matters more than one
@@ -107,6 +126,8 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
     final theme = Theme.of(context);
     final subtitle = _subtitleFor(booking);
+    final searching = _isSearchingImmediate(booking);
+    _ensureElapsedTicker(searching);
 
     return SafeArea(
       top: false,
@@ -142,6 +163,16 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
                     ],
                   ),
                 ),
+                if (searching) ...[
+                  Text(
+                    formatSearchElapsed(booking),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: kOnPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 const Icon(Icons.chevron_right_rounded, color: kPrimary),
               ],
             ),

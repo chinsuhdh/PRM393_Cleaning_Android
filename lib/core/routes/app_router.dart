@@ -7,8 +7,8 @@ import '../../ui/auth/login_screen.dart';
 import '../../ui/auth/register_screen.dart';
 import '../../ui/auth/forgot_password_screen.dart';
 import '../../ui/auth/verify_otp_screen.dart';
-import '../../ui/auth/reset_password_screen.dart'; // [THÊM MỚI] Màn hình đặt lại mật khẩu
-import '../../ui/profile/change_password_screen.dart'; // [THÊM MỚI] Màn hình đổi mật khẩu
+import '../../ui/auth/reset_password_screen.dart';
+import '../../ui/profile/change_password_screen.dart';
 
 import '../../ui/home/client_shell.dart';
 import '../../ui/home/home_screen.dart';
@@ -33,7 +33,7 @@ class AppRoutes {
   static const register = '/register';
   static const verifyOtp = '/verify-otp';
   static const forgotPassword = '/forgot-password';
-  static const resetPassword = '/reset-password'; // [THÊM MỚI]
+  static const resetPassword = '/reset-password'; 
 
   static const clientShell = '/home';
   static const home = '/home/dashboard';
@@ -47,7 +47,7 @@ class AppRoutes {
   static const bookingDetail = '/booking/:id';
   static const addressManagement = '/address';
   static const editProfile = '/profile/edit';
-  static const changePassword = '/profile/change-password'; // [THÊM MỚI]
+  static const changePassword = '/profile/change-password';
   static const payment = '/payment/:bookingId';
   static const review = '/review/:bookingId';
 
@@ -105,7 +105,28 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/booking/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => BookingDetailScreen(bookingId: state.pathParameters['id'] ?? ''),
+      pageBuilder: (context, state) {
+        final child = BookingDetailScreen(bookingId: state.pathParameters['id'] ?? '');
+        // _reloadFresh (booking_detail_screen.dart) marks its self-replace navigations with this
+        // extra to skip the animated transition — see kBookingDetailSkipTransitionExtra's doc
+        // comment for why: animating over a live GoogleMap platform view's teardown corrupts the
+        // render on real devices.
+        if (state.extra == kBookingDetailSkipTransitionExtra) {
+          return NoTransitionPage<void>(
+            key: state.pageKey,
+            name: state.name ?? state.path,
+            restorationId: state.pageKey.value,
+            child: child,
+          );
+        }
+        return MaterialPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
+          restorationId: state.pageKey.value,
+          child: child,
+        );
+      },
     ),
 
     GoRoute(
@@ -120,7 +141,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const EditProfileScreen(),
     ),
 
-    // [THÊM MỚI] Route cho màn hình Đổi mật khẩu
     GoRoute(
       path: AppRoutes.changePassword,
       parentNavigatorKey: _rootNavigatorKey,
@@ -170,18 +190,7 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(
           navigatorKey: _workerShellJobsKey,
           routes: [
-            GoRoute(
-              path: '/worker/jobs',
-              builder: (context, state) => const WorkerJobsScreen(),
-              routes: [
-                GoRoute(
-                  path: 'booking/:id',
-                  builder: (context, state) => BookingDetailScreen(
-                    bookingId: state.pathParameters['id'] ?? '',
-                  ),
-                ),
-              ],
-            ),
+            GoRoute(path: '/worker/jobs', builder: (context, state) => const WorkerJobsScreen()),
           ],
         ),
         StatefulShellBranch(navigatorKey: _workerShellWalletKey, routes: [GoRoute(path: '/worker/wallet', builder: (context, state) => const WorkerWalletScreen())]),

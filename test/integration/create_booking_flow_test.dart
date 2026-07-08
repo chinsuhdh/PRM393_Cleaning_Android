@@ -70,6 +70,10 @@ void main() {
             builder: (_, __) => const CreateBookingScreen(serviceId: 'service-1'),
           ),
           GoRoute(
+            path: '/bookings',
+            builder: (_, __) => const Scaffold(body: Text('BOOKINGS_STUB')),
+          ),
+          GoRoute(
             path: '/booking/:id',
             builder: (_, state) =>
                 Scaffold(body: Text('DETAIL ${state.pathParameters['id']}')),
@@ -103,6 +107,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('DETAIL booking-xyz'), findsOneWidget);
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('BOOKINGS_STUB'), findsOneWidget);
     },
   );
 

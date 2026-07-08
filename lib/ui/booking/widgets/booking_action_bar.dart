@@ -16,6 +16,7 @@ class BookingActionBar extends StatelessWidget {
   final Future<void> Function() onConfirmCash;
   final Future<void> Function() onReleaseJob;
   final Future<void> Function(String reason) onReport;
+  final VoidCallback onRetryAsNewBooking;
   final Future<void> Function() onRequestReschedule;
   final Future<void> Function() onApproveReschedule;
   final VoidCallback onPayNow;
@@ -37,6 +38,7 @@ class BookingActionBar extends StatelessWidget {
     required this.onConfirmCash,
     required this.onReleaseJob,
     required this.onReport,
+    required this.onRetryAsNewBooking,
     required this.onRequestReschedule,
     required this.onApproveReschedule,
     required this.onPayNow,
@@ -58,7 +60,13 @@ class BookingActionBar extends StatelessWidget {
 
     switch (status) {
       case BookingStatusName.awaitingWorker:
-        if (_isClient) secondary = _danger(context, 'Cancel booking', () => onReport(''));
+        if (_isClient) {
+          // Immediate: still broadcasting with no deadline — offer Cancel alongside Retry (starts a
+          // brand new request) side by side, instead of only Cancel. Scheduled keeps just Cancel.
+          secondary = isScheduled
+              ? _danger(context, 'Cancel booking', () => onReport(''))
+              : _cancelAndRetryRow(context);
+        }
         if (_isWorker && onAccept != null) primary = _primary(context, 'Accept Job', onAccept!);
 
       case BookingStatusName.accepted:
@@ -93,7 +101,8 @@ class BookingActionBar extends StatelessWidget {
 
       case BookingStatusName.completed:
         showChat = true;
-        if (_isClient) secondary = _outlinedSync(context, 'Review', onReview);
+        // Client review is now inline on the Booking Detail page itself (BookingReviewSection),
+        // not a separate button — leaving the onReview callback/route in place, just unused here.
         if (_isWorker) secondary = _outlinedSync(context, 'View earning', onViewEarning);
 
       case BookingStatusName.cancelled:
@@ -123,6 +132,10 @@ class BookingActionBar extends StatelessWidget {
     }
 
     return Column(
+      // min, not max: inside Scaffold.bottomNavigationBar the slot offers the whole remaining
+      // screen height as a loose constraint — a max-size Column stretches the footer full-screen,
+      // its opaque Material then covers the AppBar and body (white screen with only the buttons).
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (utilityIcons.isNotEmpty || overflow.isNotEmpty) ...[
@@ -180,6 +193,14 @@ class BookingActionBar extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
         child: Text(label),
+      );
+
+  Widget _cancelAndRetryRow(BuildContext context) => Row(
+        children: [
+          Expanded(child: _danger(context, 'Cancel booking', () => onReport(''))),
+          const SizedBox(width: 12),
+          Expanded(child: _outlinedSync(context, 'Retry', onRetryAsNewBooking)),
+        ],
       );
 
   Widget _danger(BuildContext context, String label, VoidCallback onPressed) => OutlinedButton(

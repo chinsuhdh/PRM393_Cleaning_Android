@@ -2,6 +2,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/theme/app_colors.dart';
+
+/// Whether an answer value counts as "filled in" — matches the predicate
+/// create_booking_screen.dart uses to gate the required-questions check, kept
+/// here as the single source of truth so both stay in sync.
+bool isQuestionAnswered(dynamic value) {
+  if (value == null || value == '') return false;
+  if (value is Iterable && value.isEmpty) return false;
+  return true;
+}
+
 class BookingQuestionsStep extends StatelessWidget {
   const BookingQuestionsStep({
     super.key,
@@ -31,7 +42,7 @@ class BookingQuestionsStep extends StatelessWidget {
     if (questions.isEmpty) return const Center(child: Text('Dịch vụ này không có câu hỏi bổ sung.'));
     return ListView.separated(
       itemCount: questions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
       itemBuilder: (context, index) => _Question(
         question: questions[index],
         value: answers[questions[index]['id'] ?? questions[index]['key']],
@@ -40,6 +51,27 @@ class BookingQuestionsStep extends StatelessWidget {
         photoCount: photoCount,
       ),
     );
+  }
+}
+
+IconData _iconForType(String? type) {
+  switch (type) {
+    case 'single_choice':
+    case 'choice':
+    case 'multi_choice':
+      return Icons.checklist_rounded;
+    case 'yes_no':
+    case 'boolean':
+      return Icons.toggle_on_outlined;
+    case 'text':
+      return Icons.edit_note_rounded;
+    case 'stepper':
+    case 'number':
+      return Icons.exposure_rounded;
+    case 'photos':
+      return Icons.photo_library_outlined;
+    default:
+      return Icons.help_outline_rounded;
   }
 }
 
@@ -56,6 +88,8 @@ class _Question extends StatelessWidget {
     final id = (question['id'] ?? question['key']).toString();
     final type = question['type']?.toString();
     final label = question['label']?.toString() ?? id;
+    final isRequired = question['required'] == true;
+    final answered = isQuestionAnswered(value);
     final options = List<Map<String, dynamic>>.from(
       (question['options'] as List? ?? const []).map((item) =>
           item is Map ? Map<String, dynamic>.from(item) : {'id': item, 'label': item}),
@@ -122,9 +156,68 @@ class _Question extends StatelessWidget {
       default:
         return const SizedBox.shrink();
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: Theme.of(context).textTheme.titleMedium),
-      control,
-    ]);
+
+    final Color accent;
+    final Color? borderColor;
+    final Color? fillColor;
+    if (isRequired && !answered) {
+      accent = kTertiary;
+      borderColor = kTertiary.withValues(alpha: 0.4);
+      fillColor = kTertiary.withValues(alpha: 0.04);
+    } else if (isRequired && answered) {
+      accent = kSecondary;
+      borderColor = kSecondary.withValues(alpha: 0.4);
+      fillColor = kSecondary.withValues(alpha: 0.04);
+    } else {
+      accent = kPrimary;
+      borderColor = null;
+      fillColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+    }
+
+    return Container(
+      key: ValueKey('question-card-$id'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: fillColor,
+        border: borderColor != null ? Border.all(color: borderColor) : null,
+      ),
+      // ListTile-family controls (Radio/Checkbox/SwitchListTile) paint ink splashes on the
+      // nearest Material ancestor; without this, the colored/bordered decoration above hides
+      // them and Flutter throws an assertion in debug/test builds.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(_iconForType(type), size: 20, color: accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            if (isRequired && !answered) _RequiredBadge(color: kTertiary),
+            if (isRequired && answered) Icon(Icons.check_circle_rounded, size: 20, color: kSecondary),
+          ]),
+          const SizedBox(height: 10),
+          control,
+        ]),
+      ),
+    );
+  }
+}
+
+class _RequiredBadge extends StatelessWidget {
+  const _RequiredBadge({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+      child: const Text(
+        'Bắt buộc',
+        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
+    );
   }
 }

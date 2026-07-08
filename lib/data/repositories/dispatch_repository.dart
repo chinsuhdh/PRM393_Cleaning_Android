@@ -7,6 +7,11 @@ import '../../core/network/dio_client.dart';
 abstract class DispatchRepository {
   Future<void> hideBooking(String bookingId);
   Future<void> retryBroadcast(String bookingId);
+
+  /// Anonymous coordinates only for nearby online, non-busy workers eligible for this booking —
+  /// used to render reassurance dots on the search map. Never carries a worker id/name/rating (the
+  /// backend enforces that too, not just this client).
+  Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId);
 }
 
 class ApiDispatchRepository implements DispatchRepository {
@@ -25,6 +30,24 @@ class ApiDispatchRepository implements DispatchRepository {
         '/Bookings/$bookingId/retry',
         'Không thể tìm lại nhân viên.',
       );
+
+  @override
+  Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId) async {
+    try {
+      final response = await _dio.get('/Bookings/$bookingId/nearby-workers');
+      final raw = response.data;
+      if (raw is! List) return [];
+      return raw.whereType<Map<String, dynamic>>().map((json) {
+        final lat = (json['latitude'] as num).toDouble();
+        final lng = (json['longitude'] as num).toDouble();
+        return (lat: lat, lng: lng);
+      }).toList();
+    } catch (_) {
+      // A failed nearby-worker fetch shouldn't block or error out the whole search map — it's
+      // reassurance UI, not load-bearing data.
+      return [];
+    }
+  }
 
   Future<void> _post(String path, String fallback) async {
     try {

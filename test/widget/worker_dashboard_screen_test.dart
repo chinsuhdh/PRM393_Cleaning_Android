@@ -213,6 +213,57 @@ void main() {
       expect(find.text('JOBS_STUB'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    '[WT-FE-WORKERDASH-07] Tapping the availability toggle calls the repository and flips the label/color',
+    (tester) async {
+      final repository = _FakeWorkerRepository();
+      await pumpTestApp(
+        tester,
+        child: const WorkerDashboardScreen(),
+        overrides: [
+          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          workerProfileProvider.overrideWith((ref) async => null),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+          workerRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Offline'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('online-status-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Available'), findsOneWidget);
+      expect(repository.calls, [true]);
+    },
+  );
+
+  testWidgets(
+    '[WT-FE-WORKERDASH-08] A failed toggle call reverts the displayed state and shows an error',
+    (tester) async {
+      final repository = _FakeWorkerRepository(shouldFail: true);
+      await pumpTestApp(
+        tester,
+        child: const WorkerDashboardScreen(),
+        overrides: [
+          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          workerProfileProvider.overrideWith((ref) async => null),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+          workerRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('online-status-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Offline'), findsOneWidget);
+      expect(find.textContaining('Không thể chuyển sang Online'), findsOneWidget);
+    },
+  );
 }
 
 class _FakeDispatchHubClient implements DispatchHubClient {
@@ -230,4 +281,36 @@ class _FakeDispatchHubClient implements DispatchHubClient {
 
   @override
   void onJobCancelled(void Function() handler) {}
+
+  @override
+  Future<void> subscribeToBooking(String bookingId) async {}
+
+  @override
+  void onBookingStatusChanged(void Function() handler) {}
+}
+
+class _FakeWorkerRepository implements WorkerRepository {
+  _FakeWorkerRepository({this.shouldFail = false});
+  final bool shouldFail;
+  final calls = <bool>[];
+
+  @override
+  Future<Worker?> getMyWorkerProfile() async => null;
+
+  @override
+  Future<void> updateLocation(double lat, double lng) async {}
+
+  @override
+  Future<void> registerAsWorker({
+    required String identityCardNumber,
+    required List<Map<String, dynamic>> skills,
+  }) async {}
+
+  @override
+  Future<void> updateOnlineStatus(bool online) async {
+    calls.add(online);
+    if (shouldFail) {
+      throw Exception('Không thể chuyển sang Online khi đang có công việc.');
+    }
+  }
 }

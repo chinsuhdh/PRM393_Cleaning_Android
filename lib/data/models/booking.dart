@@ -5,6 +5,7 @@ import 'worker.dart';
 
 class Booking {
   final String id;
+  final String serviceId;
   final String serviceName;
   final String date;
   final String time;
@@ -32,6 +33,7 @@ class Booking {
 
   const Booking({
     required this.id,
+    this.serviceId = '',
     required this.serviceName,
     required this.date,
     required this.time,
@@ -98,6 +100,7 @@ class Booking {
 
     return Booking(
       id: (json['id'] ?? '').toString(),
+      serviceId: (json['serviceId'] ?? '').toString(),
       serviceName: serviceName,
       date: date,
       time: time,

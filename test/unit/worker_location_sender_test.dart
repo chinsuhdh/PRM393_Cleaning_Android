@@ -75,4 +75,7 @@ class _FakeWorkerRepository implements WorkerRepository {
     required String identityCardNumber,
     required List<Map<String, dynamic>> skills,
   }) async {}
+
+  @override
+  Future<void> updateOnlineStatus(bool online) async {}
 }

@@ -130,6 +130,9 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       ref.invalidate(bookingsProvider);
       if (mounted) {
         if (_bookingType == 1) {
+          // Clears the multi-step creation flow off the stack first, so Back from Booking Detail
+          // returns to the Bookings tab instead of back into the (now stale) creation form.
+          context.go('/bookings');
           context.push('/booking/${newBooking.id}');
         } else {
           context.go('/home');
@@ -160,10 +163,21 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   Widget build(BuildContext context) {
     final addressesAsync = ref.watch(userAddressesProvider);
     final serviceAsync = ref.watch(bookingServiceDetailProvider(widget.serviceId));
+    final bookingsAsync = ref.watch(bookingsProvider);
+    final hasActiveImmediateBooking = bookingsAsync.maybeWhen(
+      data: (bookings) => bookings.any(
+        (b) => b.isImmediate && b.status == BookingStatusName.awaitingWorker,
+      ),
+      orElse: () => false,
+    );
 
     if (_selectedAddress == null && addressesAsync.hasValue && addressesAsync.value!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => setState(() => _selectedAddress = addressesAsync.value!.first));
+    }
+    if (hasActiveImmediateBooking && _bookingType == 1) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => setState(() => _bookingType = 0));
     }
 
     return Scaffold(
@@ -201,6 +215,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     selectedDate: _selectedDate,
                     selectedTime: _selectedTime,
                     notesController: _notesController,
+                    hasActiveImmediateBooking: hasActiveImmediateBooking,
                     onBookingTypeChanged: (type) => setState(() {
                       _bookingType = type;
                       _regenerateKey();

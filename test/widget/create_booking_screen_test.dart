@@ -35,6 +35,32 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-BOOK-001-08] "Đặt ngay" is disabled when the client already has an active Immediate '
+    'booking (one in-flight search at a time)',
+    (tester) async {
+      final harness = DioTestHarness();
+      _stubBookingData(harness);
+      final repository = _FakeBookingRepository(bookings: const [
+        Booking(
+          id: 'active-immediate', serviceName: 'Home Cleaning', date: '', time: '',
+          price: 200000, status: 'AwaitingWorker', bookingType: 'Immediate',
+        ),
+      ]);
+      await _pumpScreen(tester, harness, repository);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục'));
+      await tester.pumpAndSettle();
+
+      final segmented = tester.widget<SegmentedButton<int>>(find.byType(SegmentedButton<int>));
+      final immediateSegment = segmented.segments.firstWhere((s) => s.value == 1);
+      expect(immediateSegment.enabled, isFalse);
+      expect(find.textContaining('đang có một đơn đặt ngay'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     '[UT-FE-BOOK-001-06] Empty address list shows add-address prompt',
     (tester) async {
       final harness = DioTestHarness();
@@ -271,8 +297,11 @@ Future<void> _pumpScreen(
 }
 
 class _FakeBookingRepository implements BookingRepository {
-  _FakeBookingRepository({Map<String, dynamic>? quote, this.failCreateOnce = false})
-      : _quote = quote ?? {
+  _FakeBookingRepository({
+    Map<String, dynamic>? quote,
+    this.failCreateOnce = false,
+    this.bookings = const [],
+  }) : _quote = quote ?? {
           'serviceVersion': 1,
           'totalPrice': 100000,
           'breakdown': [{'label': 'Base', 'amount': 100000}],
@@ -280,6 +309,7 @@ class _FakeBookingRepository implements BookingRepository {
 
   final Map<String, dynamic> _quote;
   final bool failCreateOnce;
+  final List<Booking> bookings;
   int quoteCallCount = 0;
   int createCallCount = 0;
 
@@ -322,7 +352,7 @@ class _FakeBookingRepository implements BookingRepository {
   Future<List<Booking>> getAvailableBookings() async => [];
 
   @override
-  Future<List<Booking>> getClientBookings() async => [];
+  Future<List<Booking>> getClientBookings() async => bookings;
 
   @override
   Future<List<Booking>> getWorkerBookings() async => [];

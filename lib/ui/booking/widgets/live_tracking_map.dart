@@ -1,14 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/constants/user_role.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
+import '../../../data/services/directions_service.dart';
 import '../../../data/services/worker_location_sender.dart';
 import '../booking_detail_screen.dart' show bookingDetailProvider;
+
+const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const _osmUserAgentPackageName = 'com.example.cleanai';
 
 /// Straight-line distance in meters between the worker's last-reported position and the job
 /// address, or null if either side is missing. Pulled out as a pure function so it's testable
@@ -37,11 +43,23 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
   final Booking booking;
   final UserRole viewerRole;
 
+  /// When true, fills whatever space its parent gives it (a full-screen `Positioned.fill` background)
+  /// instead of the fixed-height rounded card used inline elsewhere.
+  final bool fullBleed;
+
+  /// Whether to fetch/draw the driving route + ETA from the worker's position to the job address.
+  /// Only meaningful up through `OnTheWay` — once `InProgress` the worker has already arrived, so
+  /// there's nothing left to route to (the map still shows, just without a line — see
+  /// `BookingDetailScreen._fullBleedMapFor`).
+  final bool showRoute;
+
   const LiveTrackingMap({
     super.key,
     required this.bookingId,
     required this.booking,
     required this.viewerRole,
+    this.fullBleed = false,
+    this.showRoute = false,
   });
 
   @override
@@ -51,11 +69,21 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
 class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
   static const _pollInterval = Duration(seconds: 10);
   Timer? _timer;
+  DirectionsRoute? _route;
+  double? _routedForWorkerLat;
+  double? _routedForWorkerLng;
 
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(_pollInterval, (_) => _refresh());
+    _maybeFetchRoute();
+  }
+
+  @override
+  void didUpdateWidget(LiveTrackingMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _maybeFetchRoute();
   }
 
   @override
@@ -65,6 +93,31 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
   }
 
   void _refresh() => ref.invalidate(bookingDetailProvider(widget.bookingId));
+
+  /// Re-fetches the route whenever the worker's reported position has actually moved (each
+  /// `_refresh()` tick pulls a fresh `booking.worker` from the backend) — not on every rebuild, so a
+  /// stationary worker doesn't spam the Directions API every 10s for the same unchanged route.
+  void _maybeFetchRoute() {
+    if (!widget.showRoute) return;
+    final workerLat = widget.booking.worker?.latitude;
+    final workerLng = widget.booking.worker?.longitude;
+    final destLat = widget.booking.latitude;
+    final destLng = widget.booking.longitude;
+    if (workerLat == null || workerLng == null || destLat == null || destLng == null) return;
+    if (workerLat == _routedForWorkerLat && workerLng == _routedForWorkerLng) return;
+    _routedForWorkerLat = workerLat;
+    _routedForWorkerLng = workerLng;
+
+    ref.read(directionsServiceProvider).fetchRoute(
+      originLat: workerLat,
+      originLng: workerLng,
+      destLat: destLat,
+      destLng: destLng,
+    ).then((route) {
+      if (!mounted || route == null) return;
+      setState(() => _route = route);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +135,7 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
     final workerLng = booking.worker?.longitude;
     final hasWorkerFix = workerLat != null && workerLng != null;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        height: 220,
-        child: Stack(
+    final content = Stack(
           children: [
             Positioned.fill(
               child: !hasDestination
@@ -113,31 +162,46 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                             ),
                           ),
                         )
-                      : GoogleMap(
-                          key: const ValueKey('live-tracking-google-map'),
-                          initialCameraPosition: CameraPosition(
-                            target: LatLng(booking.latitude!, booking.longitude!),
-                            zoom: 14,
+                      : FlutterMap(
+                          key: const ValueKey('live-tracking-map'),
+                          options: MapOptions(
+                            initialCenter: LatLng(booking.latitude!, booking.longitude!),
+                            initialZoom: 14,
                           ),
-                          markers: {
-                            Marker(
-                              markerId: const MarkerId('destination'),
-                              position: LatLng(booking.latitude!, booking.longitude!),
-                              infoWindow: const InfoWindow(title: 'Địa chỉ'),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+                          children: [
+                            TileLayer(
+                              urlTemplate: _osmTileUrlTemplate,
+                              userAgentPackageName: _osmUserAgentPackageName,
                             ),
-                            Marker(
-                              markerId: const MarkerId('worker'),
-                              position: LatLng(workerLat, workerLng),
-                              infoWindow: const InfoWindow(title: 'Nhân viên'),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                            if (widget.showRoute && _route != null)
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: _route!.points,
+                                    color: theme.colorScheme.primary,
+                                    strokeWidth: 4,
+                                  ),
+                                ],
+                              ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  key: const ValueKey('destination'),
+                                  point: LatLng(booking.latitude!, booking.longitude!),
+                                  width: 40,
+                                  height: 40,
+                                  child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+                                ),
+                                Marker(
+                                  key: const ValueKey('worker'),
+                                  point: LatLng(workerLat, workerLng),
+                                  width: 36,
+                                  height: 36,
+                                  child: const Icon(Icons.local_shipping, color: kSecondary, size: 36),
+                                ),
+                              ],
                             ),
-                          },
-                          myLocationButtonEnabled: false,
-                          myLocationEnabled: false,
-                          mapToolbarEnabled: false,
-                          compassEnabled: false,
-                          zoomControlsEnabled: false,
+                          ],
                         ),
             ),
             if (distance != null)
@@ -152,14 +216,23 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
                   ),
                   child: Text(
-                    'Cách ${formatDistance(distance)}',
+                    // Prefers the Directions route's own driving distance/ETA over the straight-line
+                    // fallback once it's back — the route call only ever fires when `showRoute` is set,
+                    // so outside Accepted/OnTheWay this always reads as the plain straight-line text.
+                    widget.showRoute && _route != null
+                        ? 'Cách ${_route!.distanceText} · ${_route!.durationText}'
+                        : 'Cách ${formatDistance(distance)}',
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
               ),
           ],
-        ),
-      ),
+        );
+
+    if (widget.fullBleed) return content;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(height: 220, child: content),
     );
   }
 }
