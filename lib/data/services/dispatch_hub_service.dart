@@ -13,6 +13,11 @@ abstract class DispatchHubClient {
   void onJobTaken(void Function() handler);
   void onJobCancelled(void Function() handler);
 
+  /// E.3: fires after the transport reconnects (e.g. after a network blip). Group membership
+  /// (`worker:{id}`/`booking:{id}`) isn't preserved across a new connection, so callers must
+  /// resubscribe and refetch here to catch up on anything missed while disconnected.
+  void onReconnected(void Function() handler);
+
   Future<void> subscribeToBooking(String bookingId);
   void onBookingStatusChanged(void Function() handler);
 
@@ -53,6 +58,9 @@ class SignalrDispatchHubClient implements DispatchHubClient {
 
   @override
   void onJobCancelled(void Function() handler) => _connection.on('jobCancelled', (_) => handler());
+
+  @override
+  void onReconnected(void Function() handler) => _connection.onreconnected(({connectionId}) => handler());
 
   @override
   Future<void> subscribeToBooking(String bookingId) => _connection.invoke('SubscribeBooking', args: [bookingId]);
@@ -105,6 +113,7 @@ class DispatchLiveFeedController {
     _client.onJobPosted(onFeedChanged);
     _client.onJobTaken(onFeedChanged);
     _client.onJobCancelled(onFeedChanged);
+    _client.onReconnected(onFeedChanged);
     try {
       await _client.connect();
     } catch (_) {

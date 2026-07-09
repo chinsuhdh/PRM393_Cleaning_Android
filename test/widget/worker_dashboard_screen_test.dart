@@ -407,6 +407,9 @@ class _FakeDispatchHubClient implements DispatchHubClient {
 
   @override
   void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {}
+
+  @override
+  void onReconnected(void Function() handler) {}
 }
 
 class _FakeWorkerRepository implements WorkerRepository {

@@ -270,5 +270,8 @@ class _FakeDispatchHubClient implements DispatchHubClient {
     _onNearbyWorkersUpdated = handler;
   }
 
+  @override
+  void onReconnected(void Function() handler) {}
+
   void pushNearbyWorkers(List<({double lat, double lng})> locations) => _onNearbyWorkersUpdated?.call(locations);
 }

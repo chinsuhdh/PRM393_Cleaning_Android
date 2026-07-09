@@ -62,6 +62,17 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       if (!mounted) return;
       ref.invalidate(bookingDetailProvider(widget.bookingId));
     });
+    client.onReconnected(() {
+      if (!mounted) return;
+      ref.invalidate(bookingDetailProvider(widget.bookingId));
+      unawaited(() async {
+        try {
+          await client.subscribeToBooking(widget.bookingId);
+        } catch (e) {
+          debugPrint('[BookingDetailScreen] resubscribe after reconnect failed: $e');
+        }
+      }());
+    });
     unawaited(() async {
       try {
         await client.connect();

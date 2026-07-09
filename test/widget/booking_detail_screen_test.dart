@@ -902,6 +902,51 @@ void main() {
   );
 
   testWidgets(
+    '[WT-FE-BOOKDETAIL-29] A SignalR reconnect resubscribes to the booking group and refetches, so '
+    'anything missed while disconnected (group membership is not preserved across a new connection) '
+    'is caught up instead of silently going stale',
+    (tester) async {
+      final client = _FakeLiveUpdateHubClient();
+      var fetchCount = 0;
+      const booking = Booking(
+        id: 'reconnect-catchup', serviceName: 'Home Cleaning', date: '06/07/2026', time: '09:00',
+        price: 200000, status: BookingStatusName.accepted,
+        worker: Worker(id: 'w1', name: 'Alex', rating: 4.8),
+      );
+      final router = GoRouter(
+        initialLocation: '/booking/${booking.id}',
+        routes: [
+          GoRoute(
+            path: '/booking/:id',
+            builder: (_, state) => BookingDetailScreen(bookingId: state.pathParameters['id']!),
+          ),
+        ],
+      );
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          bookingDetailProvider(booking.id).overrideWith((ref) async {
+            fetchCount++;
+            return booking;
+          }),
+          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          dispatchHubClientProvider.overrideWithValue(client),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(fetchCount, 1);
+      expect(client.subscribedBookingIds, [booking.id]);
+
+      client.fireReconnected();
+      await tester.pumpAndSettle();
+
+      expect(fetchCount, 2);
+      expect(client.subscribedBookingIds, [booking.id, booking.id]);
+    },
+  );
+
+  testWidgets(
     '[WT-FE-BOOKDETAIL-28] The sticky footer hugs the bottom edge instead of stretching over the '
     'whole page. Regression: BookingActionBar\'s Column defaulted to MainAxisSize.max, and Scaffold '
     'offers its bottomNavigationBar slot the full remaining height as a loose constraint — the '
@@ -973,6 +1018,9 @@ class _NoOpDispatchHubClient implements DispatchHubClient {
 
   @override
   void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {}
+
+  @override
+  void onReconnected(void Function() handler) {}
 }
 
 class _NoOpReviewRepository implements ReviewRepository {
@@ -1054,6 +1102,7 @@ class _FakeBookingRepository implements BookingRepository {
 class _FakeLiveUpdateHubClient implements DispatchHubClient {
   final List<String> subscribedBookingIds = [];
   void Function()? _onBookingStatusChanged;
+  void Function()? _onReconnected;
 
   @override
   Future<void> connect() async {}
@@ -1082,7 +1131,11 @@ class _FakeLiveUpdateHubClient implements DispatchHubClient {
   @override
   void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {}
 
+  @override
+  void onReconnected(void Function() handler) => _onReconnected = handler;
+
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
+  void fireReconnected() => _onReconnected?.call();
 }
 
 class _TestAuthNotifier extends AuthNotifier {
