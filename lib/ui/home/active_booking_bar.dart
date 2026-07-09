@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/search_timeout.dart';
@@ -12,29 +11,17 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
 class ActiveBookingBar extends ConsumerStatefulWidget {
-  const ActiveBookingBar({super.key, this.pollInterval = AppConstants.activeBookingPollInterval});
-
-  final Duration pollInterval;
+  const ActiveBookingBar({super.key});
 
   @override
   ConsumerState<ActiveBookingBar> createState() => _ActiveBookingBarState();
 }
 
 class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
-  Timer? _timer;
   Timer? _elapsedTicker;
-  Booking? _active;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
-    _timer = Timer.periodic(widget.pollInterval, (_) => _refresh());
-  }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _elapsedTicker?.cancel();
     super.dispose();
   }
@@ -44,6 +31,7 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   void _ensureElapsedTicker(bool searching) {
     if (searching && _elapsedTicker == null) {
+      // Ticker này chỉ dùng để đếm giây hiển thị trên UI (1s/lần), không gọi API
       _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
@@ -54,27 +42,6 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   }
 
   static final _statusRank = {...kCoreActiveBookingRank, BookingStatusName.awaitingWorker: 5};
-
-  Future<void> _refresh() async {
-    List<Booking> bookings;
-    try {
-      bookings = await ref.read(bookingRepositoryProvider).getClientBookings();
-    } catch (e) {
-      debugPrint('[ActiveBookingBar] refresh failed: $e');
-      return;
-    }
-    if (!mounted) return;
-
-    final active = bookings.where((b) => _statusRank.containsKey(b.status)).toList()
-      ..sort((a, b) {
-        final rank = _statusRank[a.status]!.compareTo(_statusRank[b.status]!);
-        if (rank != 0) return rank;
-        return (a.scheduledStartTime ?? DateTime(9999)).compareTo(b.scheduledStartTime ?? DateTime(9999));
-      });
-
-    final next = active.isEmpty ? null : active.first;
-    if (next?.id != _active?.id) setState(() => _active = next);
-  }
 
   String _subtitleFor(Booking booking) {
     switch (booking.status) {
@@ -112,8 +79,26 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   @override
   Widget build(BuildContext context) {
-    final booking = _active;
-    if (booking == null) return const SizedBox.shrink();
+    // Thay vì tự gọi API, chúng ta chỉ cần "nghe" dữ liệu từ bookingsProvider.
+    // Khi SignalR báo có thay đổi, bookingsProvider sẽ tự update, và UI này sẽ tự đổi theo!
+    final bookingsAsync = ref.watch(bookingsProvider);
+
+    final activeBookings = bookingsAsync.maybeWhen(
+      data: (bookings) => bookings.where((b) => _statusRank.containsKey(b.status)).toList()
+        ..sort((a, b) {
+          final rank = _statusRank[a.status]!.compareTo(_statusRank[b.status]!);
+          if (rank != 0) return rank;
+          return (a.scheduledStartTime ?? DateTime(9999)).compareTo(b.scheduledStartTime ?? DateTime(9999));
+        }),
+      orElse: () => <Booking>[],
+    );
+
+    final booking = activeBookings.isEmpty ? null : activeBookings.first;
+
+    if (booking == null) {
+      _ensureElapsedTicker(false);
+      return const SizedBox.shrink();
+    }
 
     final theme = Theme.of(context);
     final subtitle = _subtitleFor(booking);

@@ -30,11 +30,12 @@ dependencies:
   geocoding: ^4.0.0
   url_launcher: ^6.3.2
 
-  # Image Picker
+  # Image Picker & WebSockets
   image_picker: ^1.1.2
   signalr_netcore: ^1.4.4
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

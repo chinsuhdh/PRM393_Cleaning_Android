@@ -4,7 +4,10 @@ class Profile {
   final String? avatarUrl;
   final String? email;
   final String? phoneNumber;
-  final bool? isPhoneVerified; // [THÊM MỚI]
+  final bool? isPhoneVerified;
+
+  final int? bookingCount;
+  final int? savedCount; // Đã xóa rating
 
   Profile({
     required this.id,
@@ -12,7 +15,9 @@ class Profile {
     this.avatarUrl,
     this.email,
     this.phoneNumber,
-    this.isPhoneVerified, // [THÊM MỚI]
+    this.isPhoneVerified,
+    this.bookingCount,
+    this.savedCount,
   });
 
   String get initials {
@@ -27,7 +32,9 @@ class Profile {
       avatarUrl: json['avatarUrl']?.toString(),
       email: json['email']?.toString(),
       phoneNumber: json['phoneNumber']?.toString(),
-      isPhoneVerified: json['isPhoneVerified'] as bool? ?? false, // [THÊM MỚI] Đọc từ JSON
+      isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
+      bookingCount: json['bookingCount'] as int? ?? 0,
+      savedCount: json['savedCount'] as int? ?? 0,
     );
   }
 
@@ -38,5 +45,7 @@ class Profile {
     'email': email,
     'phoneNumber': phoneNumber,
     'isPhoneVerified': isPhoneVerified,
+    'bookingCount': bookingCount,
+    'savedCount': savedCount,
   };
 }
