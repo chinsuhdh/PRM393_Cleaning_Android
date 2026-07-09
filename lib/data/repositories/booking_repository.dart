@@ -28,6 +28,10 @@ class QuoteStaleException implements Exception {
   const QuoteStaleException();
 }
 
+class BookingNoLongerAvailableException implements Exception {
+  const BookingNoLongerAvailableException();
+}
+
 class ApiBookingRepository implements BookingRepository {
   ApiBookingRepository(this._dio);
 
@@ -200,6 +204,9 @@ class ApiBookingRepository implements BookingRepository {
       await _dio.patch('/Bookings/$bookingId/accept');
     } on DioException catch (error) {
       debugPrint('[BookingRepository] acceptBooking failed: $error');
+      if (backendErrorCodeFromDioException(error) == 'BOOKING_ACCEPT_FAILED') {
+        throw const BookingNoLongerAvailableException();
+      }
       throw Exception(
         backendMessageFromDioException(
           error,

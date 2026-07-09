@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,23 +8,23 @@ import '../../../core/constants/user_role.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
 import '../../../data/services/directions_service.dart';
+import '../../../data/services/dispatch_hub_service.dart';
 import '../../../data/services/worker_location_sender.dart';
-import '../booking_detail_screen.dart' show bookingDetailProvider;
 
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
 
-double? onTheWayDistanceMeters(Booking booking) {
-  final worker = booking.worker;
-  if (worker?.latitude == null || worker?.longitude == null) return null;
-  if (booking.latitude == null || booking.longitude == null) return null;
-  return Geolocator.distanceBetween(
-    worker!.latitude!,
-    worker.longitude!,
-    booking.latitude!,
-    booking.longitude!,
-  );
+double? _distanceMeters(double? lat, double? lng, double? destLat, double? destLng) {
+  if (lat == null || lng == null || destLat == null || destLng == null) return null;
+  return Geolocator.distanceBetween(lat, lng, destLat, destLng);
 }
+
+double? onTheWayDistanceMeters(Booking booking) => _distanceMeters(
+      booking.worker?.latitude,
+      booking.worker?.longitude,
+      booking.latitude,
+      booking.longitude,
+    );
 
 String formatDistance(double meters) =>
     meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '${meters.round()} m';
@@ -54,8 +52,9 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
 }
 
 class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
-  static const _pollInterval = Duration(seconds: 10);
-  Timer? _timer;
+  double? _liveWorkerLat;
+  double? _liveWorkerLng;
+  bool _receivedLivePosition = false;
   DirectionsRoute? _route;
   double? _routedForWorkerLat;
   double? _routedForWorkerLng;
@@ -63,28 +62,36 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(_pollInterval, (_) => _refresh());
+    _liveWorkerLat = widget.booking.worker?.latitude;
+    _liveWorkerLng = widget.booking.worker?.longitude;
+    // F.2/F.3: the booking-detail screen already connects and joins `booking:{id}` — this only
+    // needs to listen for the worker's live position pushes on that shared connection.
+    ref.read(dispatchHubClientProvider).onWorkerPosition((lat, lng) {
+      if (!mounted) return;
+      setState(() {
+        _liveWorkerLat = lat;
+        _liveWorkerLng = lng;
+        _receivedLivePosition = true;
+      });
+      _maybeFetchRoute();
+    });
     _maybeFetchRoute();
   }
 
   @override
   void didUpdateWidget(LiveTrackingMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_receivedLivePosition) {
+      _liveWorkerLat = widget.booking.worker?.latitude;
+      _liveWorkerLng = widget.booking.worker?.longitude;
+    }
     _maybeFetchRoute();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _refresh() => ref.invalidate(bookingDetailProvider(widget.bookingId));
-
   void _maybeFetchRoute() {
     if (!widget.showRoute) return;
-    final workerLat = widget.booking.worker?.latitude;
-    final workerLng = widget.booking.worker?.longitude;
+    final workerLat = _liveWorkerLat;
+    final workerLng = _liveWorkerLng;
     final destLat = widget.booking.latitude;
     final destLng = widget.booking.longitude;
     if (workerLat == null || workerLng == null || destLat == null || destLng == null) return;
@@ -111,10 +118,10 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
 
     final theme = Theme.of(context);
     final booking = widget.booking;
-    final distance = onTheWayDistanceMeters(booking);
+    final workerLat = _liveWorkerLat;
+    final workerLng = _liveWorkerLng;
+    final distance = _distanceMeters(workerLat, workerLng, booking.latitude, booking.longitude);
     final hasDestination = booking.latitude != null && booking.longitude != null;
-    final workerLat = booking.worker?.latitude;
-    final workerLng = booking.worker?.longitude;
     final hasWorkerFix = workerLat != null && workerLng != null;
 
     final content = Stack(

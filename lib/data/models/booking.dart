@@ -32,6 +32,7 @@ class Booking {
   final String? addressText;
   final double? latitude;
   final double? longitude;
+  final double? distanceKm;
 
   const Booking({
     required this.id,
@@ -60,6 +61,7 @@ class Booking {
     this.addressText,
     this.latitude,
     this.longitude,
+    this.distanceKm,
   });
 
   bool get isImmediate => bookingType == BookingTypeName.immediate;
@@ -131,6 +133,7 @@ class Booking {
       addressText: json['addressText'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      distanceKm: (json['distanceKm'] as num?)?.toDouble(),
     );
   }
 

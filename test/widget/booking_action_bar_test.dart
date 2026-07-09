@@ -17,6 +17,7 @@ void main() {
     VoidCallback? onChat,
     Future<void> Function()? onGoingThere,
     Future<void> Function()? onAccept,
+    Future<void> Function()? onHideJob,
     Future<void> Function()? onStart,
     Future<void> Function()? onFinish,
     Future<void> Function()? onConfirmCash,
@@ -38,6 +39,7 @@ void main() {
         onChat: onChat ?? () {},
         onGoingThere: onGoingThere ?? () async {},
         onAccept: onAccept,
+        onHideJob: onHideJob,
         onStart: onStart ?? () async {},
         onFinish: onFinish ?? () async {},
         onConfirmCash: onConfirmCash ?? () async {},
@@ -317,6 +319,24 @@ void main() {
       await tester.tap(acceptButton);
       await tester.pumpAndSettle();
       expect(accepted, isTrue);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-19] AwaitingWorker worker can hide the job from the overflow menu, from the '
+    'Booking Detail screen (not only the swipe action on the Available Jobs list)',
+    (tester) async {
+      var hidden = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.awaitingWorker,
+        viewerRole: UserRole.worker,
+        onAccept: () async {},
+        onHideJob: () async => hidden = true,
+      )));
+
+      expect(find.byTooltip('Thêm thao tác'), findsOneWidget);
+      await tapOverflow(tester, 'Ẩn công việc này');
+      expect(hidden, isTrue);
     },
   );
 

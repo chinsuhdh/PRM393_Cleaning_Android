@@ -1,6 +1,7 @@
 import 'package:cleanai/core/constants/user_role.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/dispatch_repository.dart';
+import 'package:cleanai/data/services/dispatch_hub_service.dart';
 import 'package:cleanai/data/services/directions_service.dart';
 import 'package:cleanai/data/services/worker_location_sender.dart';
 import 'package:cleanai/ui/booking/widgets/nearby_workers_google_map.dart';
@@ -63,7 +64,8 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-NEARBYMAP-03] Polls the repository on mount and again on the next tick',
+    '[UT-FE-NEARBYMAP-03] Fetches the repository once on mount and does not keep polling — the map '
+    'now relies on the ~60s SignalR push (E.9) instead of a REST timer',
     (tester) async {
       final repository = _FakeDispatchRepository(locations: const []);
       await tester.pumpWidget(ProviderScope(
@@ -74,27 +76,32 @@ void main() {
       await tester.pump();
       expect(repository.callCount, 1);
 
-      await tester.pump(const Duration(seconds: 6));
-      expect(repository.callCount, 2);
+      await tester.pump(const Duration(seconds: 90));
+      expect(repository.callCount, 1);
     },
   );
 
   testWidgets(
-    '[UT-FE-NEARBYMAP-04] Stops polling once the widget is disposed',
+    '[UT-FE-NEARBYMAP-04] Renders updated markers when a nearbyWorkersUpdated push arrives over SignalR',
     (tester) async {
       final repository = _FakeDispatchRepository(locations: const []);
+      final hubClient = _FakeDispatchHubClient();
       await tester.pumpWidget(ProviderScope(
-        overrides: [dispatchRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          dispatchRepositoryProvider.overrideWithValue(repository),
+          dispatchHubClientProvider.overrideWithValue(hubClient),
+        ],
         child: MaterialApp(home: Scaffold(body: NearbyWorkersGoogleMap(booking: booking))),
       ));
       await tester.pump();
       await tester.pump();
 
-      await tester.pumpWidget(const MaterialApp(home: Scaffold(body: SizedBox.shrink())));
-      final countAtDispose = repository.callCount;
-      await tester.pump(const Duration(seconds: 12));
+      hubClient.pushNearbyWorkers(const [(lat: 10.771, lng: 106.701), (lat: 10.772, lng: 106.702)]);
+      await tester.pump();
 
-      expect(repository.callCount, countAtDispose);
+      final markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
+      // 1 service-location pin + 2 pushed nearby-worker dots.
+      expect(markerLayer.markers, hasLength(3));
     },
   );
 
@@ -229,4 +236,39 @@ class _FakeDispatchRepository implements DispatchRepository {
     callCount++;
     return _locations;
   }
+}
+
+class _FakeDispatchHubClient implements DispatchHubClient {
+  void Function(List<({double lat, double lng})>)? _onNearbyWorkersUpdated;
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  void onJobPosted(void Function() handler) {}
+
+  @override
+  void onJobTaken(void Function() handler) {}
+
+  @override
+  void onJobCancelled(void Function() handler) {}
+
+  @override
+  Future<void> subscribeToBooking(String bookingId) async {}
+
+  @override
+  void onBookingStatusChanged(void Function() handler) {}
+
+  @override
+  void onWorkerPosition(void Function(double lat, double lng) handler) {}
+
+  @override
+  void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {
+    _onNearbyWorkersUpdated = handler;
+  }
+
+  void pushNearbyWorkers(List<({double lat, double lng})> locations) => _onNearbyWorkersUpdated?.call(locations);
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../../core/constants/booking_enums.dart';
@@ -210,6 +211,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     statusTimeline: booking.statusTimeline,
                     onChat: () => context.push('/chat/${widget.bookingId}'),
                     onAccept: () => _accept(context, ref),
+            onHideJob: () => _hideJob(context, ref),
                     onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
                     onStart: () => _advance(context, ref, BookingStatusName.inProgress),
                     onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
@@ -290,6 +292,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             statusTimeline: booking.statusTimeline,
             onChat: () => context.push('/chat/${widget.bookingId}'),
             onAccept: () => _accept(context, ref),
+            onHideJob: () => _hideJob(context, ref),
             onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
             onStart: () => _advance(context, ref, BookingStatusName.inProgress),
             onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),

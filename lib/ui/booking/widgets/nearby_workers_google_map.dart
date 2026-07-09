@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
 import '../../../data/repositories/dispatch_repository.dart';
 import '../../../data/services/directions_service.dart';
+import '../../../data/services/dispatch_hub_service.dart';
 import '../../../data/services/worker_location_sender.dart';
 
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -30,8 +29,6 @@ class NearbyWorkersGoogleMap extends ConsumerStatefulWidget {
 }
 
 class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap> {
-  static const _pollInterval = Duration(seconds: 6);
-  Timer? _timer;
   List<({double lat, double lng})> _nearbyWorkers = [];
   LatLng? _myPosition;
   DirectionsRoute? _route;
@@ -40,14 +37,12 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
   void initState() {
     super.initState();
     _refresh();
-    _timer = Timer.periodic(_pollInterval, (_) => _refresh());
+    // E.6/E.9: the booking-detail screen already connects and joins `booking:{id}` — this only
+    // needs to listen for the ~60s position pushes on that shared connection.
+    ref.read(dispatchHubClientProvider).onNearbyWorkersUpdated((locations) {
+      if (mounted) setState(() => _nearbyWorkers = locations);
+    });
     if (widget.viewerRole == UserRole.worker) _loadWorkerRoute();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 
   Future<void> _refresh() async {

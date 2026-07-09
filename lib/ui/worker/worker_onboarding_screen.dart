@@ -73,7 +73,7 @@ class _WorkerOnboardingScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đăng ký hồ sơ thợ thành công! 🎉'),
+            content: Text('Đăng ký hồ sơ thợ thành công!'),
             backgroundColor: kSecondary,
           ),
         );

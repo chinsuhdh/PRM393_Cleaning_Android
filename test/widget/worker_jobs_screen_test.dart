@@ -220,6 +220,12 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   @override
   void onBookingStatusChanged(void Function() handler) {}
 
+  @override
+  void onWorkerPosition(void Function(double lat, double lng) handler) {}
+
+  @override
+  void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {}
+
   void fireJobPosted() => _onPosted?.call();
 }
 

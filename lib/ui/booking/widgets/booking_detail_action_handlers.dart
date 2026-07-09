@@ -106,6 +106,24 @@ extension _BookingDetailActionHandlers on _BookingDetailScreenState {
     }
   }
 
+  Future<void> _hideJob(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(dispatchRepositoryProvider).hideBooking(widget.bookingId);
+      ref.invalidate(availableBookingsProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã ẩn công việc này.')),
+      );
+      context.pop();
+    } catch (error) {
+      debugPrint('[BookingDetailScreen] hideJob failed: $error');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   void _showCancellationReason(BuildContext context, Booking booking) {
     final cancelEntry = booking.statusTimeline.lastWhere(
       (entry) => entry['newStatus']?.toString() == BookingStatusName.cancelled,

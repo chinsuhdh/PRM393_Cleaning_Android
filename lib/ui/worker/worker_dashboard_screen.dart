@@ -8,12 +8,28 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../shared/destructive_dialog_actions.dart';
 import 'widgets/worker_dashboard_stats.dart';
 
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+
+Future<void> _hideJob(BuildContext context, WidgetRef ref, Booking booking) async {
+  try {
+    await ref.read(dispatchRepositoryProvider).hideBooking(booking.id);
+    ref.invalidate(availableBookingsProvider);
+  } catch (error) {
+    debugPrint('[WorkerDashboardScreen] hideBooking failed: $error');
+    ref.invalidate(availableBookingsProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: Colors.red),
+      );
+    }
+  }
+}
 
 class WorkerDashboardScreen extends ConsumerWidget {
   const WorkerDashboardScreen({super.key});
@@ -287,12 +303,27 @@ class WorkerDashboardScreen extends ConsumerWidget {
                             : '${newestJob.date} · ${newestJob.time}',
                         style: const TextStyle(color: kOnPrimaryContainer),
                       ),
-                      trailing: Text(
-                        _vnd.format(newestJob.price),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: kPrimary,
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _vnd.format(newestJob.price),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: kPrimary,
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            tooltip: 'Tuỳ chọn',
+                            icon: const Icon(Icons.more_vert_rounded, color: kOnPrimaryContainer),
+                            onSelected: (value) {
+                              if (value == 'hide') _hideJob(context, ref, newestJob);
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(value: 'hide', child: Text('Ẩn công việc này')),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),

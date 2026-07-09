@@ -15,6 +15,7 @@ class BookingActionBar extends StatelessWidget {
   final VoidCallback onChat;
   final Future<void> Function() onGoingThere;
   final Future<void> Function()? onAccept;
+  final Future<void> Function()? onHideJob;
   final Future<void> Function() onStart;
   final Future<void> Function() onFinish;
   final Future<void> Function() onConfirmCash;
@@ -37,6 +38,7 @@ class BookingActionBar extends StatelessWidget {
     required this.onChat,
     required this.onGoingThere,
     this.onAccept,
+    this.onHideJob,
     required this.onStart,
     required this.onFinish,
     required this.onConfirmCash,
@@ -69,6 +71,7 @@ class BookingActionBar extends StatelessWidget {
               : _cancelAndRetryRow(context);
         }
         if (_isWorker && onAccept != null) primary = _primary(context, 'Nhận việc', onAccept!);
+        if (_isWorker && onHideJob != null) overflow.add(_OverflowAction('Ẩn công việc này', onHideJob!));
 
       case BookingStatusName.accepted:
         showChat = true;

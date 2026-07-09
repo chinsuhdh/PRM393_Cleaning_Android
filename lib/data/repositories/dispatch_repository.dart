@@ -5,6 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
 
+List<({double lat, double lng})> parseNearbyWorkerLocations(Object? raw) {
+  if (raw is! List) return [];
+  return raw.whereType<Map>().map((json) {
+    final lat = (json['latitude'] as num).toDouble();
+    final lng = (json['longitude'] as num).toDouble();
+    return (lat: lat, lng: lng);
+  }).toList();
+}
+
 abstract class DispatchRepository {
   Future<void> hideBooking(String bookingId);
   Future<void> retryBroadcast(String bookingId);
@@ -36,13 +45,7 @@ class ApiDispatchRepository implements DispatchRepository {
   Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId) async {
     try {
       final response = await _dio.get('/Bookings/$bookingId/nearby-workers');
-      final raw = response.data;
-      if (raw is! List) return [];
-      return raw.whereType<Map<String, dynamic>>().map((json) {
-        final lat = (json['latitude'] as num).toDouble();
-        final lng = (json['longitude'] as num).toDouble();
-        return (lat: lat, lng: lng);
-      }).toList();
+      return parseNearbyWorkerLocations(response.data);
     } catch (e) {
       debugPrint('[DispatchRepository] getNearbyWorkerLocations failed: $e');
       // A failed nearby-worker fetch shouldn't block or error out the whole search map — it's
