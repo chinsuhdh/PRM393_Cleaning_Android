@@ -127,6 +127,85 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-ACTBAR-06] An OnTheWay booking shows "worker is on the way"',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: const [
+        Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'OnTheWay'),
+      ]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dọn nhà'), findsOneWidget);
+      expect(find.textContaining('trên đường'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-ACTBAR-07] An InProgress booking shows "job in progress"',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: const [
+        Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'InProgress'),
+      ]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dọn nhà'), findsOneWidget);
+      expect(find.textContaining('đang được thực hiện'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-ACTBAR-08] A PendingPayment booking is also surfaced',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: const [
+        Booking(id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000, status: 'PendingPayment'),
+      ]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dọn nhà'), findsOneWidget);
+      expect(find.textContaining('thanh toán'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-ACTBAR-09] An in-progress job takes priority over a still-searching booking',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: const [
+        Booking(id: 'searching', serviceName: 'Đang tìm', date: '', time: '', price: 100000, status: 'AwaitingWorker'),
+        Booking(id: 'doing', serviceName: 'Đang làm', date: '', time: '', price: 200000, status: 'InProgress'),
+      ]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đang làm'), findsOneWidget);
+      expect(find.text('Đang tìm'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-ACTBAR-11] An Immediate AwaitingWorker booking shows an elapsed timer, not just the '
+    '"searching" subtitle alone — no progress bar, no deadline, it just counts up',
+    (tester) async {
+      await pump(tester, _FakeBookingRepository(bookings: [
+        Booking(
+          id: 'searching-timer',
+          serviceName: 'Dọn nhà',
+          date: '',
+          time: '',
+          price: 200000,
+          status: 'AwaitingWorker',
+          bookingType: 'Immediate',
+          createdAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        ),
+      ]));
+      await tester.pump();
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      final elapsed = find.byWidgetPredicate(
+        (widget) => widget is Text && RegExp(r'^\d{2}:\d{2}$').hasMatch(widget.data ?? ''),
+      );
+      expect(elapsed, findsOneWidget);
+    },
+  );
+
+  testWidgets(
     '[UT-FE-ACTBAR-05] A repository error is swallowed and the bar stays hidden',
     (tester) async {
       await pump(tester, _FailingBookingRepository());

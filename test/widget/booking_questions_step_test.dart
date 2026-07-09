@@ -149,4 +149,65 @@ void main() {
       expect(find.text('Dịch vụ này không có câu hỏi bổ sung.'), findsOneWidget);
     },
   );
+
+  const requiredSchema = {
+    'bookingFormSchema': {
+      'questions': [
+        {'id': 'pets', 'type': 'yes_no', 'label': 'Do you have pets?', 'required': true},
+        {'id': 'note', 'type': 'text', 'label': 'Note for your worker'},
+      ],
+    },
+  };
+
+  testWidgets(
+    '[UT-FE-BOOKQ-06] A required, unanswered question shows the "Bắt buộc" badge',
+    (tester) async {
+      await tester.pumpWidget(wrap(BookingQuestionsStep(
+        service: requiredSchema,
+        answers: const {},
+        onChanged: (_, __) {},
+        onPhotosChanged: (_) {},
+        photoCount: 0,
+      )));
+
+      expect(find.text('Bắt buộc'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKQ-07] Answering a required question swaps the badge for a check icon',
+    (tester) async {
+      await tester.pumpWidget(wrap(BookingQuestionsStep(
+        service: requiredSchema,
+        answers: const {'pets': true},
+        onChanged: (_, __) {},
+        onPhotosChanged: (_) {},
+        photoCount: 0,
+      )));
+
+      expect(find.text('Bắt buộc'), findsNothing);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKQ-08] An optional question never shows the required badge regardless of answered state',
+    (tester) async {
+      await tester.pumpWidget(wrap(BookingQuestionsStep(
+        service: requiredSchema,
+        answers: const {},
+        onChanged: (_, __) {},
+        onPhotosChanged: (_) {},
+        photoCount: 0,
+      )));
+
+      // 'note' is optional and unanswered — must never render a required badge.
+      final noteCard = tester.widget<Container>(
+        find.byKey(const ValueKey('question-card-note')),
+      );
+      final decoration = noteCard.decoration as BoxDecoration;
+      expect(decoration.border, isNull);
+    },
+  );
 }

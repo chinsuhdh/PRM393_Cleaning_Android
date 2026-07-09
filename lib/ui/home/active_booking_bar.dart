@@ -4,13 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/search_timeout.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 
 class ActiveBookingBar extends ConsumerStatefulWidget {
-  const ActiveBookingBar({super.key, this.pollInterval = const Duration(seconds: 6)});
+  const ActiveBookingBar({super.key, this.pollInterval = AppConstants.activeBookingPollInterval});
 
   final Duration pollInterval;
 
@@ -20,6 +22,7 @@ class ActiveBookingBar extends ConsumerStatefulWidget {
 
 class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   Timer? _timer;
+  Timer? _elapsedTicker;
   Booking? _active;
 
   @override
@@ -32,24 +35,79 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
   @override
   void dispose() {
     _timer?.cancel();
+    _elapsedTicker?.cancel();
     super.dispose();
   }
+
+  static bool _isSearchingImmediate(Booking? booking) =>
+      booking != null && booking.isImmediate && booking.status == BookingStatusName.awaitingWorker;
+
+  void _ensureElapsedTicker(bool searching) {
+    if (searching && _elapsedTicker == null) {
+      _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!searching && _elapsedTicker != null) {
+      _elapsedTicker!.cancel();
+      _elapsedTicker = null;
+    }
+  }
+
+  static final _statusRank = {...kCoreActiveBookingRank, BookingStatusName.awaitingWorker: 5};
 
   Future<void> _refresh() async {
     List<Booking> bookings;
     try {
       bookings = await ref.read(bookingRepositoryProvider).getClientBookings();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[ActiveBookingBar] refresh failed: $e');
       return;
     }
     if (!mounted) return;
 
-    final awaiting = bookings.where((b) => b.status == BookingStatusName.awaitingWorker).toList()
-      ..sort((a, b) => (a.scheduledStartTime ?? DateTime(9999))
-          .compareTo(b.scheduledStartTime ?? DateTime(9999)));
+    final active = bookings.where((b) => _statusRank.containsKey(b.status)).toList()
+      ..sort((a, b) {
+        final rank = _statusRank[a.status]!.compareTo(_statusRank[b.status]!);
+        if (rank != 0) return rank;
+        return (a.scheduledStartTime ?? DateTime(9999)).compareTo(b.scheduledStartTime ?? DateTime(9999));
+      });
 
-    final next = awaiting.isEmpty ? null : awaiting.first;
+    final next = active.isEmpty ? null : active.first;
     if (next?.id != _active?.id) setState(() => _active = next);
+  }
+
+  String _subtitleFor(Booking booking) {
+    switch (booking.status) {
+      case BookingStatusName.accepted:
+        return 'Nhân viên đã nhận đơn của bạn';
+      case BookingStatusName.onTheWay:
+        return 'Nhân viên đang trên đường đến';
+      case BookingStatusName.inProgress:
+        return 'Công việc đang được thực hiện';
+      case BookingStatusName.pendingPayment:
+        return 'Đã xong việc — chờ thanh toán';
+      case BookingStatusName.rescheduleRequested:
+        return 'Yêu cầu đổi lịch đang chờ xác nhận';
+      default:
+        return booking.isImmediate ? 'Đang tìm nhân viên phù hợp…' : 'Đang chờ nhân viên nhận đơn…';
+    }
+  }
+
+  IconData _iconFor(Booking booking) {
+    switch (booking.status) {
+      case BookingStatusName.accepted:
+        return Icons.check_circle_outline_rounded;
+      case BookingStatusName.onTheWay:
+        return Icons.directions_car_filled_rounded;
+      case BookingStatusName.inProgress:
+        return Icons.cleaning_services_rounded;
+      case BookingStatusName.pendingPayment:
+        return Icons.payments_rounded;
+      case BookingStatusName.rescheduleRequested:
+        return Icons.event_repeat_rounded;
+      default:
+        return booking.isImmediate ? Icons.search_rounded : Icons.hourglass_top_rounded;
+    }
   }
 
   @override
@@ -58,9 +116,9 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
     if (booking == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
-    final subtitle = booking.isImmediate
-        ? 'Đang tìm nhân viên phù hợp…'
-        : 'Đang chờ nhân viên nhận đơn…';
+    final subtitle = _subtitleFor(booking);
+    final searching = _isSearchingImmediate(booking);
+    _ensureElapsedTicker(searching);
 
     return SafeArea(
       top: false,
@@ -73,7 +131,7 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
             child: Row(
               children: [
                 Icon(
-                  booking.isImmediate ? Icons.search_rounded : Icons.hourglass_top_rounded,
+                  _iconFor(booking),
                   color: kPrimary,
                 ),
                 const SizedBox(width: 14),
@@ -96,6 +154,16 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
                     ],
                   ),
                 ),
+                if (searching) ...[
+                  Text(
+                    formatSearchElapsed(booking),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: kOnPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 const Icon(Icons.chevron_right_rounded, color: kPrimary),
               ],
             ),

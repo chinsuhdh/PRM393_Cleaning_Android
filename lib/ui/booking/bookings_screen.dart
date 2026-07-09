@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
@@ -16,7 +17,7 @@ class BookingsScreen extends ConsumerStatefulWidget {
 class _BookingsScreenState extends ConsumerState<BookingsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _tabs = ['Active', 'History'];
+  final List<String> _tabs = ['Đang hoạt động', 'Lịch sử'];
 
   @override
   void initState() {
@@ -37,7 +38,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Bookings',
+        title: const Text('Đơn của tôi',
             style: TextStyle(fontWeight: FontWeight.w800)),
         bottom: TabBar(
           controller: _tabController,
@@ -52,9 +53,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
           controller: _tabController,
           children: _tabs.map((tabStatus) {
 
-            // Mọi trạng thái đang hoạt động (tìm thợ -> chờ thanh toán) gom vào tab 'Upcoming'.
+            final isActiveTab = tabStatus == 'Đang hoạt động';
             final filtered = bookings.where((b) {
-              if (tabStatus == 'Active') {
+              if (isActiveTab) {
                 return const [
                   BookingStatusName.awaitingWorker,
                   BookingStatusName.accepted,
@@ -66,7 +67,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
               }
               return const [BookingStatusName.completed, BookingStatusName.cancelled].contains(b.status);
             }).toList()
-              ..sort((a, b) => tabStatus == 'Active'
+              ..sort((a, b) => isActiveTab
                   ? (a.scheduledStartTime ?? DateTime(9999)).compareTo(b.scheduledStartTime ?? DateTime(9999))
                   : (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
@@ -81,7 +82,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
                             .withValues(alpha: 0.4)),
                     const SizedBox(height: 16),
                     Text(
-                      'No bookings yet',
+                      'Chưa có đơn đặt lịch nào',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -105,8 +106,8 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
         error: (e, _) => Center(child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Error: $e'),
-            FilledButton(onPressed: () => ref.invalidate(bookingsProvider), child: const Text('Retry')),
+            Text('Lỗi: $e'),
+            FilledButton(onPressed: () => ref.invalidate(bookingsProvider), child: const Text('Thử lại')),
           ],
         )),
       ),
@@ -148,7 +149,7 @@ class BookingCard extends StatelessWidget {
       case BookingStatusName.completed:
         return kSecondaryContainer;
       case BookingStatusName.cancelled:
-        return const Color(0xFFFFDAD6);
+        return kErrorContainer;
       default:
         return Colors.grey.shade200;
     }
@@ -161,7 +162,10 @@ class BookingCard extends StatelessWidget {
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/booking/${booking.id}'),
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +244,7 @@ class BookingCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Assigned Worker',
+                            'Nhân viên phụ trách',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -256,7 +260,7 @@ class BookingCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '\$${booking.price.toStringAsFixed(0)}',
+                    NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(booking.price),
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: kPrimary,
@@ -266,6 +270,7 @@ class BookingCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

@@ -14,6 +14,11 @@ class BookingDateTimeStep extends StatelessWidget {
   final ValueChanged<DateTime> onDateChanged;
   final ValueChanged<TimeOfDay> onTimeChanged;
 
+  /// The server rejects a second Immediate booking while one is still AwaitingWorker (one in-flight
+  /// search at a time) — this disables the option up front instead of letting the user pick it and
+  /// only finding out from an error at the very last step.
+  final bool hasActiveImmediateBooking;
+
   const BookingDateTimeStep({
     super.key,
     required this.bookingType,
@@ -23,6 +28,7 @@ class BookingDateTimeStep extends StatelessWidget {
     required this.onBookingTypeChanged,
     required this.onDateChanged,
     required this.onTimeChanged,
+    this.hasActiveImmediateBooking = false,
   });
 
   @override
@@ -37,13 +43,33 @@ class BookingDateTimeStep extends StatelessWidget {
           const Text('Chọn đặt ngay hoặc chọn thời gian phù hợp để đặt lịch.'),
           const SizedBox(height: 16),
           SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 1, label: Text('Đặt ngay'), icon: Icon(Icons.bolt)),
-              ButtonSegment(value: 0, label: Text('Hẹn giờ'), icon: Icon(Icons.event)),
+            segments: [
+              ButtonSegment(
+                value: 1,
+                label: const Text('Đặt ngay'),
+                icon: const Icon(Icons.bolt),
+                enabled: !hasActiveImmediateBooking,
+              ),
+              const ButtonSegment(value: 0, label: Text('Hẹn giờ'), icon: Icon(Icons.event)),
             ],
             selected: {bookingType},
             onSelectionChanged: (selection) => onBookingTypeChanged(selection.first),
           ),
+          if (hasActiveImmediateBooking) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Bạn đang có một đơn đặt ngay chờ nhân viên. Vui lòng chờ hoặc hủy đơn đó trước.',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           if (bookingType == 1)
             const Card(

@@ -1,29 +1,82 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../../core/constants/user_role.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/booking.dart';
+import '../../../data/repositories/dispatch_repository.dart';
+import '../../../data/services/directions_service.dart';
+import '../../../data/services/dispatch_hub_service.dart';
+import '../../../data/services/worker_location_sender.dart';
 
-/// Map shown while broadcasting a booking: the job address only. Dispatch is broadcast
-/// first-accept-wins, so candidate workers are not exposed to the client.
-class NearbyWorkersGoogleMap extends StatelessWidget {
+const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const _osmUserAgentPackageName = 'com.example.cleanai';
+
+class NearbyWorkersGoogleMap extends ConsumerStatefulWidget {
   const NearbyWorkersGoogleMap({
     super.key,
     required this.booking,
+    this.viewerRole = UserRole.client,
   });
 
   final Booking booking;
+  final UserRole viewerRole;
+
+  @override
+  ConsumerState<NearbyWorkersGoogleMap> createState() => _NearbyWorkersGoogleMapState();
+}
+
+class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap> {
+  List<({double lat, double lng})> _nearbyWorkers = [];
+  LatLng? _myPosition;
+  DirectionsRoute? _route;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    // E.6/E.9: the booking-detail screen already connects and joins `booking:{id}` — this only
+    // needs to listen for the ~60s position pushes on that shared connection.
+    ref.read(dispatchHubClientProvider).onNearbyWorkersUpdated((locations) {
+      if (mounted) setState(() => _nearbyWorkers = locations);
+    });
+    if (widget.viewerRole == UserRole.worker) _loadWorkerRoute();
+  }
+
+  Future<void> _refresh() async {
+    final locations = await ref.read(dispatchRepositoryProvider).getNearbyWorkerLocations(widget.booking.id);
+    if (mounted) setState(() => _nearbyWorkers = locations);
+  }
+
+  Future<void> _loadWorkerRoute() async {
+    if (!_hasBookingLocation) return;
+    final position = await ref.read(deviceLocationSourceProvider).getCurrentPosition();
+    if (position == null || !mounted) return;
+    setState(() => _myPosition = LatLng(position.latitude, position.longitude));
+
+    final route = await ref.read(directionsServiceProvider).fetchRoute(
+          originLat: position.latitude,
+          originLng: position.longitude,
+          destLat: widget.booking.latitude!,
+          destLng: widget.booking.longitude!,
+        );
+    if (route == null || !mounted) return;
+    setState(() => _route = route);
+  }
 
   bool get _hasBookingLocation =>
-      booking.latitude != null &&
-      booking.longitude != null &&
-      booking.latitude!.isFinite &&
-      booking.longitude!.isFinite;
+      widget.booking.latitude != null &&
+      widget.booking.longitude != null &&
+      widget.booking.latitude!.isFinite &&
+      widget.booking.longitude!.isFinite;
 
   @override
   Widget build(BuildContext context) {
     if (!_hasBookingLocation) {
       return ColoredBox(
-        color: const Color(0xFFEAF0F4),
+        color: kMapPlaceholderBg,
         child: Center(
           child: Card(
             margin: const EdgeInsets.all(32),
@@ -49,26 +102,87 @@ class NearbyWorkersGoogleMap extends StatelessWidget {
       );
     }
 
-    final serviceLocation = LatLng(booking.latitude!, booking.longitude!);
-    final markers = <Marker>{
-      Marker(
-        markerId: const MarkerId('service-location'),
-        position: serviceLocation,
-        infoWindow: const InfoWindow(title: 'Địa chỉ của bạn'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        zIndexInt: 2,
-      ),
-    };
+    final serviceLocation = LatLng(widget.booking.latitude!, widget.booking.longitude!);
+    final theme = Theme.of(context);
 
-    return GoogleMap(
-      key: const ValueKey('nearby-workers-google-map'),
-      initialCameraPosition: CameraPosition(target: serviceLocation, zoom: 14),
-      markers: markers,
-      myLocationButtonEnabled: false,
-      myLocationEnabled: false,
-      mapToolbarEnabled: false,
-      compassEnabled: false,
-      zoomControlsEnabled: false,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: FlutterMap(
+            key: const ValueKey('nearby-workers-map'),
+            options: MapOptions(
+              initialCenter: serviceLocation,
+              initialZoom: 14,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: _osmTileUrlTemplate,
+                userAgentPackageName: _osmUserAgentPackageName,
+              ),
+              if (_route != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _route!.points,
+                      color: theme.colorScheme.primary,
+                      strokeWidth: 4,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    key: const ValueKey('service-location'),
+                    point: serviceLocation,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+                  ),
+                  if (_myPosition != null)
+                    Marker(
+                      key: const ValueKey('worker-self'),
+                      point: _myPosition!,
+                      width: 36,
+                      height: 36,
+                      child: const Icon(Icons.person_pin_circle, color: kSecondary, size: 36),
+                    ),
+                  for (var i = 0; i < _nearbyWorkers.length; i++)
+                    Marker(
+                      key: ValueKey('nearby-worker-$i'),
+                      point: LatLng(_nearbyWorkers[i].lat, _nearbyWorkers[i].lng),
+                      width: 16,
+                      height: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: kTertiary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_route != null)
+          Positioned(
+            left: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
+              ),
+              child: Text(
+                'Cách ${_route!.distanceText} · ${_route!.durationText}',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

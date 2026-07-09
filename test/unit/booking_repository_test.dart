@@ -7,6 +7,32 @@ import '../support/dio_test_harness.dart';
 
 void main() {
   test(
+    '[UT-FE-BOOK-DETAIL-01] booking detail retains pricing, notes, answers, and form schema',
+    () {
+      final booking = Booking.fromJson({
+        'id': 'b1',
+        'serviceName': 'Deep clean',
+        'status': 'AwaitingWorker',
+        'durationHours': 3,
+        'unitPrice': 100000,
+        'extraFee': 25000,
+        'discountAmount': 10000,
+        'notes': 'Bring pet-safe products',
+        'optionAnswers': '{"rooms":3,"pets":true}',
+        'bookingFormSchema': '{"questions":[{"id":"rooms","label":"Rooms"},{"id":"pets","label":"Pets"}]}',
+      });
+
+      expect(booking.durationHours, 3);
+      expect(booking.unitPrice, 100000);
+      expect(booking.extraFee, 25000);
+      expect(booking.discountAmount, 10000);
+      expect(booking.notes, 'Bring pet-safe products');
+      expect(booking.optionAnswers['rooms'], 3);
+      expect(booking.bookingQuestions.first['label'], 'Rooms');
+    },
+  );
+
+  test(
     '[UT-FE-BOOK-CANCEL-01] cancelBooking sends the Cancelled status name, not InProgress',
     () async {
       final harness = DioTestHarness();

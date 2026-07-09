@@ -1,251 +1,340 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/models/booking.dart';
-// ĐÃ FIX: Thêm import Repository để dùng các provider
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/services/dispatch_hub_service.dart';
 import '../../core/constants/booking_enums.dart';
+import '../../core/constants/payment_methods.dart';
+import '../../core/utils/search_timeout.dart';
 import 'widgets/booking_action_bar.dart';
+import 'widgets/booking_info_cards.dart';
+import 'widgets/booking_load_error.dart';
+import 'widgets/nearby_workers_google_map.dart';
+import 'widgets/live_tracking_map.dart';
 
-// API Gọi chi tiết Booking bằng ID
+part 'widgets/booking_detail_action_handlers.dart';
+
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
   final response = await DioClient.instance.get('/Bookings/$id');
   return Booking.fromJson(response.data);
 });
 
-class BookingDetailScreen extends ConsumerWidget {
+const kBookingDetailSkipTransitionExtra = 'booking-detail-skip-transition';
+
+class BookingDetailScreen extends ConsumerStatefulWidget {
   final String bookingId;
   const BookingDetailScreen({super.key, required this.bookingId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final bookingAsync = ref.watch(bookingDetailProvider(bookingId));
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Booking Detail', style: TextStyle(fontWeight: FontWeight.w800)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
-      ),
-      body: bookingAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi tải dữ liệu: $e')),
-        data: (booking) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Card(
-                  elevation: 0,
-                  color: kPrimaryContainer,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.cleaning_services_rounded, size: 48, color: kPrimary),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(booking.serviceName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: kOnPrimaryContainer)),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(8)),
-                                child: Text(booking.status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text('Booking Details', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                _DetailRow(icon: Icons.calendar_today_rounded, label: 'Date', value: booking.date),
-                _DetailRow(icon: Icons.access_time_rounded, label: 'Time', value: booking.time),
-                // ĐÃ FIX: Dùng `booking.price` theo chuẩn model cũ của bạn
-                _DetailRow(icon: Icons.attach_money_rounded, label: 'Total', value: '${booking.price} VND'),
-                if (booking.statusTimeline.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text('Status timeline', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  ...booking.statusTimeline.map((entry) => ListTile(
-                    leading: const Icon(Icons.check_circle_outline, color: kPrimary),
-                    title: Text(entry['newStatus']?.toString() ?? ''),
-                    subtitle: Text(entry['reason']?.toString() ?? ''),
-                  )),
-                ],
-                if (booking.photos.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 96,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: booking.photos.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, index) => Image.network(
-                        booking.photos[index]['photoUrl'].toString(),
-                        width: 96,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-
-                if (booking.worker != null) ...[
-                  Text('Assigned Worker', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: kPrimaryContainer,
-                        child: Text(booking.worker!.initials, style: const TextStyle(color: kOnPrimaryContainer, fontWeight: FontWeight.w700)),
-                      ),
-                      title: Text(booking.worker!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Row(
-                        children: [
-                          const Icon(Icons.star_rounded, size: 14, color: kTertiary),
-                          const SizedBox(width: 4),
-                          Text('${booking.worker!.rating} · ${booking.worker!.reviews} reviews'),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline_rounded, color: kPrimary),
-                        onPressed: () => context.push('/chat'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                ] else ...[
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text('Đang chờ AI điều phối nhân viên...', style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic)),
-                    ),
-                  )
-                ],
-
-                BookingActionBar(
-                  status: booking.status,
-                  viewerRole: ref.watch(authProvider).role,
-                  isScheduled: booking.bookingType == BookingTypeName.scheduled,
-                  onChat: () => context.push('/chat'),
-                  onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
-                  onStart: () => _advance(context, ref, BookingStatusName.inProgress),
-                  onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
-                  onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
-                  onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
-                  onReport: (reason) => _cancel(context, ref, reason),
-                  onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
-                  onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
-                  onPayNow: () => context.push('/payment/${booking.id}'),
-                  onReview: () => context.push('/review/${booking.id}'),
-                  onViewEarning: () => context.push('/worker/wallet'),
-                  onViewReason: () => _showCancellationReason(context, booking),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _advance(BuildContext context, WidgetRef ref, String newStatus) async {
-    try {
-      await ref.read(bookingRepositoryProvider).updateBookingStatus(bookingId, newStatus);
-      ref.invalidate(bookingDetailProvider(bookingId));
-      ref.invalidate(bookingsProvider);
-      ref.invalidate(workerBookingsProvider);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi cập nhật trạng thái: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  Future<void> _cancel(BuildContext context, WidgetRef ref, String reason) async {
-    try {
-      await ref.read(bookingRepositoryProvider).updateBookingStatus(
-            bookingId,
-            BookingStatusName.cancelled,
-            reason: reason.isEmpty ? null : reason,
-          );
-      ref.invalidate(bookingDetailProvider(bookingId));
-      ref.invalidate(bookingsProvider);
-      ref.invalidate(workerBookingsProvider);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _showCancellationReason(BuildContext context, Booking booking) {
-    final cancelEntry = booking.statusTimeline.lastWhere(
-      (entry) => entry['newStatus']?.toString() == BookingStatusName.cancelled,
-      orElse: () => const {},
-    );
-    final reason = (cancelEntry['reason'] as String?)?.trim();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Lý do hủy đơn'),
-        content: Text(reason == null || reason.isEmpty ? 'Không có lý do được cung cấp.' : reason),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng')),
-        ],
-      ),
-    );
-  }
+  ConsumerState<BookingDetailScreen> createState() => _BookingDetailScreenState();
 }
 
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
+  static const _searchPollInterval = Duration(seconds: 4);
+
+  Timer? _searchTicker;
+  int _searchTickCount = 0;
+  bool _liveUpdatesWired = false;
+  String? _lastKnownStatus;
+  bool _selfCancelling = false;
+  bool _cancelledPopupShown = false;
+  bool _hasResolvedOnce = false;
+  bool _showingMapLayout = false;
+  bool _mapTornDown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wireLiveUpdates();
+  }
+
+  void _wireLiveUpdates() {
+    if (_liveUpdatesWired) return;
+    _liveUpdatesWired = true;
+    final client = ref.read(dispatchHubClientProvider);
+    client.onBookingStatusChanged(() {
+      if (!mounted) return;
+      ref.invalidate(bookingDetailProvider(widget.bookingId));
+    });
+    client.onReconnected(() {
+      if (!mounted) return;
+      ref.invalidate(bookingDetailProvider(widget.bookingId));
+      unawaited(() async {
+        try {
+          await client.subscribeToBooking(widget.bookingId);
+        } catch (e) {
+          debugPrint('[BookingDetailScreen] resubscribe after reconnect failed: $e');
+        }
+      }());
+    });
+    unawaited(() async {
+      try {
+        await client.connect();
+        await client.subscribeToBooking(widget.bookingId);
+      } catch (e) {
+        debugPrint('[BookingDetailScreen] live update subscribe failed: $e');
+        // Best-effort: the screen still works via its own poll timers without the live push.
+      }
+    }());
+  }
+
+  void _ensureSearchTracking(bool isSearching) {
+    if (isSearching && _searchTicker == null) {
+      _searchTickCount = 0;
+      _searchTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        _searchTickCount++;
+        if (_searchTickCount % _searchPollInterval.inSeconds == 0) _refreshBooking();
+        if (mounted) setState(() {});
+      });
+    } else if (!isSearching && _searchTicker != null) {
+      _searchTicker!.cancel();
+      _searchTicker = null;
+    }
+  }
+
+  void _refreshBooking() => ref.invalidate(bookingDetailProvider(widget.bookingId));
+
+  void _markMapTornDown() => setState(() => _mapTornDown = true);
+  void _rebuild() => setState(() {});
+
+  @override
+  void dispose() {
+    _searchTicker?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(color: kPrimaryContainer, borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, size: 18, color: kPrimary),
+    final theme = Theme.of(context);
+    final bookingAsync = ref.watch(bookingDetailProvider(widget.bookingId));
+    final booking = bookingAsync.valueOrNull;
+
+    if (booking == null || (!_hasResolvedOnce && bookingAsync.isLoading)) {
+      return Scaffold(
+        key: const ValueKey('booking-detail-loading-layout'),
+        appBar: _appBar(context),
+        body: bookingAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => BookingLoadError(
+            error: e,
+            onRetry: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ],
+          data: (_) => const Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    _hasResolvedOnce = true;
+
+    if (_lastKnownStatus != null &&
+        _lastKnownStatus != BookingStatusName.cancelled &&
+        booking.status == BookingStatusName.cancelled &&
+        !_selfCancelling &&
+        !_cancelledPopupShown) {
+      _cancelledPopupShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showCancelledByOtherPartyPopup());
+    }
+    _lastKnownStatus = booking.status;
+
+    final role = ref.watch(authProvider).role;
+    final isSearching = booking.status == BookingStatusName.awaitingWorker &&
+        booking.isImmediate &&
+        role == UserRole.client;
+    _ensureSearchTracking(isSearching);
+
+    if (_mapTornDown) {
+      return Scaffold(
+        key: const ValueKey('booking-detail-map-teardown-placeholder'),
+        appBar: _appBar(context),
+        body: const SizedBox.expand(),
+      );
+    }
+
+    final fullBleedMap = _fullBleedMapFor(booking, role, isSearching);
+    _showingMapLayout = fullBleedMap != null;
+    if (fullBleedMap != null) {
+      return _mapLifecycleLayout(context, theme, booking, role, isSearching, fullBleedMap);
+    }
+
+    return Scaffold(
+      key: const ValueKey('booking-detail-plain-layout'),
+      appBar: _appBar(context),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: buildBookingDetailContent(theme, booking, role),
+        ),
+      ),
+      bottomNavigationBar: _stickyFooter(context, ref, booking, role, isSearching),
+    );
+  }
+
+  Widget _mapLifecycleLayout(
+    BuildContext context,
+    ThemeData theme,
+    Booking booking,
+    UserRole role,
+    bool isSearching,
+    Widget map,
+  ) {
+    return Scaffold(
+      key: const ValueKey('booking-detail-map-layout'),
+      body: Stack(
+        children: [
+          Positioned.fill(child: map),
+          DraggableScrollableSheet(
+            initialChildSize: 0.4,
+            minChildSize: 0.18,
+            maxChildSize: 1.0,
+            builder: (context, scrollController) => Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16)],
+              ),
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (isSearching) ...[_searchStatusCard(theme, booking), const SizedBox(height: 16)],
+                  BookingActionBar(
+                    status: booking.status,
+                    viewerRole: role,
+                    isScheduled: booking.bookingType == BookingTypeName.scheduled,
+                    paymentMethod: PaymentMethodApi.fromApiName(booking.paymentMethod),
+                    statusTimeline: booking.statusTimeline,
+                    onChat: () => context.push('/chat/${widget.bookingId}'),
+                    onAccept: () => _accept(context, ref),
+            onHideJob: () => _hideJob(context, ref),
+                    onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
+                    onStart: () => _advance(context, ref, BookingStatusName.inProgress),
+                    onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
+                    onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+                    onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
+                    onReport: (reason) => _cancel(context, ref, reason),
+                    onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
+                    onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
+                    onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
+                    onReview: () => context.push('/review/${booking.id}'),
+                    onViewEarning: () => context.push('/worker/wallet'),
+                    onViewReason: () => _showCancellationReason(context, booking),
+                  ),
+                  const SizedBox(height: 20),
+                  ...buildBookingDetailContent(theme, booking, role),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: _floatingBackButton(context),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _floatingBackButton(BuildContext context) => Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 4,
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+          onPressed: () => context.pop(),
+        ),
+      );
+
+  Widget _searchStatusCard(ThemeData theme, Booking booking) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Đang tìm nhân viên phù hợp…', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            ),
+            Text(formatSearchElapsed(booking), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ],
+        ),
+      );
+
+  AppBar _appBar(BuildContext context) => AppBar(
+        title: const Text('Chi tiết đơn đặt lịch', style: TextStyle(fontWeight: FontWeight.w800)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
+      );
+
+  Widget _stickyFooter(BuildContext context, WidgetRef ref, Booking booking, UserRole role, bool isSearching) {
+    final theme = Theme.of(context);
+    return Material(
+      elevation: 8,
+      color: theme.colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: BookingActionBar(
+            status: booking.status,
+            viewerRole: role,
+            isScheduled: booking.bookingType == BookingTypeName.scheduled,
+            paymentMethod: PaymentMethodApi.fromApiName(booking.paymentMethod),
+            statusTimeline: booking.statusTimeline,
+            onChat: () => context.push('/chat/${widget.bookingId}'),
+            onAccept: () => _accept(context, ref),
+            onHideJob: () => _hideJob(context, ref),
+            onGoingThere: () => _advance(context, ref, BookingStatusName.onTheWay),
+            onStart: () => _advance(context, ref, BookingStatusName.inProgress),
+            onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
+            onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+            onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
+            onReport: (reason) => _cancel(context, ref, reason),
+            onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
+            onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
+            onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
+            onReview: () => context.push('/review/${booking.id}'),
+            onViewEarning: () => context.push('/worker/wallet'),
+            onViewReason: () => _showCancellationReason(context, booking),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget? _fullBleedMapFor(Booking booking, UserRole role, bool isSearching) {
+    if (booking.status == BookingStatusName.completed) return null;
+    if (booking.status == BookingStatusName.cancelled) return null;
+    if (booking.status == BookingStatusName.awaitingWorker) {
+      return NearbyWorkersGoogleMap(booking: booking, viewerRole: role);
+    }
+
+    return LiveTrackingMap(
+      bookingId: widget.bookingId,
+      booking: booking,
+      viewerRole: role,
+      fullBleed: true,
+      showRoute: booking.status == BookingStatusName.accepted || booking.status == BookingStatusName.onTheWay,
     );
   }
 }

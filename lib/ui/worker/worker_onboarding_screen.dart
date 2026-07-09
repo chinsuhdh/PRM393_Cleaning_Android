@@ -19,22 +19,20 @@ class _WorkerOnboardingScreenState
 
   bool _isLoading = false;
 
-  // Giả lập danh sách dịch vụ từ Backend (Trong thực tế bạn sẽ fetch từ API /Services)
   final List<Map<String, dynamic>> _availableServices = [
-    {'id': 'srv-001', 'name': 'Deep House Cleaning'},
-    {'id': 'srv-002', 'name': 'AC Maintenance & Repair'},
-    {'id': 'srv-003', 'name': 'Plumbing Services'},
-    {'id': 'srv-004', 'name': 'Electrical Repair'},
+    {'id': 'srv-001', 'name': 'Dọn dẹp nhà cửa chuyên sâu'},
+    {'id': 'srv-002', 'name': 'Bảo trì & sửa chữa điều hòa'},
+    {'id': 'srv-003', 'name': 'Dịch vụ sửa ống nước'},
+    {'id': 'srv-004', 'name': 'Sửa chữa điện'},
   ];
 
-  // Map để lưu trữ các kỹ năng được chọn: Key là service_id, Value là số tháng kinh nghiệm
   final Map<String, int> _selectedSkills = {};
 
   void _toggleSkill(String serviceId, bool? isSelected) {
     setState(() {
       if (isSelected == true) {
         _selectedSkills[serviceId] =
-            0; // Mặc định 0 tháng kinh nghiệm khi mới tick
+            0;
       } else {
         _selectedSkills.remove(serviceId);
       }
@@ -61,12 +59,10 @@ class _WorkerOnboardingScreenState
     setState(() => _isLoading = true);
 
     try {
-      // Chuyển đổi Map thành List<Map> theo đúng format Backend yêu cầu
       final skillsPayload = _selectedSkills.entries
           .map((e) => {'serviceId': e.key, 'experienceMonths': e.value})
           .toList();
 
-      // Gọi API
       await ref
           .read(workerRepositoryProvider)
           .registerAsWorker(
@@ -77,14 +73,14 @@ class _WorkerOnboardingScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đăng ký hồ sơ thợ thành công! 🎉'),
+            content: Text('Đăng ký hồ sơ thợ thành công!'),
             backgroundColor: kSecondary,
           ),
         );
-        // Đẩy thợ vào Dashboard
         context.go('/worker');
       }
     } catch (e) {
+      debugPrint('[WorkerOnboardingScreen] submit failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
@@ -108,7 +104,7 @@ class _WorkerOnboardingScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Worker Registration',
+          'Đăng ký làm nhân viên',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         leading: IconButton(
@@ -124,7 +120,7 @@ class _WorkerOnboardingScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Step 1: Identity Verification',
+                'Bước 1: Xác minh danh tính',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -143,15 +139,16 @@ class _WorkerOnboardingScreenState
                 keyboardType: TextInputType.number,
                 maxLength: 12,
                 decoration: InputDecoration(
-                  labelText: 'Identity Card Number (CCCD)',
+                  labelText: 'Số CCCD',
                   prefixIcon: const Icon(Icons.badge_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.length != 12)
+                  if (value == null || value.length != 12) {
                     return 'CCCD phải bao gồm đúng 12 số';
+                  }
                   return null;
                 },
               ),
@@ -169,7 +166,7 @@ class _WorkerOnboardingScreenState
               const SizedBox(height: 24),
 
               Text(
-                'Step 2: Professional Skills',
+                'Bước 2: Kỹ năng chuyên môn',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -184,7 +181,6 @@ class _WorkerOnboardingScreenState
               ),
               const SizedBox(height: 16),
 
-              // Render danh sách Skills
               ..._availableServices.map((service) {
                 final isSelected = _selectedSkills.containsKey(service['id']);
 
@@ -223,7 +219,6 @@ class _WorkerOnboardingScreenState
                           controlAffinity: ListTileControlAffinity.leading,
                           contentPadding: EdgeInsets.zero,
                         ),
-                        // Nếu được chọn, hiện thêm ô nhập số tháng kinh nghiệm
                         if (isSelected)
                           Padding(
                             padding: const EdgeInsets.only(
@@ -234,7 +229,7 @@ class _WorkerOnboardingScreenState
                             child: TextFormField(
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                labelText: 'Experience (Months)',
+                                labelText: 'Kinh nghiệm (tháng)',
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -245,8 +240,9 @@ class _WorkerOnboardingScreenState
                               onChanged: (val) =>
                                   _updateExperience(service['id'], val),
                               validator: (val) {
-                                if (isSelected && (val == null || val.isEmpty))
+                                if (isSelected && (val == null || val.isEmpty)) {
                                   return 'Bắt buộc nhập';
+                                }
                                 return null;
                               },
                             ),
@@ -281,7 +277,7 @@ class _WorkerOnboardingScreenState
                     ),
                   )
                 : const Text(
-                    'Submit Application',
+                    'Gửi hồ sơ đăng ký',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
           ),
@@ -291,7 +287,6 @@ class _WorkerOnboardingScreenState
   }
 }
 
-// Widget giả lập hộp upload ảnh
 class _ImageUploadBox extends StatelessWidget {
   final String label;
   const _ImageUploadBox({required this.label});

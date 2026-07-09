@@ -8,6 +8,7 @@ import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/payment_repository.dart';
 import 'widgets/booking_step_indicator.dart';
 import 'widgets/booking_address_step.dart';
 import 'widgets/booking_date_time_step.dart';
@@ -27,6 +28,7 @@ final bookingServiceDetailProvider = FutureProvider.autoDispose.family<Map<Strin
     final response = await ref.read(dioProvider).get('/ServiceCatalog/services/$id');
     return response.data;
   } catch (e) {
+    debugPrint('[CreateBookingScreen] direct service fetch failed, falling back to list: $e');
     final res = await ref.read(dioProvider).get('/ServiceCatalog/services');
     final list = List<Map<String, dynamic>>.from(res.data);
     return list.firstWhere((s) => s['id'] == id);
@@ -103,6 +105,62 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     ref.invalidate(userAddressesProvider);
   }
 
+  /// Switching to VNPay requires a linked account (simulated gateway): fetch the current link,
+  /// prompt for one if missing, and only commit the selection once linking succeeds — otherwise
+  /// the backend would reject the booking with VNPAY_NOT_LINKED at submit time.
+  Future<void> _changePaymentMethod(PaymentMethod method) async {
+    if (method != PaymentMethod.vnpay) {
+      setState(() => _paymentMethod = method);
+      return;
+    }
+    try {
+      final linked = await ref.read(paymentRepositoryProvider).getVnpayAccount();
+      if (!mounted) return;
+      if (linked == null || linked.isEmpty) {
+        final entered = await _promptVnpayAccount();
+        if (entered == null || entered.trim().isEmpty) return; // user backed out — keep old method
+        await ref.read(paymentRepositoryProvider).linkVnpayAccount(entered.trim());
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã liên kết tài khoản VNPay.')),
+        );
+      }
+      setState(() => _paymentMethod = PaymentMethod.vnpay);
+    } catch (e) {
+      debugPrint('[CreateBookingScreen] change payment method failed: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<String?> _promptVnpayAccount() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Liên kết VNPay'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Số điện thoại / tài khoản VNPay',
+            hintText: 'VD: 0901234567',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Liên kết'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitBooking() async {
     setState(() => _isBooking = true);
     try {
@@ -112,6 +170,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         if (_bookingType == 0)
           'scheduledStartTime': _scheduledStart?.toUtc().toIso8601String(),
         'bookingType': _bookingType == 1 ? BookingTypeName.immediate : BookingTypeName.scheduled,
+        // Enum by NAME, matching the API convention ('Cash' | 'Vnpay').
+        'paymentMethod': _paymentMethod == PaymentMethod.vnpay ? 'Vnpay' : 'Cash',
         'serviceVersion': _quote?['serviceVersion'],
         'optionAnswers': _answers,
         'notes': _notesController.text.isNotEmpty ? _notesController.text : 'Không có ghi chú',
@@ -130,7 +190,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       ref.invalidate(bookingsProvider);
       if (mounted) {
         if (_bookingType == 1) {
-          context.push('/finding-worker/${newBooking.id}');
+          // Clears the multi-step creation flow off the stack first, so Back from Booking Detail
+          // returns to the Bookings tab instead of back into the (now stale) creation form.
+          context.go('/bookings');
+          context.push('/booking/${newBooking.id}');
         } else {
           context.go('/home');
         }
@@ -143,6 +206,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         return _submitBooking();
       }
     } catch (e) {
+      debugPrint('[CreateBookingScreen] submit booking failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -160,10 +224,21 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   Widget build(BuildContext context) {
     final addressesAsync = ref.watch(userAddressesProvider);
     final serviceAsync = ref.watch(bookingServiceDetailProvider(widget.serviceId));
+    final bookingsAsync = ref.watch(bookingsProvider);
+    final hasActiveImmediateBooking = bookingsAsync.maybeWhen(
+      data: (bookings) => bookings.any(
+        (b) => b.isImmediate && b.status == BookingStatusName.awaitingWorker,
+      ),
+      orElse: () => false,
+    );
 
     if (_selectedAddress == null && addressesAsync.hasValue && addressesAsync.value!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => setState(() => _selectedAddress = addressesAsync.value!.first));
+    }
+    if (hasActiveImmediateBooking && _bookingType == 1) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => setState(() => _bookingType = 0));
     }
 
     return Scaffold(
@@ -201,6 +276,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     selectedDate: _selectedDate,
                     selectedTime: _selectedTime,
                     notesController: _notesController,
+                    hasActiveImmediateBooking: hasActiveImmediateBooking,
                     onBookingTypeChanged: (type) => setState(() {
                       _bookingType = type;
                       _regenerateKey();
@@ -215,7 +291,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     availableStart: _scheduledStart,
                     selectedDate: _selectedDate,
                     selectedPaymentMethod: _paymentMethod,
-                    onPaymentMethodChanged: (method) => setState(() => _paymentMethod = method),
+                    onPaymentMethodChanged: _changePaymentMethod,
                     onRetry: () => ref.invalidate(bookingServiceDetailProvider(widget.serviceId)),
                     quote: _quote,
                   ),

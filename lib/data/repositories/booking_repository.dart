@@ -1,4 +1,5 @@
 ﻿import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/booking_enums.dart';
@@ -27,6 +28,10 @@ class QuoteStaleException implements Exception {
   const QuoteStaleException();
 }
 
+class BookingNoLongerAvailableException implements Exception {
+  const BookingNoLongerAvailableException();
+}
+
 class ApiBookingRepository implements BookingRepository {
   ApiBookingRepository(this._dio);
 
@@ -45,6 +50,7 @@ class ApiBookingRepository implements BookingRepository {
       }
       return [];
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] getClientBookings failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải lịch đặt.'));
     }
   }
@@ -62,6 +68,7 @@ class ApiBookingRepository implements BookingRepository {
       }
       return [];
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] getWorkerBookings failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải công việc.'));
     }
   }
@@ -79,6 +86,7 @@ class ApiBookingRepository implements BookingRepository {
       }
       return [];
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] getAvailableBookings failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể tải công việc khả dụng.'));
     }
   }
@@ -91,7 +99,8 @@ class ApiBookingRepository implements BookingRepository {
         return Booking.fromJson(response.data as Map<String, dynamic>);
       }
       return null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[BookingRepository] getBookingById failed: $e');
       return null;
     }
   }
@@ -115,6 +124,7 @@ class ApiBookingRepository implements BookingRepository {
 
       return result;
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] getAvailability failed: $error');
       throw Exception(
         backendMessageFromDioException(
           error,
@@ -137,6 +147,7 @@ class ApiBookingRepository implements BookingRepository {
       );
       return Booking.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] createBooking failed: $error');
       if (backendErrorCodeFromDioException(error) == 'QUOTE_STALE') {
         throw const QuoteStaleException();
       }
@@ -155,6 +166,7 @@ class ApiBookingRepository implements BookingRepository {
       final response = await _dio.post('/Bookings/quote', data: data);
       return Map<String, dynamic>.from(response.data as Map);
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] getQuote failed: $error');
       throw Exception(backendMessageFromDioException(error, fallback: 'Không thể lấy báo giá.'));
     }
   }
@@ -176,6 +188,7 @@ class ApiBookingRepository implements BookingRepository {
         data: {'newStatus': BookingStatusName.cancelled},
       );
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] cancelBooking failed: $error');
       throw Exception(
         backendMessageFromDioException(
           error,
@@ -190,6 +203,10 @@ class ApiBookingRepository implements BookingRepository {
     try {
       await _dio.patch('/Bookings/$bookingId/accept');
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] acceptBooking failed: $error');
+      if (backendErrorCodeFromDioException(error) == 'BOOKING_ACCEPT_FAILED') {
+        throw const BookingNoLongerAvailableException();
+      }
       throw Exception(
         backendMessageFromDioException(
           error,
@@ -210,6 +227,7 @@ class ApiBookingRepository implements BookingRepository {
         },
       );
     } on DioException catch (error) {
+      debugPrint('[BookingRepository] updateBookingStatus failed: $error');
       throw Exception(
         backendMessageFromDioException(
           error,

@@ -7,15 +7,14 @@ import '../../ui/auth/login_screen.dart';
 import '../../ui/auth/register_screen.dart';
 import '../../ui/auth/forgot_password_screen.dart';
 import '../../ui/auth/verify_otp_screen.dart';
-import '../../ui/auth/reset_password_screen.dart'; // [THÊM MỚI] Màn hình đặt lại mật khẩu
-import '../../ui/profile/change_password_screen.dart'; // [THÊM MỚI] Màn hình đổi mật khẩu
+import '../../ui/auth/reset_password_screen.dart';
+import '../../ui/profile/change_password_screen.dart';
 
 import '../../ui/home/client_shell.dart';
 import '../../ui/home/home_screen.dart';
 import '../../ui/booking/bookings_screen.dart';
 import '../../ui/booking/create_booking_screen.dart';
 import '../../ui/booking/booking_detail_screen.dart';
-import '../../ui/booking/finding_worker_screen.dart';
 import '../../ui/chat/chat_screen.dart';
 import '../../ui/notification/notifications_screen.dart';
 import '../../ui/profile/profile_screen.dart';
@@ -34,7 +33,7 @@ class AppRoutes {
   static const register = '/register';
   static const verifyOtp = '/verify-otp';
   static const forgotPassword = '/forgot-password';
-  static const resetPassword = '/reset-password'; // [THÊM MỚI]
+  static const resetPassword = '/reset-password'; 
 
   static const clientShell = '/home';
   static const home = '/home/dashboard';
@@ -46,11 +45,9 @@ class AppRoutes {
   static const serviceDetail = '/category/:id';
   static const createBooking = '/booking/create/:serviceId';
   static const bookingDetail = '/booking/:id';
-  static const findingWorker = '/finding-worker/:bookingId';
   static const addressManagement = '/address';
   static const editProfile = '/profile/edit';
-  static const changePassword = '/profile/change-password'; // [THÊM MỚI]
-  static const payment = '/payment/:bookingId';
+  static const changePassword = '/profile/change-password';
   static const review = '/review/:bookingId';
 
   static const workerShell = '/worker';
@@ -83,7 +80,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: AppRoutes.verifyOtp, builder: (context, state) => const VerifyOtpScreen()),
     GoRoute(path: AppRoutes.forgotPassword, builder: (context, state) => const ForgotPasswordScreen()),
 
-    // [THÊM MỚI] Route Reset Password nhận email truyền qua state
     GoRoute(
       path: AppRoutes.resetPassword,
       builder: (context, state) {
@@ -107,13 +103,24 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/booking/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => BookingDetailScreen(bookingId: state.pathParameters['id'] ?? ''),
-    ),
-
-    GoRoute(
-      path: AppRoutes.findingWorker,
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => FindingWorkerScreen(bookingId: state.pathParameters['bookingId'] ?? ''),
+      pageBuilder: (context, state) {
+        final child = BookingDetailScreen(bookingId: state.pathParameters['id'] ?? '');
+        if (state.extra == kBookingDetailSkipTransitionExtra) {
+          return NoTransitionPage<void>(
+            key: state.pageKey,
+            name: state.name ?? state.path,
+            restorationId: state.pageKey.value,
+            child: child,
+          );
+        }
+        return MaterialPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
+          restorationId: state.pageKey.value,
+          child: child,
+        );
+      },
     ),
 
     GoRoute(
@@ -128,7 +135,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const EditProfileScreen(),
     ),
 
-    // [THÊM MỚI] Route cho màn hình Đổi mật khẩu
     GoRoute(
       path: AppRoutes.changePassword,
       parentNavigatorKey: _rootNavigatorKey,
@@ -136,15 +142,15 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: '/payment/:bookingId',
+      path: '/review/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Payment')), body: const Center(child: Text('PaymentScreen'))),
+      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Viết đánh giá')), body: const Center(child: Text('ReviewScreen'))),
     ),
 
     GoRoute(
-      path: '/review/:bookingId',
+      path: '/chat/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Write a Review')), body: const Center(child: Text('ReviewScreen'))),
+      builder: (context, state) => const ChatScreen(),
     ),
 
     StatefulShellRoute.indexedStack(
@@ -162,7 +168,12 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state, navigationShell) => WorkerShell(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(navigatorKey: _workerShellHomeKey, routes: [GoRoute(path: AppRoutes.workerShell, builder: (context, state) => const WorkerDashboardScreen())]),
-        StatefulShellBranch(navigatorKey: _workerShellJobsKey, routes: [GoRoute(path: '/worker/jobs', builder: (context, state) => const WorkerJobsScreen())]),
+        StatefulShellBranch(
+          navigatorKey: _workerShellJobsKey,
+          routes: [
+            GoRoute(path: '/worker/jobs', builder: (context, state) => const WorkerJobsScreen()),
+          ],
+        ),
         StatefulShellBranch(navigatorKey: _workerShellWalletKey, routes: [GoRoute(path: '/worker/wallet', builder: (context, state) => const WorkerWalletScreen())]),
       ],
     ),

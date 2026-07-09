@@ -9,7 +9,7 @@ import '../support/dio_test_harness.dart';
 
 void main() {
   testWidgets(
-    '[IT-FE-BOOK-CREATE-01] Confirming an immediate booking POSTs to /Bookings and routes to finding-worker',
+    '[IT-FE-BOOK-CREATE-01] Confirming an immediate booking POSTs to /Bookings and routes straight to Booking Detail',
     (tester) async {
       final harness = DioTestHarness();
 
@@ -70,9 +70,13 @@ void main() {
             builder: (_, __) => const CreateBookingScreen(serviceId: 'service-1'),
           ),
           GoRoute(
-            path: '/finding-worker/:id',
+            path: '/bookings',
+            builder: (_, __) => const Scaffold(body: Text('BOOKINGS_STUB')),
+          ),
+          GoRoute(
+            path: '/booking/:id',
             builder: (_, state) =>
-                Scaffold(body: Text('FINDING ${state.pathParameters['id']}')),
+                Scaffold(body: Text('DETAIL ${state.pathParameters['id']}')),
           ),
           GoRoute(
             path: '/address',
@@ -102,7 +106,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('FINDING booking-xyz'), findsOneWidget);
+      expect(find.text('DETAIL booking-xyz'), findsOneWidget);
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('BOOKINGS_STUB'), findsOneWidget);
     },
   );
 
@@ -162,9 +171,9 @@ void main() {
             builder: (_, __) => const CreateBookingScreen(serviceId: 'service-1'),
           ),
           GoRoute(
-            path: '/finding-worker/:id',
+            path: '/booking/:id',
             builder: (_, state) =>
-                Scaffold(body: Text('FINDING ${state.pathParameters['id']}')),
+                Scaffold(body: Text('DETAIL ${state.pathParameters['id']}')),
           ),
         ],
       );
@@ -189,7 +198,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('FINDING booking-xyz'), findsNothing);
+      expect(find.text('DETAIL booking-xyz'), findsNothing);
       expect(find.textContaining('Thời gian nằm ngoài giờ hoạt động.'), findsOneWidget);
     },
   );

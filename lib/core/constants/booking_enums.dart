@@ -19,3 +19,11 @@ class BookingTypeName {
   static const String scheduled = 'Scheduled';
   static const String immediate = 'Immediate';
 }
+
+const Map<String, int> kCoreActiveBookingRank = {
+  BookingStatusName.inProgress: 0,
+  BookingStatusName.onTheWay: 1,
+  BookingStatusName.pendingPayment: 2,
+  BookingStatusName.accepted: 3,
+  BookingStatusName.rescheduleRequested: 4,
+};
