@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../../core/network/dio_client.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/profile_repository.dart';
+import '../shared/reauth_dialog.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,36 +32,41 @@ class ProfileScreen extends ConsumerWidget {
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) {
-          // Fallback to auth state info if profile API fails
           final name = authState.userName ?? 'User';
           final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
           return _ProfileBody(
             name: name,
-            email: '', // Để trống chờ BE
-            phone: '', // Để trống chờ BE
+            email: '',
+            phone: '',
             initials: initials,
             avatarUrl: null,
+            bookingCount: 0,
+            savedCount: 0,
           );
         },
         data: (profile) => _ProfileBody(
           name: profile.fullName,
-          // Sử dụng dữ liệu từ BE, nếu property chưa có thì fallback về chuỗi rỗng
           email: profile.email ?? '',
           phone: profile.phoneNumber ?? '',
           initials: profile.initials,
-          avatarUrl: profile.avatarUrl, // Nhận avatarUrl từ backend
+          avatarUrl: profile.avatarUrl,
+          bookingCount: profile.bookingCount ?? 0,
+          savedCount: profile.savedCount ?? 0,
         ),
       ),
     );
   }
 }
 
-class _ProfileBody extends StatelessWidget {
+class _ProfileBody extends ConsumerWidget {
   final String name;
   final String email;
   final String phone;
   final String initials;
   final String? avatarUrl;
+
+  final int bookingCount;
+  final int savedCount;
 
   const _ProfileBody({
     required this.name,
@@ -64,24 +74,134 @@ class _ProfileBody extends StatelessWidget {
     required this.phone,
     required this.initials,
     this.avatarUrl,
+    required this.bookingCount,
+    required this.savedCount,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final reauthToken = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const ReauthDialog(),
+    );
 
-    // Kiểm tra xem có avatar hợp lệ không
+    if (reauthToken == null) return;
+
+    try {
+      final response = await DioClient.instance.delete(
+        '/Profiles/delete-account',
+        options: Options(
+          headers: {
+            'X-Reauth-Token': reauthToken
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa tài khoản thành công')),
+        );
+        ref.read(authProvider.notifier).logout();
+        context.go('/login');
+      }
+    } on DioException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.response?.data['message'] ?? 'Không thể xóa tài khoản'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showInfoDialog(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(child: Text(content)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAppearanceBottomSheet(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.read(themeModeProvider);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(left: 8, bottom: 16),
+              child: Text(
+                'Appearance / Giao diện',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            _buildThemeOption(context, ref, 'System Default', ThemeMode.system, currentTheme, Icons.settings_suggest_outlined),
+            _buildThemeOption(context, ref, 'Light Mode', ThemeMode.light, currentTheme, Icons.light_mode_outlined),
+            _buildThemeOption(context, ref, 'Dark Mode', ThemeMode.dark, currentTheme, Icons.dark_mode_outlined),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(BuildContext context, WidgetRef ref, String title, ThemeMode mode, ThemeMode currentTheme, IconData icon) {
+    return RadioListTile<ThemeMode>(
+      value: mode,
+      groupValue: currentTheme,
+      title: Row(
+        children: [
+          Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Text(title),
+        ],
+      ),
+      onChanged: (ThemeMode? value) {
+        if (value != null) {
+          ref.read(themeModeProvider.notifier).state = value;
+          Navigator.pop(context);
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final hasAvatar = avatarUrl != null && avatarUrl!.isNotEmpty;
+
+    final currentTheme = ref.watch(themeModeProvider);
+    final themeSubtitle = currentTheme == ThemeMode.system
+        ? 'System Default'
+        : currentTheme == ThemeMode.light
+        ? 'Light Mode'
+        : 'Dark Mode';
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Profile header card
         Card(
           elevation: 0,
           color: kPrimaryContainer,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -139,29 +259,36 @@ class _ProfileBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // Stats row
+
         Row(
           children: [
-            Expanded(child: _StatCard(value: '—', label: 'Bookings')),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCard(value: '—', label: 'Rating')),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCard(value: '—', label: 'Saved')),
+            Expanded(
+              child: _StatCard(
+                value: bookingCount.toString(),
+                label: 'Bookings',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _StatCard(
+                value: savedCount.toString(),
+                label: 'Saved',
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 20),
-        // Menu section
-        // Tìm đoạn code:
+
         _SectionHeader(title: 'Account'),
         _ProfileMenuItem(
           icon: Icons.person_outline_rounded,
           title: 'Edit Profile',
-          onTap: () => context.push('/profile/edit'), // ĐÃ CẬP NHẬT: Trỏ đến màn hình edit vừa sửa
+          onTap: () => context.push('/profile/edit'),
         ),
         _ProfileMenuItem(
           icon: Icons.lock_outline_rounded,
           title: 'Change Password',
-          onTap: () => context.push('/profile/change-password'), // ĐÃ THÊM: Trỏ tới trang đổi mật khẩu mới tạo
+          onTap: () => context.push('/profile/change-password'),
         ),
         _ProfileMenuItem(
           icon: Icons.location_on_outlined,
@@ -169,57 +296,73 @@ class _ProfileBody extends StatelessWidget {
           onTap: () => context.push('/address'),
         ),
         _ProfileMenuItem(
-          icon: Icons.credit_card_outlined,
-          title: 'Payment Methods',
-          onTap: () {},
-        ),
-        _ProfileMenuItem(
           icon: Icons.history_rounded,
           title: 'Booking History',
           onTap: () => context.push('/bookings'),
         ),
+
         const SizedBox(height: 8),
+
         _SectionHeader(title: 'Preferences'),
         _ProfileMenuItem(
           icon: Icons.notifications_outlined,
           title: 'Notifications',
-          onTap: () {},
+          onTap: () => context.push('/notifications'),
         ),
         _ProfileMenuItem(
           icon: Icons.dark_mode_outlined,
           title: 'Appearance',
-          onTap: () {},
+          subtitle: themeSubtitle,
+          onTap: () => _showAppearanceBottomSheet(context, ref),
         ),
-        _ProfileMenuItem(
-          icon: Icons.language_outlined,
-          title: 'Language',
-          subtitle: 'English',
-          onTap: () {},
-        ),
+
         const SizedBox(height: 8),
+
         _SectionHeader(title: 'Support'),
         _ProfileMenuItem(
           icon: Icons.help_outline_rounded,
           title: 'Help & Support',
-          onTap: () {},
+          onTap: () {
+            _showInfoDialog(
+                context,
+                'Trợ giúp & Hỗ trợ',
+                'Nếu bạn gặp bất kỳ sự cố nào khi sử dụng CleanAI, vui lòng liên hệ với chúng tôi qua:\n\nEmail: support@cleanai.com\nHotline: 1900-xxxx\n\nThời gian làm việc: 8:00 - 17:00 (Thứ 2 - Thứ 6)'
+            );
+          },
         ),
         _ProfileMenuItem(
           icon: Icons.privacy_tip_outlined,
           title: 'Privacy Policy',
-          onTap: () {},
+          onTap: () {
+            _showInfoDialog(
+                context,
+                'Chính sách bảo mật',
+                'Chúng tôi cam kết bảo vệ thông tin cá nhân của bạn. Dữ liệu của bạn (email, số điện thoại, địa chỉ) chỉ được sử dụng cho mục đích cung cấp dịch vụ vệ sinh và kết nối với Worker.\n\nCleanAI không chia sẻ dữ liệu này cho bên thứ ba vì mục đích quảng cáo mà không có sự đồng ý của bạn.'
+            );
+          },
         ),
+
+        _ProfileMenuItem(
+          icon: Icons.delete_forever_rounded,
+          title: 'Delete Account',
+          itemColor: Colors.red,
+          onTap: () => _handleDeleteAccount(context, ref),
+        ),
+
         const SizedBox(height: 24),
-        // Log out
+
         OutlinedButton.icon(
-          onPressed: () => context.go('/login'),
+          onPressed: () {
+            ref.read(authProvider.notifier).logout();
+            context.go('/login');
+          },
           icon: const Icon(Icons.logout_rounded),
           label: const Text('Log Out'),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 32),
@@ -284,39 +427,44 @@ class _ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
+  final Color? itemColor;
   final VoidCallback onTap;
 
   const _ProfileMenuItem({
     required this.icon,
     required this.title,
     this.subtitle,
+    this.itemColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final displayColor = itemColor ?? theme.colorScheme.onSurfaceVariant;
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       leading: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
+          color: itemColor != null
+              ? itemColor!.withValues(alpha: 0.1)
+              : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon,
-            color: theme.colorScheme.onSurfaceVariant, size: 22),
+        child: Icon(icon, color: displayColor, size: 22),
       ),
       title: Text(title,
-          style: theme.textTheme.bodyLarge
-              ?.copyWith(fontWeight: FontWeight.w500)),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: itemColor,
+          )),
       subtitle: subtitle != null
-          ? Text(subtitle!,
-          style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
+          ? Text(subtitle!, style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
           : null,
-      trailing:
-      Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+      trailing: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

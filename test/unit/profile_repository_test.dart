@@ -53,25 +53,28 @@ void main() {
   );
 
   test(
-    '[UT-FE-PROFILE-03] updateProfile sends the payload and parses the updated profile',
-    () async {
+    '[UT-FE-PROFILE-03] updateProfile sends the payload and completes successfully',
+        () async {
       final harness = DioTestHarness();
+
+      // Giả lập backend trả về object thông báo thành công giống C#
       harness.adapter.onPut(
         '/Profiles/me',
-        (server) => server.reply(200, {
-          'id': 'p1',
-          'fullName': 'Tên Mới',
-          'email': 'a@b.com',
-          'phoneNumber': '0900000000',
-          'isPhoneVerified': true,
+            (server) => server.reply(200, {
+          'success': true,
+          'message': 'Profile updated successfully',
         }),
         data: {'fullName': 'Tên Mới'},
       );
+
       final repository = ProfileRepository(harness.dio);
 
-      final profile = await repository.updateProfile(fullName: 'Tên Mới');
-
-      expect(profile.fullName, 'Tên Mới');
+      // Vì hàm trả về void, chúng ta kiểm tra xem nó có hoàn thành (completes)
+      // một cách êm đẹp mà không văng ra Exception hay không.
+      await expectLater(
+        repository.updateProfile(fullName: 'Tên Mới'),
+        completes,
+      );
     },
   );
 }

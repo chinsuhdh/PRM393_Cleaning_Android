@@ -89,17 +89,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   }
 
   void _ensureSearchTracking(bool isSearching) {
-    if (isSearching && _searchTicker == null) {
-      _searchTickCount = 0;
-      _searchTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-        _searchTickCount++;
-        if (_searchTickCount % _searchPollInterval.inSeconds == 0) _refreshBooking();
-        if (mounted) setState(() {});
-      });
-    } else if (!isSearching && _searchTicker != null) {
-      _searchTicker!.cancel();
-      _searchTicker = null;
-    }
+    // Đã có SignalR lo việc update, không cần dùng Timer đếm giờ để spam API nữa.
   }
 
   void _refreshBooking() => ref.invalidate(bookingDetailProvider(widget.bookingId));
