@@ -8,6 +8,7 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
@@ -17,8 +18,11 @@ import 'widgets/booking_info_cards.dart';
 import 'widgets/booking_load_error.dart';
 import 'widgets/nearby_workers_google_map.dart';
 import 'widgets/live_tracking_map.dart';
+import 'widgets/reschedule_banner.dart';
 
 part 'widgets/booking_detail_action_handlers.dart';
+part 'widgets/booking_detail_cancellation_handlers.dart';
+part 'widgets/booking_detail_reschedule_handlers.dart';
 
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
   final response = await DioClient.instance.get('/Bookings/$id');
@@ -158,12 +162,29 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: buildBookingDetailContent(theme, booking, role),
+          children: [
+            if (booking.pendingReschedule != null) ...[
+              _rescheduleBanner(context, ref, booking),
+              const SizedBox(height: 20),
+            ],
+            ...buildBookingDetailContent(theme, booking, role),
+          ],
         ),
       ),
       bottomNavigationBar: _stickyFooter(context, ref, booking, role, isSearching),
     );
   }
+
+  Widget _rescheduleBanner(BuildContext context, WidgetRef ref, Booking booking) => RescheduleBanner(
+        proposal: booking.pendingReschedule!,
+        currentUserId: ref.watch(authProvider).userId,
+        onAccept: () => _respondReschedule(
+            context, ref, booking.pendingReschedule!.id, RescheduleActionName.accept),
+        onReject: () => _respondReschedule(
+            context, ref, booking.pendingReschedule!.id, RescheduleActionName.reject),
+        onWithdraw: () => _respondReschedule(
+            context, ref, booking.pendingReschedule!.id, RescheduleActionName.withdraw),
+      );
 
   Widget _mapLifecycleLayout(
     BuildContext context,
@@ -204,11 +225,16 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (isSearching) ...[_searchStatusCard(theme, booking), const SizedBox(height: 16)],
+                  if (booking.pendingReschedule != null) ...[
+                    _rescheduleBanner(context, ref, booking),
+                    const SizedBox(height: 16),
+                  ],
                   BookingActionBar(
                     status: booking.status,
                     viewerRole: role,
                     isScheduled: booking.bookingType == BookingTypeName.scheduled,
                     paymentMethod: PaymentMethodApi.fromApiName(booking.paymentMethod),
+                    scheduledStartTime: booking.scheduledStartTime ?? DateTime.now(),
                     statusTimeline: booking.statusTimeline,
                     onChat: () => context.push('/chat/${widget.bookingId}'),
                     onAccept: () => _accept(context, ref),
@@ -217,11 +243,14 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onStart: () => _advance(context, ref, BookingStatusName.inProgress),
                     onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
                     onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
-                    onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
-                    onReport: (reason) => _cancel(context, ref, reason),
+                    onCancelByClient: () => _cancelByClient(context, ref),
+                    onWorkerCancel: (reasonCode, freeText) =>
+                        _workerCancelWithReason(context, ref, reasonCode, freeText),
+                    onReport: (reasonCode, freeText) =>
+                        _reportBooking(context, ref, reasonCode, freeText),
+                    onProposeReschedule: (newStartTime, message) =>
+                        _proposeReschedule(context, ref, newStartTime, message),
                     onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-                    onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
-                    onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
                     onReview: () => context.push('/review/${booking.id}'),
                     onViewEarning: () => context.push('/worker/wallet'),
                     onViewReason: () => _showCancellationReason(context, booking),
@@ -290,6 +319,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             viewerRole: role,
             isScheduled: booking.bookingType == BookingTypeName.scheduled,
             paymentMethod: PaymentMethodApi.fromApiName(booking.paymentMethod),
+            scheduledStartTime: booking.scheduledStartTime ?? DateTime.now(),
             statusTimeline: booking.statusTimeline,
             onChat: () => context.push('/chat/${widget.bookingId}'),
             onAccept: () => _accept(context, ref),
@@ -298,11 +328,13 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onStart: () => _advance(context, ref, BookingStatusName.inProgress),
             onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
             onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
-            onReleaseJob: () => _advance(context, ref, BookingStatusName.awaitingWorker),
-            onReport: (reason) => _cancel(context, ref, reason),
+            onCancelByClient: () => _cancelByClient(context, ref),
+            onWorkerCancel: (reasonCode, freeText) =>
+                _workerCancelWithReason(context, ref, reasonCode, freeText),
+            onReport: (reasonCode, freeText) => _reportBooking(context, ref, reasonCode, freeText),
+            onProposeReschedule: (newStartTime, message) =>
+                _proposeReschedule(context, ref, newStartTime, message),
             onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-            onRequestReschedule: () => _advance(context, ref, BookingStatusName.rescheduleRequested),
-            onApproveReschedule: () => _advance(context, ref, BookingStatusName.accepted),
             onReview: () => context.push('/review/${booking.id}'),
             onViewEarning: () => context.push('/worker/wallet'),
             onViewReason: () => _showCancellationReason(context, booking),

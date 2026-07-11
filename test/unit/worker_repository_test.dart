@@ -48,4 +48,27 @@ void main() {
       ),
     );
   });
+
+  test(
+    '[UT-FE-WORKERREPO-04] updateOnlineStatus maps WORKER_SUSPENDED to WorkerSuspendedException (H.2)',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Workers/online-status',
+        (server) => server.reply(403, {
+          'success': false,
+          'message': 'Tài khoản của bạn đã bị tạm khóa.',
+          'data': null,
+          'errorCode': 'WORKER_SUSPENDED',
+        }),
+        data: {'onlineStatus': 'Online'},
+      );
+      final repository = ApiWorkerRepository(harness.dio);
+
+      expect(
+        () => repository.updateOnlineStatus(true),
+        throwsA(isA<WorkerSuspendedException>()),
+      );
+    },
+  );
 }

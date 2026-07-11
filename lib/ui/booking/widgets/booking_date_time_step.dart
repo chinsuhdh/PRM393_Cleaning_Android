@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import 'slot_picker.dart';
 
-/// Step where the client chooses Immediate ("as soon as possible") or a specific Scheduled day/time.
-/// No worker-availability slots are shown — the booking is created first and matched to a worker
-/// afterwards, so this step only collects a requested time.
 class BookingDateTimeStep extends StatelessWidget {
   final int bookingType; // 1 = Immediate, 0 = Scheduled
   final DateTime selectedDate;
@@ -14,9 +12,6 @@ class BookingDateTimeStep extends StatelessWidget {
   final ValueChanged<DateTime> onDateChanged;
   final ValueChanged<TimeOfDay> onTimeChanged;
 
-  /// The server rejects a second Immediate booking while one is still AwaitingWorker (one in-flight
-  /// search at a time) — this disables the option up front instead of letting the user pick it and
-  /// only finding out from an error at the very last step.
   final bool hasActiveImmediateBooking;
 
   const BookingDateTimeStep({
@@ -85,58 +80,13 @@ class BookingDateTimeStep extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Colors.grey.shade300),
               ),
-              leading: const Icon(Icons.calendar_today_rounded, color: kPrimary),
-              title: const Text('Ngày'),
+              leading: const Icon(Icons.event_rounded, color: kPrimary),
+              title: const Text('Ngày & giờ hẹn'),
               subtitle: Text(
-                DateFormat('dd/MM/yyyy').format(selectedDate),
+                '${DateFormat('dd/MM/yyyy').format(selectedDate)} • ${selectedTime.format(context)}',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
               ),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 30)),
-                );
-                if (picked != null) onDateChanged(picked);
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade300),
-              ),
-              leading: const Icon(Icons.access_time_rounded, color: kPrimary),
-              title: const Text('Giờ'),
-              subtitle: Text(
-                selectedTime.format(context),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-              onTap: () async {
-                final picked = await showModalBottomSheet<TimeOfDay>(
-                  context: context,
-                  builder: (sheetContext) => GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      childAspectRatio: 2,
-                    ),
-                    itemCount: 48,
-                    itemBuilder: (_, index) {
-                      final time = TimeOfDay(hour: index ~/ 2, minute: index.isEven ? 0 : 30);
-                      final candidate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, time.hour, time.minute);
-                      final enabled = !candidate.isBefore(DateTime.now().add(const Duration(hours: 2))) &&
-                          !candidate.isAfter(DateTime.now().add(const Duration(days: 30)));
-                      return TextButton(
-                        onPressed: enabled ? () => Navigator.pop(sheetContext, time) : null,
-                        child: Text('${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'),
-                      );
-                    },
-                  ),
-                );
-                if (picked != null) onTimeChanged(picked);
-              },
+              onTap: () => _openSlotPicker(context),
             ),
             const SizedBox(height: 12),
             Row(
@@ -164,6 +114,27 @@ class BookingDateTimeStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _openSlotPicker(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: SlotPicker(
+            initialDate: selectedDate,
+            initialTime: selectedTime,
+            onSlotSelected: (dateTime) {
+              onDateChanged(DateTime(dateTime.year, dateTime.month, dateTime.day));
+              onTimeChanged(TimeOfDay(hour: dateTime.hour, minute: dateTime.minute));
+              Navigator.pop(sheetContext);
+            },
+          ),
+        ),
       ),
     );
   }

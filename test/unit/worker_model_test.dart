@@ -51,4 +51,37 @@ void main() {
       expect(worker.rating, 0);
     },
   );
+
+  test(
+    '[UT-FE-WORKERMODEL-04] parses the WorkerProfileDto shape from GET /Workers/me '
+    '(userId/averageRating/suspendedAt, no name) without throwing (H.2)',
+    () {
+      final worker = Worker.fromJson({
+        'userId': 'w1',
+        'averageRating': 4.8,
+        'onlineStatus': 'Online',
+        'currentLat': 10.77,
+        'currentLng': 106.70,
+        'suspendedAt': '2026-07-10T08:00:00Z',
+      });
+
+      expect(worker.id, 'w1');
+      expect(worker.name, '');
+      expect(worker.rating, 4.8);
+      expect(worker.latitude, 10.77);
+      expect(worker.longitude, 106.70);
+      expect(worker.isSuspended, isTrue);
+      expect(worker.suspendedAt, DateTime.parse('2026-07-10T08:00:00Z').toLocal());
+    },
+  );
+
+  test(
+    '[UT-FE-WORKERMODEL-05] a null suspendedAt means isSuspended is false',
+    () {
+      final worker = Worker.fromJson({'userId': 'w1', 'averageRating': 4.8});
+
+      expect(worker.suspendedAt, isNull);
+      expect(worker.isSuspended, isFalse);
+    },
+  );
 }

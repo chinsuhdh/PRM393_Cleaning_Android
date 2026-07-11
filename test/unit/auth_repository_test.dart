@@ -1,9 +1,14 @@
 import 'package:cleanai/data/repositories/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 import '../support/dio_test_harness.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   test(
     '[UT-FE-AUTH-01] login parses the token/profile, sets the auth header and marks authenticated',
         () async {

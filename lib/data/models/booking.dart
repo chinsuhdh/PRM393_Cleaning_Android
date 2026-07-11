@@ -3,6 +3,47 @@ import 'dart:convert';
 import '../../core/constants/booking_enums.dart';
 import 'worker.dart';
 
+class RescheduleProposal {
+  final String id;
+  final String requestedBy;
+  final DateTime oldStartTime;
+  final DateTime oldEndTime;
+  final DateTime newStartTime;
+  final DateTime newEndTime;
+  final String status;
+  final String? reason;
+  final DateTime? createdAt;
+  final DateTime? respondedAt;
+
+  const RescheduleProposal({
+    required this.id,
+    required this.requestedBy,
+    required this.oldStartTime,
+    required this.oldEndTime,
+    required this.newStartTime,
+    required this.newEndTime,
+    required this.status,
+    this.reason,
+    this.createdAt,
+    this.respondedAt,
+  });
+
+  bool get isPending => status == 'Pending';
+
+  factory RescheduleProposal.fromJson(Map<String, dynamic> json) => RescheduleProposal(
+        id: (json['id'] ?? '').toString(),
+        requestedBy: (json['requestedBy'] ?? '').toString(),
+        oldStartTime: DateTime.tryParse(json['oldStartTime']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+        oldEndTime: DateTime.tryParse(json['oldEndTime']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+        newStartTime: DateTime.tryParse(json['newStartTime']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+        newEndTime: DateTime.tryParse(json['newEndTime']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+        status: json['status']?.toString() ?? 'Unknown',
+        reason: json['reason'] as String?,
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
+        respondedAt: DateTime.tryParse(json['respondedAt']?.toString() ?? '')?.toLocal(),
+      );
+}
+
 class Booking {
   final String id;
   final String serviceId;
@@ -11,7 +52,6 @@ class Booking {
   final String time;
   final double price;
   final String status;
-  // Enum name from the API: 'Cash' | 'Vnpay'. Drives which PendingPayment action the worker sees.
   final String paymentMethod;
   final String bookingType;
   final Worker? worker;
@@ -33,6 +73,9 @@ class Booking {
   final double? latitude;
   final double? longitude;
   final double? distanceKm;
+
+  final RescheduleProposal? pendingReschedule;
+  final List<RescheduleProposal> rescheduleHistory;
 
   const Booking({
     required this.id,
@@ -62,13 +105,14 @@ class Booking {
     this.latitude,
     this.longitude,
     this.distanceKm,
+    this.pendingReschedule,
+    this.rescheduleHistory = const [],
   });
 
   bool get isImmediate => bookingType == BookingTypeName.immediate;
 
   bool get isAwaitingWorker => status == BookingStatusName.awaitingWorker;
 
-  // PendingPayment is post-job (pay-after-job): the worker is still attached.
   bool get hasWorkerAssigned =>
       status == BookingStatusName.accepted ||
       status == BookingStatusName.onTheWay ||
@@ -94,7 +138,6 @@ class Booking {
       }
     }
 
-    // The API serializes enums by name (e.g. "AwaitingWorker").
     final statusStr = json['status']?.toString() ?? 'Unknown';
 
     String serviceName = (json['serviceName'] as String?) ?? '';
@@ -134,6 +177,14 @@ class Booking {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+
+      pendingReschedule: json['pendingReschedule'] != null
+          ? RescheduleProposal.fromJson(json['pendingReschedule'] as Map<String, dynamic>)
+          : null,
+      rescheduleHistory: (json['rescheduleHistory'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(RescheduleProposal.fromJson)
+          .toList(),
     );
   }
 

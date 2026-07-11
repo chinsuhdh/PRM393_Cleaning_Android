@@ -126,4 +126,59 @@ void main() {
       expect(withStatus('AwaitingWorker').hasWorkerAssigned, isFalse);
     },
   );
+
+  test(
+    '[UT-FE-BOOKMODEL-09] parses pendingReschedule and rescheduleHistory (H.3)',
+    () {
+      final booking = Booking.fromJson({
+        'id': 'b1',
+        'serviceName': 'Dọn nhà',
+        'status': 'RescheduleRequested',
+        'pendingReschedule': {
+          'id': 'r1',
+          'requestedBy': 'client-1',
+          'oldStartTime': '2026-07-10T09:00:00Z',
+          'oldEndTime': '2026-07-10T11:00:00Z',
+          'newStartTime': '2026-07-12T09:00:00Z',
+          'newEndTime': '2026-07-12T11:00:00Z',
+          'status': 'Pending',
+          'reason': 'Bận việc đột xuất',
+          'createdAt': '2026-07-09T08:00:00Z',
+        },
+        'rescheduleHistory': [
+          {
+            'id': 'r0',
+            'requestedBy': 'client-1',
+            'oldStartTime': '2026-07-08T09:00:00Z',
+            'oldEndTime': '2026-07-08T11:00:00Z',
+            'newStartTime': '2026-07-09T09:00:00Z',
+            'newEndTime': '2026-07-09T11:00:00Z',
+            'status': 'Rejected',
+          },
+        ],
+      });
+
+      expect(booking.pendingReschedule, isNotNull);
+      expect(booking.pendingReschedule!.id, 'r1');
+      expect(booking.pendingReschedule!.isPending, isTrue);
+      expect(booking.pendingReschedule!.reason, 'Bận việc đột xuất');
+      expect(booking.rescheduleHistory, hasLength(1));
+      expect(booking.rescheduleHistory.first.status, 'Rejected');
+      expect(booking.rescheduleHistory.first.isPending, isFalse);
+    },
+  );
+
+  test(
+    '[UT-FE-BOOKMODEL-10] pendingReschedule and rescheduleHistory default to null/empty when absent',
+    () {
+      final booking = Booking.fromJson({
+        'id': 'b1',
+        'serviceName': 'Dọn nhà',
+        'status': 'Accepted',
+      });
+
+      expect(booking.pendingReschedule, isNull);
+      expect(booking.rescheduleHistory, isEmpty);
+    },
+  );
 }

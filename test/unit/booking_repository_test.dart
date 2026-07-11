@@ -33,19 +33,137 @@ void main() {
   );
 
   test(
-    '[UT-FE-BOOK-CANCEL-01] cancelBooking sends the Cancelled status name, not InProgress',
+    '[UT-FE-BOOK-CANCEL-01] cancelBookingByClient POSTs the dedicated cancel endpoint',
     () async {
       final harness = DioTestHarness();
-      harness.adapter.onPatch(
-        '/Bookings/b1/status',
+      harness.adapter.onPost(
+        '/Bookings/b1/cancel',
         (server) => server.reply(200, {'message': 'ok'}),
-        data: {'newStatus': BookingStatusName.cancelled},
+        data: null,
       );
       final repository = ApiBookingRepository(harness.dio);
 
-      await repository.cancelBooking('b1');
+      await repository.cancelBookingByClient('b1');
+    },
+  );
 
-      expect(BookingStatusName.cancelled, 'Cancelled');
+  test(
+    '[UT-FE-BOOK-CANCEL-02] workerCancelBooking POSTs the reason code and optional free text',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPost(
+        '/Bookings/b1/worker-cancel',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'reasonCode': 'worker_cancel.other', 'freeText': 'Xe hong'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.workerCancelBooking('b1', 'worker_cancel.other', freeText: 'Xe hong');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-CANCEL-03] workerCancelBooking maps WORKER_SUSPENDED to WorkerSuspendedException',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPost(
+        '/Bookings/b1/worker-cancel',
+        (server) => server.reply(403, {
+          'success': false,
+          'message': 'Tài khoản của bạn đã bị tạm khóa.',
+          'data': null,
+          'errorCode': 'WORKER_SUSPENDED',
+        }),
+        data: {'reasonCode': 'worker_cancel.too_far'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      expect(
+        () => repository.workerCancelBooking('b1', 'worker_cancel.too_far'),
+        throwsA(isA<WorkerSuspendedException>()),
+      );
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-RSC-01] proposeReschedule POSTs the new start time (UTC) and returns the hydrated booking',
+    () async {
+      final harness = DioTestHarness();
+      final newStart = DateTime.utc(2026, 7, 12, 9, 0, 0);
+      harness.adapter.onPost(
+        '/Bookings/b1/reschedule',
+        (server) => server.reply(200, {
+          'id': 'b1',
+          'serviceName': 'Dọn nhà',
+          'status': 'RescheduleRequested',
+        }),
+        data: {'newStartTime': newStart.toIso8601String(), 'message': 'Xin doi lich'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      final booking = await repository.proposeReschedule('b1', newStart, message: 'Xin doi lich');
+
+      expect(booking.status, 'RescheduleRequested');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-RSC-02] proposeReschedule maps RESCHEDULE_ALREADY_PENDING to a typed exception',
+    () async {
+      final harness = DioTestHarness();
+      final newStart = DateTime.utc(2026, 7, 12, 9, 0, 0);
+      harness.adapter.onPost(
+        '/Bookings/b1/reschedule',
+        (server) => server.reply(409, {
+          'success': false,
+          'message': 'Đã có một yêu cầu dời lịch đang chờ phản hồi.',
+          'data': null,
+          'errorCode': 'RESCHEDULE_ALREADY_PENDING',
+        }),
+        data: {'newStartTime': newStart.toIso8601String()},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      expect(
+        () => repository.proposeReschedule('b1', newStart),
+        throwsA(isA<RescheduleAlreadyPendingException>()),
+      );
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-RSC-03] respondReschedule PATCHes the reschedule/{requestId} endpoint with the action',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Bookings/b1/reschedule/r1',
+        (server) => server.reply(200, {
+          'id': 'b1',
+          'serviceName': 'Dọn nhà',
+          'status': 'Accepted',
+        }),
+        data: {'action': RescheduleActionName.accept},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      final booking = await repository.respondReschedule('b1', 'r1', RescheduleActionName.accept);
+
+      expect(booking.status, 'Accepted');
+    },
+  );
+
+  test(
+    '[UT-FE-BOOK-RPT-01] reportBooking POSTs the reason code and free text',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPost(
+        '/Bookings/b1/report',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'reasonCode': 'report.client.worker_no_show', 'freeText': 'Nhan vien khong den dung gio'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.reportBooking('b1', 'report.client.worker_no_show', 'Nhan vien khong den dung gio');
     },
   );
 

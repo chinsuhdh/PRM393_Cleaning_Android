@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/typed_exceptions.dart';
 import '../models/worker.dart';
+
+export '../../core/network/typed_exceptions.dart' show WorkerSuspendedException;
 
 abstract class WorkerRepository {
   Future<Worker?> getMyWorkerProfile();
@@ -67,6 +70,9 @@ class ApiWorkerRepository implements WorkerRepository {
       );
     } on DioException catch (e) {
       debugPrint('[WorkerRepository] updateOnlineStatus failed: $e');
+      if (backendErrorCodeFromDioException(e) == 'WORKER_SUSPENDED') {
+        throw const WorkerSuspendedException();
+      }
       throw Exception(
         backendMessageFromDioException(
           e,

@@ -2,10 +2,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/booking_enums.dart';
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/typed_exceptions.dart';
 import '../models/booking.dart';
+
+export '../../core/network/typed_exceptions.dart' show WorkerSuspendedException;
 
 abstract class BookingRepository {
   Future<List<Booking>> getClientBookings();
@@ -18,10 +20,19 @@ abstract class BookingRepository {
     Map<String, dynamic> data, {
     required String idempotencyKey,
   });
-  Future<void> cancelBooking(String bookingId);
   Future<void> acceptBooking(String bookingId);
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason});
   Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos);
+
+  Future<void> cancelBookingByClient(String bookingId);
+
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText});
+
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText);
+
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message});
+
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action);
 }
 
 class QuoteStaleException implements Exception {
@@ -30,6 +41,18 @@ class QuoteStaleException implements Exception {
 
 class BookingNoLongerAvailableException implements Exception {
   const BookingNoLongerAvailableException();
+}
+
+class RescheduleAlreadyPendingException implements Exception {
+  const RescheduleAlreadyPendingException();
+}
+
+class RescheduleActionName {
+  const RescheduleActionName._();
+
+  static const String accept = 'Accept';
+  static const String reject = 'Reject';
+  static const String withdraw = 'Withdraw';
 }
 
 class ApiBookingRepository implements BookingRepository {
@@ -181,18 +204,101 @@ class ApiBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<void> cancelBooking(String bookingId) async {
+  Future<void> cancelBookingByClient(String bookingId) async {
     try {
-      await _dio.patch(
-        '/Bookings/$bookingId/status',
-        data: {'newStatus': BookingStatusName.cancelled},
-      );
+      await _dio.post('/Bookings/$bookingId/cancel');
     } on DioException catch (error) {
-      debugPrint('[BookingRepository] cancelBooking failed: $error');
+      debugPrint('[BookingRepository] cancelBookingByClient failed: $error');
       throw Exception(
         backendMessageFromDioException(
           error,
           fallback: 'Không thể hủy đơn đặt dịch vụ.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {
+    try {
+      await _dio.post(
+        '/Bookings/$bookingId/worker-cancel',
+        data: {
+          'reasonCode': reasonCode,
+          if (freeText != null) 'freeText': freeText,
+        },
+      );
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] workerCancelBooking failed: $error');
+      if (backendErrorCodeFromDioException(error) == 'WORKER_SUSPENDED') {
+        throw const WorkerSuspendedException();
+      }
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể hủy nhận việc.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {
+    try {
+      await _dio.post(
+        '/Bookings/$bookingId/report',
+        data: {'reasonCode': reasonCode, 'freeText': freeText},
+      );
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] reportBooking failed: $error');
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể gửi báo cáo.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async {
+    try {
+      final response = await _dio.post(
+        '/Bookings/$bookingId/reschedule',
+        data: {
+          'newStartTime': newStartTime.toUtc().toIso8601String(),
+          if (message != null) 'message': message,
+        },
+      );
+      return Booking.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] proposeReschedule failed: $error');
+      if (backendErrorCodeFromDioException(error) == 'RESCHEDULE_ALREADY_PENDING') {
+        throw const RescheduleAlreadyPendingException();
+      }
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể đề nghị dời lịch.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async {
+    try {
+      final response = await _dio.patch(
+        '/Bookings/$bookingId/reschedule/$requestId',
+        data: {'action': action},
+      );
+      return Booking.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] respondReschedule failed: $error');
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể phản hồi yêu cầu dời lịch.',
         ),
       );
     }

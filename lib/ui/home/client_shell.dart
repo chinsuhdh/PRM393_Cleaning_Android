@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../worker/worker_active_job_bar.dart';
+import '../worker/widgets/worker_suspension_banner.dart';
 import 'active_booking_bar.dart';
 
 class ClientShell extends StatelessWidget {
@@ -92,6 +93,7 @@ class WorkerShell extends StatelessWidget {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const WorkerSuspensionBanner(),
           const WorkerActiveJobBar(),
           NavigationBar(
             selectedIndex: navigationShell.currentIndex,

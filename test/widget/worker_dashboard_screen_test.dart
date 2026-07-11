@@ -378,6 +378,40 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    '[WT-FE-WORKERDASH-10] A suspended worker profile shows a disabled "Đã tạm khóa" toggle instead '
+    'of the normal online-status toggle (H.2)',
+    (tester) async {
+      final repository = _FakeWorkerRepository();
+      await pumpTestApp(
+        tester,
+        child: const WorkerDashboardScreen(),
+        overrides: [
+          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          availableBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          workerProfileProvider.overrideWith(
+            (ref) async => Worker.fromJson({
+              'userId': 'w1',
+              'averageRating': 4.5,
+              'suspendedAt': '2026-07-10T08:00:00Z',
+            }),
+          ),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+          workerRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đã tạm khóa'), findsOneWidget);
+      expect(find.byKey(const ValueKey('online-status-toggle')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('online-status-toggle-suspended')));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, isEmpty);
+    },
+  );
 }
 
 class _FakeDispatchHubClient implements DispatchHubClient {
