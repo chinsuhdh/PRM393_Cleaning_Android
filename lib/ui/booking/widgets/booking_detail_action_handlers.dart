@@ -83,29 +83,6 @@ extension _BookingDetailActionHandlers on _BookingDetailScreenState {
     }
   }
 
-  Future<void> _cancel(BuildContext context, WidgetRef ref, String reason) async {
-    _selfCancelling = true;
-    try {
-      await ref.read(bookingRepositoryProvider).updateBookingStatus(
-            widget.bookingId,
-            BookingStatusName.cancelled,
-            reason: reason.isEmpty ? null : reason,
-          );
-      ref.invalidate(bookingsProvider);
-      ref.invalidate(workerBookingsProvider);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy Booking thành công!')));
-      await _reloadFresh(ref);
-    } catch (e) {
-      debugPrint('[BookingDetailScreen] cancel failed: $e');
-      _selfCancelling = false;
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi hủy đơn: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
   Future<void> _hideJob(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(dispatchRepositoryProvider).hideBooking(widget.bookingId);

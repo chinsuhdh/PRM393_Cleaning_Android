@@ -13,20 +13,13 @@ abstract class DispatchHubClient {
   void onJobTaken(void Function() handler);
   void onJobCancelled(void Function() handler);
 
-  /// E.3: fires after the transport reconnects (e.g. after a network blip). Group membership
-  /// (`worker:{id}`/`booking:{id}`) isn't preserved across a new connection, so callers must
-  /// resubscribe and refetch here to catch up on anything missed while disconnected.
   void onReconnected(void Function() handler);
 
   Future<void> subscribeToBooking(String bookingId);
   void onBookingStatusChanged(void Function() handler);
 
-  /// F.2/F.3: the assigned worker's live position while `OnTheWay`, pushed on the `booking:{id}`
-  /// group every time the worker's device sends a location update — replaces the client's REST poll.
   void onWorkerPosition(void Function(double lat, double lng) handler);
 
-  /// E.6/E.9: anonymous eligible-worker positions for a searching client, pushed on the same group
-  /// every ~60s — replaces the client's REST poll on the finding-worker map.
   void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler);
 }
 
@@ -45,7 +38,10 @@ class SignalrDispatchHubClient implements DispatchHubClient {
   final HubConnection _connection;
 
   @override
-  Future<void> connect() async => _connection.start();
+  Future<void> connect() async {
+    if (_connection.state != HubConnectionState.Disconnected) return;
+    await _connection.start();
+  }
 
   @override
   Future<void> disconnect() => _connection.stop();

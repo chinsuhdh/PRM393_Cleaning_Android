@@ -6,9 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-// Worker-side mirror of ActiveBookingBar (F.8 "pinned active job"): a persistent bar so the worker
-// always sees their current job's state (accepted / on the way / in progress / awaiting payment)
-// without having to dig into the Jobs tab.
 void main() {
   Future<void> pump(WidgetTester tester, BookingRepository repository) {
     final router = GoRouter(
@@ -145,7 +142,21 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];
@@ -181,7 +192,21 @@ class _FailingBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];

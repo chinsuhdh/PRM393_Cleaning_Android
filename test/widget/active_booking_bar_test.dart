@@ -245,7 +245,21 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];
@@ -281,7 +295,21 @@ class _FailingBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];

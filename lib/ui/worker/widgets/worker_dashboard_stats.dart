@@ -13,6 +13,30 @@ class OnlineStatusToggle extends ConsumerWidget {
     final status = statusAsync.valueOrNull;
     final isOnline = status == WorkerOnlineStatus.online;
     final isBusy = status == WorkerOnlineStatus.busy;
+
+    final isSuspended = ref.watch(workerProfileProvider).valueOrNull?.isSuspended ?? false;
+    if (isSuspended) {
+      return Container(
+        key: const ValueKey('online-status-toggle-suspended'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.block_rounded, color: Colors.white, size: 14),
+            SizedBox(width: 6),
+            Text(
+              'Đã tạm khóa',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GestureDetector(
       key: const ValueKey('online-status-toggle'),
       onTap: statusAsync.isLoading
@@ -22,6 +46,17 @@ class OnlineStatusToggle extends ConsumerWidget {
                 await ref
                     .read(workerOnlineStatusProvider.notifier)
                     .toggle(isBusy ? false : !isOnline);
+              } on WorkerSuspendedException {
+                debugPrint('[OnlineStatusToggle] toggle failed: suspended');
+                ref.invalidate(workerProfileProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tài khoản của bạn đã bị tạm khóa do hủy việc quá nhiều lần.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               } catch (e) {
                 debugPrint('[OnlineStatusToggle] toggle failed: $e');
                 if (context.mounted) {

@@ -290,7 +290,7 @@ void main() {
       cancelButton.onPressed!();
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Xác nhận'));
+      await tester.tap(find.text('Xác nhận hủy'));
       booking = const Booking(
         id: 'cancel-from-map', serviceName: 'Home Cleaning', date: '', time: '',
         price: 200000, status: BookingStatusName.cancelled, bookingType: BookingTypeName.immediate,
@@ -354,7 +354,7 @@ void main() {
       cancelButton.onPressed!();
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Xác nhận'));
+      await tester.tap(find.text('Xác nhận hủy'));
       booking = const Booking(
         id: 'cancel-from-map-notransition', serviceName: 'Home Cleaning', date: '', time: '',
         price: 200000, status: BookingStatusName.cancelled, bookingType: BookingTypeName.immediate,
@@ -989,6 +989,46 @@ void main() {
       expect(find.text('Thử lại'), findsNothing);
     },
   );
+
+  testWidgets(
+    '[WT-FE-BOOKDETAIL-30] A RescheduleRequested booking with a pending reschedule shows the '
+    'RescheduleBanner above the booking content',
+    (tester) async {
+      final booking = Booking(
+        id: 'reschedule-pending', serviceName: 'Home Cleaning', date: '10/07/2026', time: '09:00',
+        price: 200000, status: BookingStatusName.rescheduleRequested,
+        bookingType: BookingTypeName.scheduled,
+        pendingReschedule: RescheduleProposal(
+          id: 'r1',
+          requestedBy: 'someone-else',
+          oldStartTime: DateTime(2026, 7, 10, 9, 0),
+          oldEndTime: DateTime(2026, 7, 10, 11, 0),
+          newStartTime: DateTime(2026, 7, 12, 9, 0),
+          newEndTime: DateTime(2026, 7, 12, 11, 0),
+          status: 'Pending',
+        ),
+      );
+      await pumpDetail(tester, booking: booking, role: UserRole.client);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đề nghị dời lịch hẹn'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[WT-FE-BOOKDETAIL-31] An Accepted booking with no pending reschedule shows no RescheduleBanner',
+    (tester) async {
+      const booking = Booking(
+        id: 'no-reschedule', serviceName: 'Home Cleaning', date: '10/07/2026', time: '09:00',
+        price: 200000, status: BookingStatusName.accepted,
+        bookingType: BookingTypeName.scheduled,
+      );
+      await pumpDetail(tester, booking: booking, role: UserRole.client);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đề nghị dời lịch hẹn'), findsNothing);
+    },
+  );
 }
 
 class _NoOpDispatchHubClient implements DispatchHubClient {
@@ -1042,8 +1082,6 @@ class _NoOpReviewRepository implements ReviewRepository {
       _reviews.where((r) => r.revieweeId == userId).toList();
 }
 
-/// Default stand-in so the searching-phase map's nearby-worker polling never makes a real network
-/// call in tests that aren't specifically exercising it.
 class _NoOpDispatchRepository implements DispatchRepository {
   @override
   Future<void> hideBooking(String bookingId) async {}
@@ -1090,7 +1128,23 @@ class _FakeBookingRepository implements BookingRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {
+    cancelledBookingId = bookingId;
+  }
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<void> acceptBooking(String bookingId) async {}

@@ -123,10 +123,8 @@ void main() {
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
-      // Scheduled ("Hẹn giờ") is the default; it exposes a Ngày/Giờ picker and no availability slots.
       expect(find.text('Hẹn giờ'), findsOneWidget);
-      expect(find.text('Ngày'), findsOneWidget);
-      expect(find.text('Giờ'), findsOneWidget);
+      expect(find.text('Ngày & giờ hẹn'), findsOneWidget);
       expect(find.textContaining('Khung giờ khả dụng'), findsNothing);
     },
   );
@@ -474,7 +472,21 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> acceptBooking(String bookingId) async {}
 
   @override
-  Future<void> cancelBooking(String bookingId) async {}
+  Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
+
+  @override
+  Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message}) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
+
+  @override
+  Future<Booking> respondReschedule(String bookingId, String requestId, String action) async =>
+      const Booking(id: '', serviceName: '', date: '', time: '', price: 0, status: '');
 
   @override
   Future<List<Booking>> getAvailableBookings() async => [];

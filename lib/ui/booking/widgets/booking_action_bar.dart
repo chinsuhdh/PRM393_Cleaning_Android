@@ -5,12 +5,17 @@ import '../../../core/constants/booking_enums.dart';
 import '../../../core/constants/payment_methods.dart';
 import '../../../core/constants/user_role.dart';
 import '../../shared/destructive_dialog_actions.dart';
+import 'booking_buttons.dart';
+import 'propose_reschedule_sheet.dart';
+import 'report_booking_sheet.dart';
+import 'worker_cancel_reason_sheet.dart';
 
 class BookingActionBar extends StatelessWidget {
   final String status;
   final UserRole viewerRole;
   final bool isScheduled;
   final PaymentMethod paymentMethod;
+  final DateTime scheduledStartTime;
   final List<Map<String, dynamic>> statusTimeline;
   final VoidCallback onChat;
   final Future<void> Function() onGoingThere;
@@ -19,11 +24,19 @@ class BookingActionBar extends StatelessWidget {
   final Future<void> Function() onStart;
   final Future<void> Function() onFinish;
   final Future<void> Function() onConfirmCash;
-  final Future<void> Function() onReleaseJob;
-  final Future<void> Function(String reason) onReport;
+
+  /// H.1: client pre-accept cancel — no reason required.
+  final Future<void> Function() onCancelByClient;
+
+  /// H.1/H.2: worker releases an already-accepted job back to AwaitingWorker with a reason.
+  final Future<void> Function(String reasonCode, String? freeText) onWorkerCancel;
+
+  /// H.1/H.7: report the other party on an in-progress booking — dedicated reason + free-text sheet.
+  final Future<void> Function(String reasonCode, String freeText) onReport;
+
+  /// H.5: propose a new time for an already-accepted Scheduled booking.
+  final Future<void> Function(DateTime newStartTime, String? message) onProposeReschedule;
   final VoidCallback onRetryAsNewBooking;
-  final Future<void> Function() onRequestReschedule;
-  final Future<void> Function() onApproveReschedule;
   final VoidCallback onReview;
   final VoidCallback onViewEarning;
   final VoidCallback onViewReason;
@@ -34,6 +47,7 @@ class BookingActionBar extends StatelessWidget {
     required this.viewerRole,
     required this.isScheduled,
     this.paymentMethod = PaymentMethod.cash,
+    required this.scheduledStartTime,
     this.statusTimeline = const [],
     required this.onChat,
     required this.onGoingThere,
@@ -42,11 +56,11 @@ class BookingActionBar extends StatelessWidget {
     required this.onStart,
     required this.onFinish,
     required this.onConfirmCash,
-    required this.onReleaseJob,
+    required this.onCancelByClient,
+    required this.onWorkerCancel,
     required this.onReport,
+    required this.onProposeReschedule,
     required this.onRetryAsNewBooking,
-    required this.onRequestReschedule,
-    required this.onApproveReschedule,
     required this.onReview,
     required this.onViewEarning,
     required this.onViewReason,
@@ -67,7 +81,7 @@ class BookingActionBar extends StatelessWidget {
       case BookingStatusName.awaitingWorker:
         if (_isClient) {
           secondary = isScheduled
-              ? _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context))
+              ? _danger(context, 'Hủy đặt lịch', () => _confirmCancelByClient(context))
               : _cancelAndRetryRow(context);
         }
         if (_isWorker && onAccept != null) primary = _primary(context, 'Nhận việc', onAccept!);
@@ -78,24 +92,24 @@ class BookingActionBar extends StatelessWidget {
         showReschedule = isScheduled;
         if (_isWorker) {
           primary = _primary(context, 'Đang di chuyển', onGoingThere);
-          overflow.add(_OverflowAction('Hủy công việc này', onReleaseJob));
+          overflow.add(_OverflowAction('Hủy công việc này', () => _openWorkerCancelSheet(context)));
         }
-        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
       case BookingStatusName.rescheduleRequested:
+        // RescheduleBanner (rendered above this action bar on the screen) owns this status's
+        // primary UI (Accept/Reject/Withdraw) — the action bar just keeps Chat available.
         showChat = true;
-        primary = _primary(context, 'Chấp nhận giờ mới', onApproveReschedule);
-        secondary = _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context));
 
       case BookingStatusName.onTheWay:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Bắt đầu công việc', onStart);
-        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
       case BookingStatusName.inProgress:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Hoàn thành', onFinish);
-        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
       case BookingStatusName.pendingPayment:
         showChat = true;
@@ -108,7 +122,7 @@ class BookingActionBar extends StatelessWidget {
             isCash ? 'Vui lòng thanh toán tiền mặt cho nhân viên.' : 'Đang xử lý thanh toán VNPay…',
           );
         }
-        overflow.add(_OverflowAction('Báo cáo', () => _promptReason(context, onReport)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
       case BookingStatusName.completed:
         showChat = true;
@@ -126,7 +140,7 @@ class BookingActionBar extends StatelessWidget {
           context,
           icon: Icons.event_repeat_rounded,
           tooltip: 'Yêu cầu đổi lịch',
-          onPressed: () => onRequestReschedule(),
+          onPressed: () => _openProposeRescheduleSheet(context),
         ),
       if (statusTimeline.isNotEmpty)
         _iconAction(
@@ -184,21 +198,14 @@ class BookingActionBar extends StatelessWidget {
       );
 
   Widget _primary(BuildContext context, String label, Future<void> Function() onPressed) =>
-      FilledButton(
-        onPressed: () => onPressed(),
-        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-        child: Text(label),
-      );
+      primaryActionButton(label, onPressed);
 
-  Widget _outlinedSync(BuildContext context, String label, VoidCallback onPressed) => OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-        child: Text(label),
-      );
+  Widget _outlinedSync(BuildContext context, String label, VoidCallback onPressed) =>
+      outlinedSyncActionButton(label, onPressed);
 
   Widget _cancelAndRetryRow(BuildContext context) => Row(
         children: [
-          Expanded(child: _danger(context, 'Hủy đặt lịch', () => _promptCancelReason(context))),
+          Expanded(child: _danger(context, 'Hủy đặt lịch', () => _confirmCancelByClient(context))),
           const SizedBox(width: 12),
           Expanded(child: _outlinedSync(context, 'Thử lại', onRetryAsNewBooking)),
         ],
@@ -219,44 +226,44 @@ class BookingActionBar extends StatelessWidget {
         ),
       );
 
-  Widget _danger(BuildContext context, String label, VoidCallback onPressed) => OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-          foregroundColor: Colors.red,
-          side: const BorderSide(color: Colors.red),
-        ),
-        child: Text(label),
-      );
+  Widget _danger(BuildContext context, String label, VoidCallback onPressed) =>
+      dangerActionButton(label, onPressed);
 
-  Future<void> _promptCancelReason(BuildContext context) =>
-      _promptReason(context, onReport, title: 'Hủy đơn đặt lịch này?');
-
-  Future<void> _promptReason(
-    BuildContext context,
-    Future<void> Function(String reason) onConfirm, {
-    String title = 'Báo cáo đơn đặt lịch này',
-  }) async {
-    final controller = TextEditingController();
-    final reason = await showDialog<String>(
+  Future<void> _confirmCancelByClient(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Lý do (không bắt buộc)'),
-          maxLines: 3,
-        ),
+        title: const Text('Hủy đơn đặt lịch này?'),
+        content: const Text('Bạn có chắc chắn muốn hủy đơn đặt lịch này không?'),
         actions: [
           DestructiveDialogActions(
-            confirmLabel: 'Xác nhận',
-            onConfirm: () => Navigator.pop(dialogContext, controller.text),
-            onCancel: () => Navigator.pop(dialogContext),
+            confirmLabel: 'Xác nhận hủy',
+            onConfirm: () => Navigator.pop(dialogContext, true),
+            onCancel: () => Navigator.pop(dialogContext, false),
           ),
         ],
       ),
     );
-    if (reason != null) await onConfirm(reason);
+    if (confirmed == true) await onCancelByClient();
+  }
+
+  Future<void> _openWorkerCancelSheet(BuildContext context) async {
+    final result = await showWorkerCancelReasonSheet(context);
+    if (result != null) await onWorkerCancel(result.reasonCode, result.freeText);
+  }
+
+  Future<void> _openReportSheet(BuildContext context) async {
+    final result = await showReportBookingSheet(context, viewerRole);
+    if (result != null) await onReport(result.reasonCode, result.freeText);
+  }
+
+  Future<void> _openProposeRescheduleSheet(BuildContext context) async {
+    final result = await showProposeRescheduleSheet(
+      context,
+      initialDate: scheduledStartTime,
+      initialTime: TimeOfDay.fromDateTime(scheduledStartTime),
+    );
+    if (result != null) await onProposeReschedule(result.newStartTime, result.message);
   }
 
   void _showHistory(BuildContext context) {

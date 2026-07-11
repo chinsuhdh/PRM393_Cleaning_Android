@@ -13,6 +13,7 @@ void main() {
     required UserRole viewerRole,
     bool isScheduled = true,
     PaymentMethod paymentMethod = PaymentMethod.cash,
+    DateTime? scheduledStartTime,
     List<Map<String, dynamic>> statusTimeline = const [],
     VoidCallback? onChat,
     Future<void> Function()? onGoingThere,
@@ -21,11 +22,11 @@ void main() {
     Future<void> Function()? onStart,
     Future<void> Function()? onFinish,
     Future<void> Function()? onConfirmCash,
-    Future<void> Function()? onReleaseJob,
-    Future<void> Function(String reason)? onReport,
+    Future<void> Function()? onCancelByClient,
+    Future<void> Function(String reasonCode, String? freeText)? onWorkerCancel,
+    Future<void> Function(String reasonCode, String freeText)? onReport,
+    Future<void> Function(DateTime newStartTime, String? message)? onProposeReschedule,
     VoidCallback? onRetryAsNewBooking,
-    Future<void> Function()? onRequestReschedule,
-    Future<void> Function()? onApproveReschedule,
     VoidCallback? onReview,
     VoidCallback? onViewEarning,
     VoidCallback? onViewReason,
@@ -35,6 +36,7 @@ void main() {
         viewerRole: viewerRole,
         isScheduled: isScheduled,
         paymentMethod: paymentMethod,
+        scheduledStartTime: scheduledStartTime ?? DateTime.now().add(const Duration(hours: 3)),
         statusTimeline: statusTimeline,
         onChat: onChat ?? () {},
         onGoingThere: onGoingThere ?? () async {},
@@ -43,11 +45,11 @@ void main() {
         onStart: onStart ?? () async {},
         onFinish: onFinish ?? () async {},
         onConfirmCash: onConfirmCash ?? () async {},
-        onReleaseJob: onReleaseJob ?? () async {},
-        onReport: onReport ?? (_) async {},
+        onCancelByClient: onCancelByClient ?? () async {},
+        onWorkerCancel: onWorkerCancel ?? (_, __) async {},
+        onReport: onReport ?? (_, __) async {},
+        onProposeReschedule: onProposeReschedule ?? (_, __) async {},
         onRetryAsNewBooking: onRetryAsNewBooking ?? () {},
-        onRequestReschedule: onRequestReschedule ?? () async {},
-        onApproveReschedule: onApproveReschedule ?? () async {},
         onReview: onReview ?? () {},
         onViewEarning: onViewEarning ?? () {},
         onViewReason: onViewReason ?? () {},
@@ -63,13 +65,13 @@ void main() {
 
   testWidgets(
     '[UT-FE-BOOKACT-01] AwaitingWorker (client) shows only Cancel booking, no chat or overflow; '
-    'cancelling first asks for a reason, which is what gets sent',
+    'cancelling is a plain confirm — no reason field, per H.1 pre-accept cancel',
     (tester) async {
-      String? cancelReason;
+      var cancelled = false;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.awaitingWorker,
         viewerRole: UserRole.client,
-        onReport: (reason) async => cancelReason = reason,
+        onCancelByClient: () async => cancelled = true,
       )));
 
       expect(find.text('Hủy đặt lịch'), findsOneWidget);
@@ -79,24 +81,24 @@ void main() {
       await tester.tap(find.text('Hủy đặt lịch'));
       await tester.pumpAndSettle();
 
-      expect(cancelReason, isNull);
+      expect(cancelled, isFalse);
       expect(find.text('Hủy đơn đặt lịch này?'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'Đặt nhầm giờ');
-      await tester.tap(find.text('Xác nhận'));
+      await tester.tap(find.text('Xác nhận hủy'));
       await tester.pumpAndSettle();
-      expect(cancelReason, 'Đặt nhầm giờ');
+      expect(cancelled, isTrue);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-18] Backing out of the cancel-reason dialog does not cancel',
+    '[UT-FE-BOOKACT-18] Backing out of the cancel confirm dialog does not cancel',
     (tester) async {
       var cancelled = false;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.awaitingWorker,
         viewerRole: UserRole.client,
-        onReport: (_) async => cancelled = true,
+        onCancelByClient: () async => cancelled = true,
       )));
 
       await tester.tap(find.text('Hủy đặt lịch'));
@@ -132,11 +134,13 @@ void main() {
 
   testWidgets(
     '[UT-FE-BOOKACT-02] Accepted (worker, scheduled): Going there is the sole primary action; '
-    'Chat/Reschedule are icons; Cancel this job/Report are behind the overflow menu',
+    'Chat/Reschedule are icons; Cancel this job opens the reason sheet from the overflow menu',
     (tester) async {
+      String? cancelledReasonCode;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.accepted,
         viewerRole: UserRole.worker,
+        onWorkerCancel: (reasonCode, freeText) async => cancelledReasonCode = reasonCode,
       )));
 
       expect(find.widgetWithText(FilledButton, 'Đang di chuyển'), findsOneWidget);
@@ -146,7 +150,14 @@ void main() {
       expect(find.text('Báo cáo'), findsNothing);
 
       await tapOverflow(tester, 'Hủy công việc này');
-      expect(find.text('Báo cáo'), findsNothing); // menu closed after selecting
+      expect(find.text('Hủy nhận việc này?'), findsOneWidget);
+
+      await tester.tap(find.text('Địa chỉ quá xa'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Xác nhận hủy'));
+      await tester.pumpAndSettle();
+
+      expect(cancelledReasonCode, 'worker_cancel.too_far');
     },
   );
 
@@ -341,34 +352,33 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-10] RescheduleRequested: Accept new time is primary; Cancel booking stays directly '
-    'visible (it is one of only two real choices here, not a rare/destructive extra)',
+    '[UT-FE-BOOKACT-10] RescheduleRequested: the action bar only keeps Chat — RescheduleBanner '
+    '(rendered separately on the screen) owns Accept/Reject/Withdraw for this status',
     (tester) async {
-      var approved = false;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.rescheduleRequested,
         viewerRole: UserRole.client,
-        onApproveReschedule: () async => approved = true,
       )));
 
-      expect(find.widgetWithText(FilledButton, 'Chấp nhận giờ mới'), findsOneWidget);
-      expect(find.text('Hủy đặt lịch'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Chấp nhận giờ mới'), findsNothing);
+      expect(find.text('Hủy đặt lịch'), findsNothing);
       expect(find.byTooltip('Trò chuyện'), findsOneWidget);
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Chấp nhận giờ mới'));
-      await tester.pumpAndSettle();
-      expect(approved, isTrue);
+      expect(find.byTooltip('Thêm thao tác'), findsNothing);
     },
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-12] Report reason prompt still reaches onReport when confirmed from the overflow menu',
+    '[UT-FE-BOOKACT-12] Report sheet reaches onReport with the picked reason code and free text',
     (tester) async {
-      String? reportedReason;
+      String? reportedCode;
+      String? reportedText;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.onTheWay,
         viewerRole: UserRole.worker,
-        onReport: (reason) async => reportedReason = reason,
+        onReport: (reasonCode, freeText) async {
+          reportedCode = reasonCode;
+          reportedText = freeText;
+        },
       )));
 
       await tester.tap(find.byTooltip('Thêm thao tác'));
@@ -376,11 +386,15 @@ void main() {
       await tester.tap(find.text('Báo cáo').last);
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Client not home');
-      await tester.tap(find.text('Xác nhận'));
+      await tester.tap(find.text('Khách hàng vắng mặt'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Khach khong co mat tai dia diem hen');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gửi báo cáo'));
       await tester.pumpAndSettle();
 
-      expect(reportedReason, 'Client not home');
+      expect(reportedCode, 'report.worker.client_absent');
+      expect(reportedText, 'Khach khong co mat tai dia diem hen');
     },
   );
 
