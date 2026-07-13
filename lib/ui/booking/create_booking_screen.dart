@@ -8,7 +8,6 @@ import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/booking_repository.dart';
-import '../../data/repositories/payment_repository.dart';
 import 'widgets/booking_step_indicator.dart';
 import 'widgets/booking_address_step.dart';
 import 'widgets/booking_date_time_step.dart';
@@ -105,60 +104,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     ref.invalidate(userAddressesProvider);
   }
 
-  /// Switching to VNPay requires a linked account (simulated gateway): fetch the current link,
-  /// prompt for one if missing, and only commit the selection once linking succeeds — otherwise
-  /// the backend would reject the booking with VNPAY_NOT_LINKED at submit time.
-  Future<void> _changePaymentMethod(PaymentMethod method) async {
-    if (method != PaymentMethod.vnpay) {
-      setState(() => _paymentMethod = method);
-      return;
-    }
-    try {
-      final linked = await ref.read(paymentRepositoryProvider).getVnpayAccount();
-      if (!mounted) return;
-      if (linked == null || linked.isEmpty) {
-        final entered = await _promptVnpayAccount();
-        if (entered == null || entered.trim().isEmpty) return; // user backed out — keep old method
-        await ref.read(paymentRepositoryProvider).linkVnpayAccount(entered.trim());
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã liên kết tài khoản VNPay.')),
-        );
-      }
-      setState(() => _paymentMethod = PaymentMethod.vnpay);
-    } catch (e) {
-      debugPrint('[CreateBookingScreen] change payment method failed: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    }
-  }
-
-  Future<String?> _promptVnpayAccount() {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Liên kết VNPay'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.phone,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Số điện thoại / tài khoản VNPay',
-            hintText: 'VD: 0901234567',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Liên kết'),
-          ),
-        ],
-      ),
-    );
+  void _changePaymentMethod(PaymentMethod method) {
+    setState(() => _paymentMethod = method);
   }
 
   Future<void> _submitBooking() async {
@@ -170,8 +117,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         if (_bookingType == 0)
           'scheduledStartTime': _scheduledStart?.toUtc().toIso8601String(),
         'bookingType': _bookingType == 1 ? BookingTypeName.immediate : BookingTypeName.scheduled,
-        // Enum by NAME, matching the API convention ('Cash' | 'Vnpay').
-        'paymentMethod': _paymentMethod == PaymentMethod.vnpay ? 'Vnpay' : 'Cash',
+        // Enum by NAME, matching the API convention ('Cash' | 'Payos').
+        'paymentMethod': _paymentMethod == PaymentMethod.payos ? 'Payos' : 'Cash',
         'serviceVersion': _quote?['serviceVersion'],
         'optionAnswers': _answers,
         'notes': _notesController.text.isNotEmpty ? _notesController.text : 'Không có ghi chú',

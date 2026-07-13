@@ -248,6 +248,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> cancelBookingByClient(String bookingId) async {}
 
   @override
+  Future<void> switchToCash(String bookingId) async {}
+
+  @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
@@ -296,6 +299,9 @@ class _FailingBookingRepository implements BookingRepository {
 
   @override
   Future<void> cancelBookingByClient(String bookingId) async {}
+
+  @override
+  Future<void> switchToCash(String bookingId) async {}
 
   @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}

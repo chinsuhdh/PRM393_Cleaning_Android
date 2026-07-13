@@ -64,4 +64,46 @@ void main() {
       expect(find.textContaining('₫'), findsWidgets);
     },
   );
+
+  testWidgets(
+    '[WT-FE-BOOKINGS-03] A PendingPayment/payOS booking shows the "Cần thanh toán" badge on its card',
+    (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          bookingsProvider.overrideWith((ref) async => const [
+            Booking(
+              id: 'b-payos', serviceName: 'Deep clean', status: 'PendingPayment',
+              date: '06/07/2026', time: '09:00', price: 200000, paymentMethod: 'Payos',
+              worker: Worker(id: 'w1', name: 'Alex', rating: 4.8),
+            ),
+          ]),
+        ],
+        child: const MaterialApp(home: BookingsScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cần thanh toán'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[WT-FE-BOOKINGS-04] A PendingPayment/Cash booking does not show the "Cần thanh toán" badge',
+    (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          bookingsProvider.overrideWith((ref) async => const [
+            Booking(
+              id: 'b-cash', serviceName: 'Deep clean', status: 'PendingPayment',
+              date: '06/07/2026', time: '09:00', price: 200000, paymentMethod: 'Cash',
+              worker: Worker(id: 'w1', name: 'Alex', rating: 4.8),
+            ),
+          ]),
+        ],
+        child: const MaterialApp(home: BookingsScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cần thanh toán'), findsNothing);
+    },
+  );
 }

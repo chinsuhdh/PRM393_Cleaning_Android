@@ -1,5 +1,6 @@
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/models/worker.dart';
+import 'package:cleanai/data/models/worker_earning.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
 import 'package:cleanai/data/services/dispatch_hub_service.dart';
@@ -477,4 +478,14 @@ class _FakeWorkerRepository implements WorkerRepository {
       throw Exception('Không thể chuyển sang Online khi đang có công việc.');
     }
   }
+
+  @override
+  Future<void> updatePayoutAccount({
+    required String bankBin,
+    required String accountNumber,
+    required String accountName,
+  }) async {}
+
+  @override
+  Future<List<WorkerEarning>> getMyEarnings() async => [];
 }

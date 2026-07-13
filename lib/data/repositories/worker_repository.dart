@@ -5,6 +5,7 @@ import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/network/typed_exceptions.dart';
 import '../models/worker.dart';
+import '../models/worker_earning.dart';
 
 export '../../core/network/typed_exceptions.dart' show WorkerSuspendedException;
 
@@ -20,6 +21,14 @@ abstract class WorkerRepository {
   });
 
   Future<void> updateOnlineStatus(bool online);
+
+  Future<void> updatePayoutAccount({
+    required String bankBin,
+    required String accountNumber,
+    required String accountName,
+  });
+
+  Future<List<WorkerEarning>> getMyEarnings();
 }
 
 class ApiWorkerRepository implements WorkerRepository {
@@ -99,6 +108,51 @@ class ApiWorkerRepository implements WorkerRepository {
       );
     }
   }
+
+  @override
+  Future<void> updatePayoutAccount({
+    required String bankBin,
+    required String accountNumber,
+    required String accountName,
+  }) async {
+    try {
+      await _dio.put(
+        '/Workers/me/payout-account',
+        data: {
+          'bankBin': bankBin,
+          'accountNumber': accountNumber,
+          'accountName': accountName,
+        },
+      );
+    } on DioException catch (e) {
+      debugPrint('[WorkerRepository] updatePayoutAccount failed: $e');
+      throw Exception(
+        backendMessageFromDioException(
+          e,
+          fallback: 'Không thể cập nhật tài khoản nhận tiền.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<List<WorkerEarning>> getMyEarnings() async {
+    try {
+      final response = await _dio.get('/Workers/me/earnings');
+      final data = response.data;
+      if (data is List) {
+        return data
+            .map((item) => WorkerEarning.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      debugPrint('[WorkerRepository] getMyEarnings failed: $e');
+      throw Exception(
+        backendMessageFromDioException(e, fallback: 'Không thể tải lịch sử thu nhập.'),
+      );
+    }
+  }
 }
 
 final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
@@ -107,6 +161,10 @@ final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
 
 final workerProfileProvider = FutureProvider<Worker?>((ref) async {
   return ref.read(workerRepositoryProvider).getMyWorkerProfile();
+});
+
+final workerEarningsProvider = FutureProvider.autoDispose<List<WorkerEarning>>((ref) async {
+  return ref.read(workerRepositoryProvider).getMyEarnings();
 });
 
 enum WorkerOnlineStatus {
