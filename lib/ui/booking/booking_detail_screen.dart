@@ -83,7 +83,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         await client.subscribeToBooking(widget.bookingId);
       } catch (e) {
         debugPrint('[BookingDetailScreen] live update subscribe failed: $e');
-        // Best-effort: the screen still works via its own poll timers without the live push.
+        // Best-effort: there is no polling fallback if this fails — the screen stays on
+        // whatever it last fetched until the user navigates away and back.
       }
     }());
   }
@@ -246,6 +247,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onCancelByClient: () => _cancelByClient(context, ref),
                     onWorkerCancel: (reasonCode, freeText) =>
                         _workerCancelWithReason(context, ref, reasonCode, freeText),
+                    onClientCancel: (reasonCode, freeText) =>
+                        _clientCancelWithReason(context, ref, reasonCode, freeText),
                     onReport: (reasonCode, freeText) =>
                         _reportBooking(context, ref, reasonCode, freeText),
                     onProposeReschedule: (newStartTime, message) =>
@@ -331,6 +334,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onCancelByClient: () => _cancelByClient(context, ref),
             onWorkerCancel: (reasonCode, freeText) =>
                 _workerCancelWithReason(context, ref, reasonCode, freeText),
+            onClientCancel: (reasonCode, freeText) =>
+                _clientCancelWithReason(context, ref, reasonCode, freeText),
             onReport: (reasonCode, freeText) => _reportBooking(context, ref, reasonCode, freeText),
             onProposeReschedule: (newStartTime, message) =>
                 _proposeReschedule(context, ref, newStartTime, message),

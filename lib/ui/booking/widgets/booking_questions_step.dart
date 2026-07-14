@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'booking_pricing_estimate.dart';
 
 /// Whether an answer value counts as "filled in" — matches the predicate
 /// create_booking_screen.dart uses to gate the required-questions check, kept
@@ -11,6 +12,15 @@ bool isQuestionAnswered(dynamic value) {
   if (value == null || value == '') return false;
   if (value is Iterable && value.isEmpty) return false;
   return true;
+}
+
+/// Parses the `questions` array out of a service's `bookingFormSchema`. Shared by
+/// [BookingQuestionsStep] and create_booking_screen.dart so both read the schema the same way.
+List<Map<String, dynamic>> parseBookingQuestions(Map<String, dynamic>? service) {
+  final raw = service?['bookingFormSchema'];
+  final schema = raw is String ? jsonDecode(raw) : raw;
+  if (schema is! Map || schema['questions'] is! List) return const [];
+  return List<Map<String, dynamic>>.from(schema['questions'] as List);
 }
 
 class BookingQuestionsStep extends StatelessWidget {
@@ -29,26 +39,58 @@ class BookingQuestionsStep extends StatelessWidget {
   final ValueChanged<List<XFile>> onPhotosChanged;
   final int photoCount;
 
-  List<Map<String, dynamic>> get _questions {
-    final raw = service?['bookingFormSchema'];
-    final schema = raw is String ? jsonDecode(raw) : raw;
-    if (schema is! Map || schema['questions'] is! List) return const [];
-    return List<Map<String, dynamic>>.from(schema['questions'] as List);
-  }
+  List<Map<String, dynamic>> get _questions => parseBookingQuestions(service);
 
   @override
   Widget build(BuildContext context) {
     final questions = _questions;
     if (questions.isEmpty) return const Center(child: Text('Dịch vụ này không có câu hỏi bổ sung.'));
-    return ListView.separated(
-      itemCount: questions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 14),
-      itemBuilder: (context, index) => _Question(
-        question: questions[index],
-        value: answers[questions[index]['id'] ?? questions[index]['key']],
-        onChanged: onChanged,
-        onPhotosChanged: onPhotosChanged,
-        photoCount: photoCount,
+    final estimate = computeBookingEstimate(service: service, answers: answers);
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            itemCount: questions.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            itemBuilder: (context, index) => _Question(
+              question: questions[index],
+              value: answers[questions[index]['id'] ?? questions[index]['key']],
+              onChanged: onChanged,
+              onPhotosChanged: onPhotosChanged,
+              photoCount: photoCount,
+            ),
+          ),
+        ),
+        _EstimateBar(estimate: estimate),
+      ],
+    );
+  }
+}
+
+/// Non-authoritative running total shown while answering questions — the confirmed price still
+/// comes from the server's /quote call before the summary step.
+class _EstimateBar extends StatelessWidget {
+  const _EstimateBar({required this.estimate});
+  final PricingEstimate estimate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: kPrimary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Tạm tính', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            '${vndFormat.format(estimate.totalPrice)} · ${estimate.durationHours.toStringAsFixed(1)} giờ',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
+          ),
+        ],
       ),
     );
   }
@@ -101,27 +143,37 @@ class _Question extends StatelessWidget {
         final min = (question['min'] as num?)?.toInt() ?? 0;
         final max = (question['max'] as num?)?.toInt() ?? 99;
         final current = (value as num?)?.toInt() ?? min;
-        control = Row(children: [
-          IconButton(onPressed: current > min ? () => onChanged(id, current - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
-          Text('$current', key: ValueKey('answer-$id')),
-          IconButton(onPressed: current < max ? () => onChanged(id, current + 1) : null, icon: const Icon(Icons.add_circle_outline)),
+        final unitDelta = stepperUnitDelta(question);
+        control = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            IconButton(onPressed: current > min ? () => onChanged(id, current - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
+            Text('$current', key: ValueKey('answer-$id')),
+            IconButton(onPressed: current < max ? () => onChanged(id, current + 1) : null, icon: const Icon(Icons.add_circle_outline)),
+          ]),
+          if (unitDelta != null) _DeltaCaption(delta: unitDelta, suffix: '/ đơn vị'),
         ]);
         break;
       case 'single_choice':
       case 'choice':
-        control = Column(children: options.map((option) => RadioListTile<String>(
-          title: Text(option['label'].toString()),
-          value: option['id'].toString(),
-          groupValue: value?.toString(),
-          onChanged: (selected) => onChanged(id, selected),
-        )).toList());
+        control = Column(children: options.map((option) {
+          final delta = optionDelta(option);
+          return RadioListTile<String>(
+            title: Text(option['label'].toString()),
+            subtitle: delta != null ? _DeltaCaption(delta: delta) : null,
+            value: option['id'].toString(),
+            groupValue: value?.toString(),
+            onChanged: (selected) => onChanged(id, selected),
+          );
+        }).toList());
         break;
       case 'multi_choice':
         final selected = Set<String>.from(value as Iterable? ?? const []);
         control = Column(children: options.map((option) {
           final optionId = option['id'].toString();
+          final delta = optionDelta(option);
           return CheckboxListTile(
             title: Text(option['label'].toString()),
+            subtitle: delta != null ? _DeltaCaption(delta: delta) : null,
             value: selected.contains(optionId),
             onChanged: (checked) {
               final next = {...selected};
@@ -202,6 +254,24 @@ class _Question extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+/// "+50.000₫ · +45 phút" caption showing exactly what selecting/adding this option costs.
+class _DeltaCaption extends StatelessWidget {
+  const _DeltaCaption({required this.delta, this.suffix});
+  final Delta delta;
+  final String? suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[
+      if (delta.price != 0) '+${vndFormat.format(delta.price)}',
+      if (delta.duration != 0) '+${delta.duration.toStringAsFixed(0)} phút',
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    final text = suffix != null ? '${parts.join(' · ')} $suffix' : parts.join(' · ');
+    return Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600));
   }
 }
 

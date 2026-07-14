@@ -148,6 +148,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
 
   @override
@@ -196,6 +199,9 @@ class _FailingBookingRepository implements BookingRepository {
 
   @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}

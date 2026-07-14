@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/constants/user_role.dart';
@@ -10,6 +13,9 @@ import '../../../data/repositories/dispatch_repository.dart';
 import '../../../data/services/directions_service.dart';
 import '../../../data/services/dispatch_hub_service.dart';
 import '../../../data/services/worker_location_sender.dart';
+import 'animated_map_camera.dart';
+import 'live_tracking_map.dart' show formatDistance, estimatedTravelDuration;
+import 'pulsing_location_marker.dart';
 
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
@@ -28,26 +34,43 @@ class NearbyWorkersGoogleMap extends ConsumerStatefulWidget {
   ConsumerState<NearbyWorkersGoogleMap> createState() => _NearbyWorkersGoogleMapState();
 }
 
-class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap> {
+class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
+    with SingleTickerProviderStateMixin {
   List<({double lat, double lng})> _nearbyWorkers = [];
   LatLng? _myPosition;
   DirectionsRoute? _route;
+  late final AnimatedMapCamera _camera;
 
   @override
   void initState() {
     super.initState();
+    // Eagerly created here (not as a lazy `late final` field initializer) — the FlutterMap branch
+    // that reads `_camera` in build() may never run before dispose() if `_hasBookingLocation` is
+    // false, which would otherwise defer creation (and its vsync/Ticker lookup) until dispose(),
+    // when the element is no longer mounted.
+    _camera = AnimatedMapCamera(vsync: this);
     _refresh();
     // E.6/E.9: the booking-detail screen already connects and joins `booking:{id}` — this only
     // needs to listen for the ~60s position pushes on that shared connection.
     ref.read(dispatchHubClientProvider).onNearbyWorkersUpdated((locations) {
-      if (mounted) setState(() => _nearbyWorkers = locations);
+      if (!mounted) return;
+      setState(() => _nearbyWorkers = locations);
+      _fitCameraToVisibleMarkers();
     });
     if (widget.viewerRole == UserRole.worker) _loadWorkerRoute();
   }
 
+  @override
+  void dispose() {
+    _camera.dispose();
+    super.dispose();
+  }
+
   Future<void> _refresh() async {
     final locations = await ref.read(dispatchRepositoryProvider).getNearbyWorkerLocations(widget.booking.id);
-    if (mounted) setState(() => _nearbyWorkers = locations);
+    if (!mounted) return;
+    setState(() => _nearbyWorkers = locations);
+    _fitCameraToVisibleMarkers();
   }
 
   Future<void> _loadWorkerRoute() async {
@@ -55,6 +78,7 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
     final position = await ref.read(deviceLocationSourceProvider).getCurrentPosition();
     if (position == null || !mounted) return;
     setState(() => _myPosition = LatLng(position.latitude, position.longitude));
+    _fitCameraToVisibleMarkers();
 
     final route = await ref.read(directionsServiceProvider).fetchRoute(
           originLat: position.latitude,
@@ -64,6 +88,30 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
         );
     if (route == null || !mounted) return;
     setState(() => _route = route);
+  }
+
+  /// Keeps the job location, the worker's own position (if known), and every nearby-worker dot
+  /// comfortably in frame — like a navigation app, instead of a fixed zoom level.
+  void _fitCameraToVisibleMarkers() {
+    if (!_hasBookingLocation) return;
+    final points = [
+      LatLng(widget.booking.latitude!, widget.booking.longitude!),
+      if (_myPosition != null) _myPosition!,
+      for (final worker in _nearbyWorkers) LatLng(worker.lat, worker.lng),
+    ];
+    unawaited(_camera.animateFit(points));
+  }
+
+  /// Straight-line fallback so the worker always sees a distance/line even when the OSRM route
+  /// call hasn't resolved yet (or fails) — mirrors LiveTrackingMap's `_distanceMeters`.
+  double? get _straightLineDistanceMeters {
+    if (_myPosition == null || !_hasBookingLocation) return null;
+    return Geolocator.distanceBetween(
+      _myPosition!.latitude,
+      _myPosition!.longitude,
+      widget.booking.latitude!,
+      widget.booking.longitude!,
+    );
   }
 
   bool get _hasBookingLocation =>
@@ -110,9 +158,14 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
         Positioned.fill(
           child: FlutterMap(
             key: const ValueKey('nearby-workers-map'),
+            mapController: _camera.mapController,
             options: MapOptions(
               initialCenter: serviceLocation,
               initialZoom: 14,
+              onMapReady: () {
+                _camera.onMapReady();
+                _fitCameraToVisibleMarkers();
+              },
             ),
             children: [
               TileLayer(
@@ -128,15 +181,28 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
                       strokeWidth: 4,
                     ),
                   ],
+                )
+              else if (_myPosition != null)
+                // Immediate straight-line preview between the worker and the job while the real
+                // driving route is still loading (or unavailable) — replaced by the routed
+                // polyline above as soon as it resolves.
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [_myPosition!, serviceLocation],
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                      strokeWidth: 3,
+                    ),
+                  ],
                 ),
               MarkerLayer(
                 markers: [
                   Marker(
                     key: const ValueKey('service-location'),
                     point: serviceLocation,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+                    width: 80,
+                    height: 80,
+                    child: const PulsingLocationMarker(icon: Icons.location_pin, color: kPrimary),
                   ),
                   if (_myPosition != null)
                     Marker(
@@ -165,7 +231,7 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
             ],
           ),
         ),
-        if (_route != null)
+        if (_route != null || _straightLineDistanceMeters != null)
           Positioned(
             left: 12,
             bottom: 12,
@@ -177,7 +243,10 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
               ),
               child: Text(
-                'Cách ${_route!.distanceText} · ${_route!.durationText}',
+                _route != null
+                    ? 'Cách ${_route!.distanceText} · ${_route!.durationText}'
+                    : 'Cách ${formatDistance(_straightLineDistanceMeters!)} · '
+                        '${formatDuration(estimatedTravelDuration(_straightLineDistanceMeters!))}',
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               ),
             ),

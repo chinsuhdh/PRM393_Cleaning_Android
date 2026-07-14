@@ -53,7 +53,7 @@ class ApiWorkerRepository implements WorkerRepository {
     try {
       await _dio.patch(
         '/Workers/location',
-        data: {'latitude': lat, 'longitude': lng},
+        data: {'currentLat': lat, 'currentLng': lng},
       );
     } catch (e) {
       debugPrint('[WorkerRepository] updateLocation failed: $e');

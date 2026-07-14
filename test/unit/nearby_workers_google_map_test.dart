@@ -5,6 +5,7 @@ import 'package:cleanai/data/services/dispatch_hub_service.dart';
 import 'package:cleanai/data/services/directions_service.dart';
 import 'package:cleanai/data/services/worker_location_sender.dart';
 import 'package:cleanai/ui/booking/widgets/nearby_workers_google_map.dart';
+import 'package:cleanai/ui/booking/widgets/pulsing_location_marker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +60,8 @@ void main() {
       // A worker marker's child being exactly a Container (not a GestureDetector/InkWell wrapping
       // one, and not an Icon/label) proves it's a plain, non-interactive, unlabeled dot.
       expect(workerMarker.child, isA<Container>());
-      expect(serviceMarker.child, isA<Icon>());
+      expect(serviceMarker.child, isA<PulsingLocationMarker>());
+      expect((serviceMarker.child as PulsingLocationMarker).icon, Icons.location_pin);
     },
   );
 
@@ -142,6 +144,36 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-NEARBYMAP-05b] When the OSRM route call fails/never resolves, the chip still pairs a '
+    'straight-line distance with an estimated time instead of showing distance alone',
+    (tester) async {
+      final repository = _FakeDispatchRepository(locations: const []);
+      final locationSource = _FakeLocationSource(position: (latitude: 10.80, longitude: 106.65));
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          dispatchRepositoryProvider.overrideWithValue(repository),
+          deviceLocationSourceProvider.overrideWithValue(locationSource),
+          directionsServiceProvider.overrideWithValue(_FakeDirectionsService(route: null)),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: NearbyWorkersGoogleMap(booking: booking, viewerRole: UserRole.worker),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(PolylineLayer), findsOneWidget);
+      final chipFinder = find.textContaining('Cách');
+      expect(chipFinder, findsOneWidget);
+      final chipText = tester.widget<Text>(chipFinder).data!;
+      expect(chipText, contains('km'));
+      expect(chipText, contains('phút'));
+    },
+  );
+
+  testWidgets(
     '[UT-FE-NEARBYMAP-06] A client never triggers the own-position/route lookup, and a worker with no '
     'GPS fix (permission denied) just gets the plain map — no polyline, no chip, no crash',
     (tester) async {
@@ -208,7 +240,7 @@ class _FakeLocationSource implements DeviceLocationSource {
 
 class _FakeDirectionsService extends DirectionsService {
   _FakeDirectionsService({required this.route});
-  final DirectionsRoute route;
+  final DirectionsRoute? route;
 
   @override
   Future<DirectionsRoute?> fetchRoute({

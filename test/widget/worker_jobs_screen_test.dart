@@ -140,6 +140,34 @@ void main() {
   );
 
   testWidgets(
+    '[WT-FE-WORKERJOBS-06] An available job card shows both distance and estimated travel time '
+    'when the backend provides them',
+    (tester) async {
+      await pumpTestApp(
+        tester,
+        child: const WorkerJobsScreen(),
+        overrides: [
+          workerBookingsProvider.overrideWith((ref) async => <Booking>[]),
+          availableBookingsProvider.overrideWith((ref) async => const [
+            Booking(
+              id: 'b-eta', serviceName: 'Deep clean', status: 'AwaitingWorker',
+              date: '06/07/2026', time: '09:00', price: 200000,
+              distanceKm: 6.2, estimatedMinutes: 15,
+            ),
+          ]),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+        ],
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Có sẵn'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('6.2 km'), findsOneWidget);
+      expect(find.textContaining('phút'), findsWidgets);
+    },
+  );
+
+  testWidgets(
     '[WT-FE-WORKERJOBS-01] Available tab lists dispatched jobs with an Accept button',
     (tester) async {
       await pumpTestApp(
