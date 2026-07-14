@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,8 @@ import '../../../data/models/booking.dart';
 import '../../../data/services/directions_service.dart';
 import '../../../data/services/dispatch_hub_service.dart';
 import '../../../data/services/worker_location_sender.dart';
+import 'animated_map_camera.dart';
+import 'pulsing_location_marker.dart';
 
 const _osmTileUrlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _osmUserAgentPackageName = 'com.example.cleanai';
@@ -28,6 +32,13 @@ double? onTheWayDistanceMeters(Booking booking) => _distanceMeters(
 
 String formatDistance(double meters) =>
     meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '${meters.round()} m';
+
+const _assumedAverageSpeedKmh = 25.0; // city-driving estimate, used when no OSRM route is available yet
+
+/// Straight-line ETA fallback so the distance/duration chip always shows a time estimate, not just
+/// distance, even before (or if) the real OSRM route resolves.
+Duration estimatedTravelDuration(double meters) =>
+    Duration(minutes: (meters / 1000 / _assumedAverageSpeedKmh * 60).round());
 
 class LiveTrackingMap extends ConsumerStatefulWidget {
   final String bookingId;
@@ -51,17 +62,23 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
   ConsumerState<LiveTrackingMap> createState() => _LiveTrackingMapState();
 }
 
-class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
+class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> with SingleTickerProviderStateMixin {
   double? _liveWorkerLat;
   double? _liveWorkerLng;
   bool _receivedLivePosition = false;
   DirectionsRoute? _route;
   double? _routedForWorkerLat;
   double? _routedForWorkerLng;
+  late final AnimatedMapCamera _camera;
 
   @override
   void initState() {
     super.initState();
+    // Eagerly created here (not as a lazy `late final` field initializer) — the FlutterMap branch
+    // that reads `_camera` in build() may never run before dispose() if the map never gets a
+    // destination+worker fix in time, which would otherwise defer creation (and its vsync/Ticker
+    // lookup) until dispose(), when the element is no longer mounted.
+    _camera = AnimatedMapCamera(vsync: this);
     _liveWorkerLat = widget.booking.worker?.latitude;
     _liveWorkerLng = widget.booking.worker?.longitude;
     // F.2/F.3: the booking-detail screen already connects and joins `booking:{id}` — this only
@@ -74,6 +91,7 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
         _receivedLivePosition = true;
       });
       _maybeFetchRoute();
+      _fitCameraToDestinationAndWorker();
     });
     _maybeFetchRoute();
   }
@@ -86,6 +104,25 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
       _liveWorkerLng = widget.booking.worker?.longitude;
     }
     _maybeFetchRoute();
+    _fitCameraToDestinationAndWorker();
+  }
+
+  @override
+  void dispose() {
+    _camera.dispose();
+    super.dispose();
+  }
+
+  /// Keeps both the destination and the worker's live position comfortably in frame — like a
+  /// navigation app, the camera zooms in as they close in and out if they're far apart, instead of
+  /// staying at a fixed zoom level.
+  void _fitCameraToDestinationAndWorker() {
+    final workerLat = _liveWorkerLat;
+    final workerLng = _liveWorkerLng;
+    final destLat = widget.booking.latitude;
+    final destLng = widget.booking.longitude;
+    if (workerLat == null || workerLng == null || destLat == null || destLng == null) return;
+    unawaited(_camera.animateFit([LatLng(workerLat, workerLng), LatLng(destLat, destLng)]));
   }
 
   void _maybeFetchRoute() {
@@ -153,9 +190,14 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                         )
                       : FlutterMap(
                           key: const ValueKey('live-tracking-map'),
+                          mapController: _camera.mapController,
                           options: MapOptions(
                             initialCenter: LatLng(booking.latitude!, booking.longitude!),
                             initialZoom: 14,
+                            onMapReady: () {
+                              _camera.onMapReady();
+                              _fitCameraToDestinationAndWorker();
+                            },
                           ),
                           children: [
                             TileLayer(
@@ -177,9 +219,9 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                                 Marker(
                                   key: const ValueKey('destination'),
                                   point: LatLng(booking.latitude!, booking.longitude!),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(Icons.location_pin, color: kPrimary, size: 40),
+                                  width: 80,
+                                  height: 80,
+                                  child: const PulsingLocationMarker(icon: Icons.location_pin, color: kPrimary),
                                 ),
                                 Marker(
                                   key: const ValueKey('worker'),
@@ -207,7 +249,7 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
                   child: Text(
                     widget.showRoute && _route != null
                         ? 'Cách ${_route!.distanceText} · ${_route!.durationText}'
-                        : 'Cách ${formatDistance(distance)}',
+                        : 'Cách ${formatDistance(distance)} · ${formatDuration(estimatedTravelDuration(distance))}',
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),

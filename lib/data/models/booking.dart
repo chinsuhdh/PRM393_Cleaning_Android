@@ -73,6 +73,7 @@ class Booking {
   final double? latitude;
   final double? longitude;
   final double? distanceKm;
+  final double? estimatedMinutes;
 
   final RescheduleProposal? pendingReschedule;
   final List<RescheduleProposal> rescheduleHistory;
@@ -105,6 +106,7 @@ class Booking {
     this.latitude,
     this.longitude,
     this.distanceKm,
+    this.estimatedMinutes,
     this.pendingReschedule,
     this.rescheduleHistory = const [],
   });
@@ -177,6 +179,7 @@ class Booking {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      estimatedMinutes: (json['estimatedMinutes'] as num?)?.toDouble(),
 
       pendingReschedule: json['pendingReschedule'] != null
           ? RescheduleProposal.fromJson(json['pendingReschedule'] as Map<String, dynamic>)

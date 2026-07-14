@@ -57,7 +57,7 @@ Widget _summaryCard(ThemeData theme, Booking booking) => Card(
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(8)),
-                    child: Text(booking.status,
+                    child: Text(bookingStatusLabel(booking.status),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
                   ),
                 ],

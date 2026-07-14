@@ -71,4 +71,20 @@ void main() {
       );
     },
   );
+
+  test(
+    '[UT-FE-WORKERREPO-05] updateLocation posts currentLat/currentLng, matching UpdateLocationDto '
+    '(regression: previously sent latitude/longitude, which the backend silently bound to 0/0)',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPatch(
+        '/Workers/location',
+        (server) => server.reply(200, {'success': true, 'message': 'ok', 'data': null, 'errorCode': null}),
+        data: {'currentLat': 10.7769, 'currentLng': 106.7009},
+      );
+      final repository = ApiWorkerRepository(harness.dio);
+
+      await repository.updateLocation(10.7769, 106.7009);
+    },
+  );
 }

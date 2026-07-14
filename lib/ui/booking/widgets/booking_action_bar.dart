@@ -6,6 +6,7 @@ import '../../../core/constants/payment_methods.dart';
 import '../../../core/constants/user_role.dart';
 import '../../shared/destructive_dialog_actions.dart';
 import 'booking_buttons.dart';
+import 'client_cancel_reason_sheet.dart';
 import 'propose_reschedule_sheet.dart';
 import 'report_booking_sheet.dart';
 import 'worker_cancel_reason_sheet.dart';
@@ -30,6 +31,10 @@ class BookingActionBar extends StatelessWidget {
 
   /// H.1/H.2: worker releases an already-accepted job back to AwaitingWorker with a reason.
   final Future<void> Function(String reasonCode, String? freeText) onWorkerCancel;
+
+  /// Client-side mirror of onWorkerCancel: releases an already-accepted job back to
+  /// AwaitingWorker with a reason, no suspension penalty (that mechanic is worker-only).
+  final Future<void> Function(String reasonCode, String? freeText) onClientCancel;
 
   /// H.1/H.7: report the other party on an in-progress booking — dedicated reason + free-text sheet.
   final Future<void> Function(String reasonCode, String freeText) onReport;
@@ -58,6 +63,7 @@ class BookingActionBar extends StatelessWidget {
     required this.onConfirmCash,
     required this.onCancelByClient,
     required this.onWorkerCancel,
+    required this.onClientCancel,
     required this.onReport,
     required this.onProposeReschedule,
     required this.onRetryAsNewBooking,
@@ -93,6 +99,9 @@ class BookingActionBar extends StatelessWidget {
         if (_isWorker) {
           primary = _primary(context, 'Đang di chuyển', onGoingThere);
           overflow.add(_OverflowAction('Hủy công việc này', () => _openWorkerCancelSheet(context)));
+        }
+        if (_isClient) {
+          overflow.add(_OverflowAction('Hủy công việc này', () => _openClientCancelSheet(context)));
         }
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
@@ -252,6 +261,11 @@ class BookingActionBar extends StatelessWidget {
     if (result != null) await onWorkerCancel(result.reasonCode, result.freeText);
   }
 
+  Future<void> _openClientCancelSheet(BuildContext context) async {
+    final result = await showClientCancelReasonSheet(context);
+    if (result != null) await onClientCancel(result.reasonCode, result.freeText);
+  }
+
   Future<void> _openReportSheet(BuildContext context) async {
     final result = await showReportBookingSheet(context, viewerRole);
     if (result != null) await onReport(result.reasonCode, result.freeText);
@@ -297,7 +311,7 @@ class BookingActionBar extends StatelessWidget {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.check_circle_outline_rounded),
-                      title: Text(entry['newStatus']?.toString() ?? ''),
+                      title: Text(bookingStatusLabel(entry['newStatus']?.toString() ?? '')),
                       subtitle: subtitle.isEmpty ? null : Text(subtitle),
                     );
                   },

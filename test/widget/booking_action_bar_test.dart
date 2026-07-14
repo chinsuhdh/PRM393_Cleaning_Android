@@ -24,6 +24,7 @@ void main() {
     Future<void> Function()? onConfirmCash,
     Future<void> Function()? onCancelByClient,
     Future<void> Function(String reasonCode, String? freeText)? onWorkerCancel,
+    Future<void> Function(String reasonCode, String? freeText)? onClientCancel,
     Future<void> Function(String reasonCode, String freeText)? onReport,
     Future<void> Function(DateTime newStartTime, String? message)? onProposeReschedule,
     VoidCallback? onRetryAsNewBooking,
@@ -47,6 +48,7 @@ void main() {
         onConfirmCash: onConfirmCash ?? () async {},
         onCancelByClient: onCancelByClient ?? () async {},
         onWorkerCancel: onWorkerCancel ?? (_, __) async {},
+        onClientCancel: onClientCancel ?? (_, __) async {},
         onReport: onReport ?? (_, __) async {},
         onProposeReschedule: onProposeReschedule ?? (_, __) async {},
         onRetryAsNewBooking: onRetryAsNewBooking ?? () {},
@@ -162,7 +164,8 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-03] Accepted (client): no primary action; Chat/Reschedule icons; Report in overflow',
+    '[UT-FE-BOOKACT-03] Accepted (client): no primary action; Chat/Reschedule icons; '
+    'Cancel this job and Report both in overflow',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.accepted,
@@ -172,11 +175,34 @@ void main() {
       expect(find.byTooltip('Trò chuyện'), findsOneWidget);
       expect(find.byTooltip('Yêu cầu đổi lịch'), findsOneWidget);
       expect(find.text('Đang di chuyển'), findsNothing);
-      expect(find.text('Hủy công việc này'), findsNothing);
 
       await tester.tap(find.byTooltip('Thêm thao tác'));
       await tester.pumpAndSettle();
+      expect(find.text('Hủy công việc này'), findsOneWidget);
       expect(find.text('Báo cáo'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-20] Accepted (client): Cancel this job opens the client reason sheet '
+    'from the overflow menu and reaches onClientCancel with the picked reason code',
+    (tester) async {
+      String? cancelledReasonCode;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.accepted,
+        viewerRole: UserRole.client,
+        onClientCancel: (reasonCode, freeText) async => cancelledReasonCode = reasonCode,
+      )));
+
+      await tapOverflow(tester, 'Hủy công việc này');
+      expect(find.text('Hủy đơn đặt lịch này?'), findsOneWidget);
+
+      await tester.tap(find.text('Đã tìm được đơn vị khác'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Xác nhận hủy'));
+      await tester.pumpAndSettle();
+
+      expect(cancelledReasonCode, 'client_cancel.found_another_provider');
     },
   );
 
@@ -417,8 +443,8 @@ void main() {
       await tester.tap(historyIcon);
       await tester.pumpAndSettle();
 
-      expect(find.text('Accepted'), findsOneWidget);
-      expect(find.text('Completed'), findsOneWidget);
+      expect(find.text('Đã nhận đơn'), findsOneWidget);
+      expect(find.text('Hoàn thành'), findsOneWidget);
       expect(find.text('08/07/2026 09:30'), findsOneWidget);
       // Timestamp and reason share the subtitle, newline-separated.
       expect(find.text('08/07/2026 11:05\nĐã xong'), findsOneWidget);
@@ -439,7 +465,7 @@ void main() {
       await tester.tap(find.byTooltip('Lịch sử'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Accepted'), findsOneWidget);
+      expect(find.text('Đã nhận đơn'), findsOneWidget);
     },
   );
 
