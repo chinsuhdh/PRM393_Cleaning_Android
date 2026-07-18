@@ -52,20 +52,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             break;
         }
       } else if (!isSuccess && mounted) {
-        // Hiển thị thông báo lỗi
+        // [ĐÃ SỬA] Chỉ hiển thị thông báo lỗi, bỏ nút XÁC THỰC OTP
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Sai thông tin hoặc Tài khoản chưa xác thực!'),
-            duration: const Duration(seconds: 5),
+          const SnackBar(
+            content: Text('Email/Số điện thoại hoặc mật khẩu không chính xác.'),
+            duration: Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'XÁC THỰC OTP',
-              textColor: kPrimary,
-              backgroundColor: Colors.white,
-              onPressed: () {
-                context.push('/verify-otp');
-              },
-            ),
           ),
         );
       }
