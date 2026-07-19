@@ -101,6 +101,21 @@ void main() {
   );
 
   test(
+    '[UT-FE-BOOK-CANCEL-04] clientCancelBooking POSTs the reason code and optional free text',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPost(
+        '/Bookings/b1/client-cancel',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: {'reasonCode': 'client_cancel.other', 'freeText': 'Doi y'},
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.clientCancelBooking('b1', 'client_cancel.other', freeText: 'Doi y');
+    },
+  );
+
+  test(
     '[UT-FE-BOOK-RSC-01] proposeReschedule POSTs the new start time (UTC) and returns the hydrated booking',
     () async {
       final harness = DioTestHarness();

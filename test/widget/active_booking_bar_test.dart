@@ -1,5 +1,6 @@
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
+import 'package:cleanai/data/services/dispatch_hub_service.dart';
 import 'package:cleanai/ui/home/active_booking_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +30,10 @@ void main() {
 
     return tester.pumpWidget(
       ProviderScope(
-        overrides: [bookingRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          bookingRepositoryProvider.overrideWithValue(repository),
+          dispatchHubClientProvider.overrideWithValue(_FakeDispatchHubClient()),
+        ],
         child: MaterialApp.router(routerConfig: router),
       ),
     );
@@ -206,6 +210,55 @@ void main() {
   );
 
   testWidgets(
+    '[UT-FE-ACTBAR-12] A bookingStatusChanged push refreshes the bar live, no manual refresh needed',
+    (tester) async {
+      final client = _FakeDispatchHubClient();
+      var bookings = [
+        const Booking(
+          id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000,
+          status: 'Accepted',
+        ),
+      ];
+      final router = GoRouter(
+        initialLocation: '/home',
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, __) => const Scaffold(
+              bottomNavigationBar: ActiveBookingBar(),
+              body: SizedBox.shrink(),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            bookingsProvider.overrideWith((ref) async => bookings),
+            dispatchHubClientProvider.overrideWithValue(client),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('đã nhận đơn'), findsOneWidget);
+
+      bookings = [
+        const Booking(
+          id: 'b1', serviceName: 'Dọn nhà', date: '', time: '', price: 200000,
+          status: 'OnTheWay',
+        ),
+      ];
+      client.fireBookingStatusChanged();
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('trên đường'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     '[UT-FE-ACTBAR-05] A repository error is swallowed and the bar stays hidden',
     (tester) async {
       await pump(tester, _FailingBookingRepository());
@@ -254,6 +307,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}
 
   @override
@@ -272,6 +328,42 @@ class _FakeBookingRepository implements BookingRepository {
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
+}
+
+class _FakeDispatchHubClient implements DispatchHubClient {
+  void Function()? _onBookingStatusChanged;
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  void onJobPosted(void Function() handler) {}
+
+  @override
+  void onJobTaken(void Function() handler) {}
+
+  @override
+  void onJobCancelled(void Function() handler) {}
+
+  @override
+  Future<void> subscribeToBooking(String bookingId) async {}
+
+  @override
+  void onBookingStatusChanged(void Function() handler) => _onBookingStatusChanged = handler;
+
+  @override
+  void onWorkerPosition(void Function(double lat, double lng) handler) {}
+
+  @override
+  void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler) {}
+
+  @override
+  void onReconnected(void Function() handler) {}
+
+  void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
 }
 
 class _FailingBookingRepository implements BookingRepository {
@@ -305,6 +397,9 @@ class _FailingBookingRepository implements BookingRepository {
 
   @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}

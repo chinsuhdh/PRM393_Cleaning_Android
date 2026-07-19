@@ -691,8 +691,8 @@ void main() {
       await tester.tap(find.byTooltip('Lịch sử'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Accepted'), findsOneWidget);
-      expect(find.text('Completed'), findsWidgets); 
+      expect(find.text('Đã nhận đơn'), findsOneWidget);
+      expect(find.text('Hoàn thành'), findsWidgets);
     },
   );
 
@@ -1137,6 +1137,9 @@ class _FakeBookingRepository implements BookingRepository {
 
   @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
+
+  @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText) async {}

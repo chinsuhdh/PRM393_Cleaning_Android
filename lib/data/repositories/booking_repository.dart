@@ -28,6 +28,8 @@ abstract class BookingRepository {
 
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText});
 
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText});
+
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText);
 
   Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message});
@@ -239,6 +241,27 @@ class ApiBookingRepository implements BookingRepository {
         backendMessageFromDioException(
           error,
           fallback: 'Không thể hủy nhận việc.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {
+    try {
+      await _dio.post(
+        '/Bookings/$bookingId/client-cancel',
+        data: {
+          'reasonCode': reasonCode,
+          if (freeText != null) 'freeText': freeText,
+        },
+      );
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] clientCancelBooking failed: $error');
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể hủy đơn đặt dịch vụ.',
         ),
       );
     }

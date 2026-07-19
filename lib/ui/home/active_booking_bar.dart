@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/search_timeout.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/services/dispatch_hub_service.dart';
 
 class ActiveBookingBar extends ConsumerStatefulWidget {
   const ActiveBookingBar({super.key});
@@ -79,8 +80,11 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   @override
   Widget build(BuildContext context) {
-    // Thay vì tự gọi API, chúng ta chỉ cần "nghe" dữ liệu từ bookingsProvider.
-    // Khi SignalR báo có thay đổi, bookingsProvider sẽ tự update, và UI này sẽ tự đổi theo!
+    // Keeps clientBookingsLiveFeedProvider alive for the whole client session (this bar is always
+    // mounted in ClientShell) — it invalidates bookingsProvider whenever the worker changes this
+    // booking's status over SignalR, so this bar (and the "Đơn của tôi" list) update live instead
+    // of only refreshing on a manual pull-to-refresh.
+    ref.watch(clientBookingsLiveFeedProvider);
     final bookingsAsync = ref.watch(bookingsProvider);
 
     final activeBookings = bookingsAsync.maybeWhen(

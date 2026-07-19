@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:convert';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/network/dio_client.dart';
@@ -87,16 +86,30 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   };
 
   bool _questionsAreValid(Map<String, dynamic>? service) {
-    final raw = service?['bookingFormSchema'];
-    final schema = raw is String ? jsonDecode(raw) : raw;
-    if (schema is! Map || schema['questions'] is! List) return true;
-    for (final rawQuestion in schema['questions'] as List) {
-      if (rawQuestion is! Map || rawQuestion['required'] != true) continue;
-      final id = (rawQuestion['id'] ?? rawQuestion['key']).toString();
-      final value = _answers[id];
-      if (value == null || value == '' || (value is Iterable && value.isEmpty)) return false;
+    for (final question in parseBookingQuestions(service)) {
+      if (question['required'] != true) continue;
+      final id = (question['id'] ?? question['key']).toString();
+      if (!isQuestionAnswered(_answers[id])) return false;
     }
     return true;
+  }
+
+  /// Numeric questions render a display-only default (e.g. "1") even before the user has
+  /// touched +/-. Without seeding `_answers` here, that displayed default is never actually
+  /// submitted, so a mandatory numeric question with an untouched default fails validation.
+  void _seedNumericDefaults(Map<String, dynamic>? service) {
+    final defaults = <String, dynamic>{};
+    for (final question in parseBookingQuestions(service)) {
+      final type = question['type']?.toString();
+      if (type != 'stepper' && type != 'number') continue;
+      final id = (question['id'] ?? question['key']).toString();
+      if (_answers.containsKey(id)) continue;
+      defaults[id] = (question['min'] as num?)?.toInt() ?? 0;
+    }
+    if (defaults.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _answers.addAll(defaults));
+    });
   }
 
   Future<void> _navigateAndRefresh() async {
@@ -182,6 +195,9 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     if (_selectedAddress == null && addressesAsync.hasValue && addressesAsync.value!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => setState(() => _selectedAddress = addressesAsync.value!.first));
+    }
+    if (serviceAsync.hasValue) {
+      _seedNumericDefaults(serviceAsync.value);
     }
     if (hasActiveImmediateBooking && _bookingType == 1) {
       WidgetsBinding.instance.addPostFrameCallback(

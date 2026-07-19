@@ -56,6 +56,32 @@ extension _BookingDetailCancellationHandlers on _BookingDetailScreenState {
     }
   }
 
+  Future<void> _clientCancelWithReason(
+    BuildContext context,
+    WidgetRef ref,
+    String reasonCode,
+    String? freeText,
+  ) async {
+    try {
+      await ref.read(bookingRepositoryProvider).clientCancelBooking(
+            widget.bookingId,
+            reasonCode,
+            freeText: freeText,
+          );
+      ref.invalidate(bookingsProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Đã hủy đơn, đang tìm nhân viên khác.')));
+      await _reloadFresh(ref);
+    } catch (e) {
+      debugPrint('[BookingDetailScreen] clientCancelWithReason failed: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   Future<void> _reportBooking(
     BuildContext context,
     WidgetRef ref,

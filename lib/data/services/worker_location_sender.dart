@@ -15,7 +15,10 @@ class GeolocatorLocationSource implements DeviceLocationSource {
   @override
   Future<({double latitude, double longitude})?> getCurrentPosition() async {
     try {
-      final permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         return null;
       }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
@@ -134,4 +136,21 @@ final dispatchLiveFeedProvider = Provider.autoDispose<void>((ref) {
   ref.onDispose(() {
     controller.stop();
   });
+});
+
+/// Keeps the client's booking list (`bookingsProvider` — the active-booking bar and "Đơn của tôi"
+/// list both read it) fresh as the worker moves a booking through its statuses, even when the
+/// client isn't on that specific booking's detail screen. Backed by the client's always-joined
+/// `client:{clientId}` SignalR group (auto-joined server-side on connect — no per-booking
+/// SubscribeBooking call needed, unlike BookingDetailScreen's own live-update wiring).
+final clientBookingsLiveFeedProvider = Provider.autoDispose<void>((ref) {
+  final client = ref.watch(dispatchHubClientProvider);
+  void refresh() => ref.invalidate(bookingsProvider);
+
+  client.onBookingStatusChanged(refresh);
+  // Group membership isn't preserved across a reconnect, but OnConnectedAsync re-runs on every new
+  // connection and re-joins client:{clientId} automatically — this refresh is just a defensive
+  // catch-up for anything that changed while disconnected, matching BookingDetailScreen's approach.
+  client.onReconnected(refresh);
+  unawaited(client.connect());
 });
