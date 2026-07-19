@@ -23,6 +23,7 @@ abstract class DispatchHubClient {
   void onWorkerPosition(void Function(double lat, double lng) handler);
 
   void onNearbyWorkersUpdated(void Function(List<({double lat, double lng})> locations) handler);
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler);
 }
 
 class SignalrDispatchHubClient implements DispatchHubClient {
@@ -83,6 +84,16 @@ class SignalrDispatchHubClient implements DispatchHubClient {
     _connection.on('nearbyWorkersUpdated', (args) {
       final raw = (args != null && args.isNotEmpty) ? args[0] : null;
       handler(parseNearbyWorkerLocations(raw));
+    });
+  }
+
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {
+    _connection.on('receiveMessage', (args) {
+      final raw = (args != null && args.isNotEmpty) ? args[0] : null;
+      if (raw is Map) {
+        handler(Map<String, dynamic>.from(raw));
+      }
     });
   }
 

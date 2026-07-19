@@ -1061,6 +1061,9 @@ class _NoOpDispatchHubClient implements DispatchHubClient {
 
   @override
   void onReconnected(void Function() handler) {}
+
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 }
 
 class _NoOpReviewRepository implements ReviewRepository {
@@ -1196,6 +1199,9 @@ class _FakeLiveUpdateHubClient implements DispatchHubClient {
 
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
   void fireReconnected() => _onReconnected?.call();
+  
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 }
 
 class _TestAuthNotifier extends AuthNotifier {

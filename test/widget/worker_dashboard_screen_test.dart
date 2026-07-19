@@ -445,6 +445,9 @@ class _FakeDispatchHubClient implements DispatchHubClient {
 
   @override
   void onReconnected(void Function() handler) {}
+
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 }
 
 class _FakeWorkerRepository implements WorkerRepository {
@@ -489,3 +492,4 @@ class _FakeWorkerRepository implements WorkerRepository {
   @override
   Future<List<WorkerEarning>> getMyEarnings() async => [];
 }
+

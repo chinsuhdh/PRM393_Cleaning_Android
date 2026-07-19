@@ -363,6 +363,9 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   @override
   void onReconnected(void Function() handler) {}
 
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
+
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
 }
 
@@ -421,3 +424,4 @@ class _FailingBookingRepository implements BookingRepository {
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
 }
+

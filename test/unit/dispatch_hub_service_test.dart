@@ -180,8 +180,12 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   @override
   void onReconnected(void Function() handler) {}
 
+  @override
+  void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
+
   void fireJobPosted() => _onPosted?.call();
   void fireJobTaken() => _onTaken?.call();
   void fireJobCancelled() => _onCancelled?.call();
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
 }
+
