@@ -268,14 +268,14 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-16] PendingPayment (payOS): the client sees Pay now plus a switch-to-cash link; '
+    '[UT-FE-BOOKACT-16] PendingPayment (VNPay): the client sees Pay now plus a switch-to-cash link; '
     'the worker only sees a passive waiting hint',
     (tester) async {
       var paidNow = false;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.client,
-        paymentMethod: PaymentMethod.payos,
+        paymentMethod: PaymentMethod.vnpay,
         onPayNow: () async => paidNow = true,
       )));
 
@@ -290,7 +290,7 @@ void main() {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.worker,
-        paymentMethod: PaymentMethod.payos,
+        paymentMethod: PaymentMethod.vnpay,
       )));
       expect(find.text('Thanh toán ngay'), findsNothing);
       expect(find.text('Thanh toán bằng tiền mặt'), findsNothing);
@@ -299,14 +299,14 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-20] PendingPayment (payOS, client): confirming the switch-to-cash dialog reaches '
+    '[UT-FE-BOOKACT-20] PendingPayment (VNPay, client): confirming the switch-to-cash dialog reaches '
     'onSwitchToCash',
     (tester) async {
       var switched = false;
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.pendingPayment,
         viewerRole: UserRole.client,
-        paymentMethod: PaymentMethod.payos,
+        paymentMethod: PaymentMethod.vnpay,
         onSwitchToCash: () async => switched = true,
       )));
 

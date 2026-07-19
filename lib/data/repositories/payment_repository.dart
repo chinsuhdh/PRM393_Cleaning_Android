@@ -9,6 +9,7 @@ import '../models/payment.dart';
 abstract class PaymentRepository {
   Future<({String paymentId, String paymentUrl})> payNow(String bookingId);
   Future<Payment?> getPaymentByBooking(String bookingId);
+  Future<bool> confirmVnpayReturn(String returnUrl);
 }
 
 class ApiPaymentRepository implements PaymentRepository {
@@ -25,7 +26,7 @@ class ApiPaymentRepository implements PaymentRepository {
     } on DioException catch (error) {
       debugPrint('[PaymentRepository] payNow failed: $error');
       throw Exception(
-        backendMessageFromDioException(error, fallback: 'Không thể bắt đầu thanh toán payOS.'),
+        backendMessageFromDioException(error, fallback: 'Không thể bắt đầu thanh toán VNPay.'),
       );
     }
   }
@@ -44,6 +45,19 @@ class ApiPaymentRepository implements PaymentRepository {
       throw Exception(
         backendMessageFromDioException(error, fallback: 'Không thể tải thông tin thanh toán.'),
       );
+    }
+  }
+
+  @override
+  Future<bool> confirmVnpayReturn(String returnUrl) async {
+    try {
+      final params = Uri.parse(returnUrl).queryParameters;
+      final response = await _dio.get('/Payments/vnpay-confirm', queryParameters: params);
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return data['success'] == true;
+    } on DioException catch (error) {
+      debugPrint('[PaymentRepository] confirmVnpayReturn failed: $error');
+      return false;
     }
   }
 }

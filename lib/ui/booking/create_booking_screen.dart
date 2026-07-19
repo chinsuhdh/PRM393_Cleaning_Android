@@ -117,8 +117,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         if (_bookingType == 0)
           'scheduledStartTime': _scheduledStart?.toUtc().toIso8601String(),
         'bookingType': _bookingType == 1 ? BookingTypeName.immediate : BookingTypeName.scheduled,
-        // Enum by NAME, matching the API convention ('Cash' | 'Payos').
-        'paymentMethod': _paymentMethod == PaymentMethod.payos ? 'Payos' : 'Cash',
+        // Enum by NAME, matching the API convention ('Cash' | 'Vnpay').
+        'paymentMethod': _paymentMethod == PaymentMethod.vnpay ? 'Vnpay' : 'Cash',
         'serviceVersion': _quote?['serviceVersion'],
         'optionAnswers': _answers,
         'notes': _notesController.text.isNotEmpty ? _notesController.text : 'Không có ghi chú',

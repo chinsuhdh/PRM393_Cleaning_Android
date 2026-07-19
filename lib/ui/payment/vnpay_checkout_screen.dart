@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-const _payosReturnPathSuffix = '/api/Payments/payos-return';
+const _vnpayReturnPathSuffix = '/api/Payments/vnpay-return';
 
-bool isPayosReturnUrl(String url) => Uri.tryParse(url)?.path.endsWith(_payosReturnPathSuffix) ?? false;
+bool isVnpayReturnUrl(String url) => Uri.tryParse(url)?.path.endsWith(_vnpayReturnPathSuffix) ?? false;
 
-class PayosCheckoutScreen extends StatefulWidget {
+class VnpayCheckoutScreen extends StatefulWidget {
   final String paymentUrl;
-  const PayosCheckoutScreen({super.key, required this.paymentUrl});
+  const VnpayCheckoutScreen({super.key, required this.paymentUrl});
 
   @override
-  State<PayosCheckoutScreen> createState() => _PayosCheckoutScreenState();
+  State<VnpayCheckoutScreen> createState() => _VnpayCheckoutScreenState();
 }
 
-class _PayosCheckoutScreenState extends State<PayosCheckoutScreen> {
+class _VnpayCheckoutScreenState extends State<VnpayCheckoutScreen> {
   late final WebViewController _controller;
   bool _loading = true;
 
@@ -27,8 +27,8 @@ class _PayosCheckoutScreenState extends State<PayosCheckoutScreen> {
           onPageStarted: (_) => setState(() => _loading = true),
           onPageFinished: (_) => setState(() => _loading = false),
           onNavigationRequest: (request) {
-            if (isPayosReturnUrl(request.url)) {
-              Navigator.of(context).pop(true);
+            if (isVnpayReturnUrl(request.url)) {
+              Navigator.of(context).pop(request.url);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -42,10 +42,10 @@ class _PayosCheckoutScreenState extends State<PayosCheckoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thanh toán payOS', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Thanh toán VNPay', style: TextStyle(fontWeight: FontWeight.w800)),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Stack(

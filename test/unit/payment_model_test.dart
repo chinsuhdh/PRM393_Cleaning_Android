@@ -9,7 +9,7 @@ void main() {
         'id': 'p1',
         'bookingId': 'b1',
         'amount': 250000,
-        'method': 'Payos',
+        'method': 'Vnpay',
         'status': 'Success',
         'transactionId': '14000123',
         'paidAt': '2026-07-11T09:00:00.000Z',
@@ -19,7 +19,7 @@ void main() {
       expect(payment.id, 'p1');
       expect(payment.bookingId, 'b1');
       expect(payment.amount, 250000);
-      expect(payment.method, 'Payos');
+      expect(payment.method, 'Vnpay');
       expect(payment.status, 'Success');
       expect(payment.transactionId, '14000123');
       expect(payment.isSuccess, isTrue);

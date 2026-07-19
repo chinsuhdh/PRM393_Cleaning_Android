@@ -256,8 +256,8 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-PAY-001-02] Picking payOS in the picker switches immediately (no linking step needed) '
-    'and the create payload sends paymentMethod=Payos',
+    '[UT-FE-PAY-001-02] Picking VNPay in the picker switches immediately (no linking step needed) '
+    'and the create payload sends paymentMethod=Vnpay',
     (tester) async {
       final harness = DioTestHarness();
       _stubBookingData(harness);
@@ -273,20 +273,20 @@ void main() {
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
 
-      // Open the payment picker sheet and choose payOS (the picker sits below the fold).
+      // Open the payment picker sheet and choose VNPay (the picker sits below the fold).
       await tester.ensureVisible(find.text('Thay đổi'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Thay đổi'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('payOS').last);
+      await tester.tap(find.text('VNPay').last);
       await tester.pumpAndSettle();
 
-      // The picker row now shows payOS as the selected method, no dialog in the way.
-      expect(find.text('payOS'), findsOneWidget);
+      // The picker row now shows VNPay as the selected method, no dialog in the way.
+      expect(find.text('VNPay'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Xác nhận'));
       await tester.pumpAndSettle();
-      expect(repository.lastCreatePayload?['paymentMethod'], 'Payos');
+      expect(repository.lastCreatePayload?['paymentMethod'], 'Vnpay');
     },
   );
 

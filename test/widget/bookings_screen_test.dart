@@ -66,14 +66,14 @@ void main() {
   );
 
   testWidgets(
-    '[WT-FE-BOOKINGS-03] A PendingPayment/payOS booking shows the "Cần thanh toán" badge on its card',
+    '[WT-FE-BOOKINGS-03] A PendingPayment/VNPay booking shows the "Cần thanh toán" badge on its card',
     (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingsProvider.overrideWith((ref) async => const [
             Booking(
-              id: 'b-payos', serviceName: 'Deep clean', status: 'PendingPayment',
-              date: '06/07/2026', time: '09:00', price: 200000, paymentMethod: 'Payos',
+              id: 'b-vnpay', serviceName: 'Deep clean', status: 'PendingPayment',
+              date: '06/07/2026', time: '09:00', price: 200000, paymentMethod: 'Vnpay',
               worker: Worker(id: 'w1', name: 'Alex', rating: 4.8),
             ),
           ]),

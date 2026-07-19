@@ -6,19 +6,19 @@ extension _BookingDetailPaymentHandlers on _BookingDetailScreenState {
       final paymentRepository = ref.read(paymentRepositoryProvider);
       final result = await paymentRepository.payNow(widget.bookingId);
       if (!context.mounted) return;
-      final paid = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => PayosCheckoutScreen(paymentUrl: result.paymentUrl)),
+      final returnUrl = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => VnpayCheckoutScreen(paymentUrl: result.paymentUrl)),
       );
-      if (paid != true) return;
-      final verdict = await PayosResultHandler(paymentRepository).awaitVerdict(widget.bookingId);
+      if (returnUrl == null) return;
+      final success = await paymentRepository.confirmVnpayReturn(returnUrl);
       ref.invalidate(bookingsProvider);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            verdict == PayosPaymentVerdict.success
+            success
                 ? 'Thanh toán thành công!'
-                : 'Chưa nhận được xác nhận thanh toán, vui lòng thử lại sau ít phút.',
+                : 'Thanh toán chưa thành công, vui lòng thử lại.',
           ),
         ),
       );

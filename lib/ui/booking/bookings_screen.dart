@@ -120,9 +120,9 @@ class BookingCard extends StatelessWidget {
   final Booking booking;
   const BookingCard({super.key, required this.booking});
 
-  bool get _needsPayosPayment =>
+  bool get _needsVnpayPayment =>
       booking.status == BookingStatusName.pendingPayment &&
-      PaymentMethodApi.fromApiName(booking.paymentMethod) == PaymentMethod.payos;
+      PaymentMethodApi.fromApiName(booking.paymentMethod) == PaymentMethod.vnpay;
 
   Color _statusColor(String status) {
     switch (status) {
@@ -204,7 +204,7 @@ class BookingCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (_needsPayosPayment) ...[
+            if (_needsVnpayPayment) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

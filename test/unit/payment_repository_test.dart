@@ -15,7 +15,7 @@ void main() {
           'message': 'ok',
           'data': {
             'paymentId': 'p1',
-            'paymentUrl': 'https://pay.payos.vn/web/123456',
+            'paymentUrl': 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=123456',
           },
           'errorCode': null,
         }),
@@ -26,7 +26,7 @@ void main() {
       final result = await repository.payNow('b1');
 
       expect(result.paymentId, 'p1');
-      expect(result.paymentUrl, contains('pay.payos.vn'));
+      expect(result.paymentUrl, contains('vnpayment.vn'));
     },
   );
 
@@ -36,7 +36,7 @@ void main() {
       final harness = DioTestHarness();
       harness.adapter.onPost(
         '/Payments',
-        (server) => server.reply(400, {'message': 'Đơn này không dùng thanh toán trực tuyến payOS.'}),
+        (server) => server.reply(400, {'message': 'Đơn này không dùng thanh toán trực tuyến VNPay.'}),
         data: {'bookingId': 'b1'},
       );
       final repository = ApiPaymentRepository(harness.dio);
@@ -47,7 +47,7 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('Đơn này không dùng thanh toán trực tuyến payOS.'),
+            contains('Đơn này không dùng thanh toán trực tuyến VNPay.'),
           ),
         ),
       );
@@ -96,6 +96,73 @@ void main() {
       final payment = await repository.getPaymentByBooking('b1');
 
       expect(payment, isNull);
+    },
+  );
+
+  test(
+    '[UT-FE-PAY-005] confirmVnpayReturn forwards the return URL query params and reports success',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onGet(
+        '/Payments/vnpay-confirm',
+        (server) => server.reply(200, {
+          'success': true,
+          'message': 'ok',
+          'data': {'success': true, 'outcome': 'Success'},
+          'errorCode': null,
+        }),
+        queryParameters: {'vnp_TxnRef': '123456', 'vnp_ResponseCode': '00'},
+      );
+      final repository = ApiPaymentRepository(harness.dio);
+
+      final success = await repository.confirmVnpayReturn(
+        'https://api.example.com/api/Payments/vnpay-return?vnp_TxnRef=123456&vnp_ResponseCode=00',
+      );
+
+      expect(success, isTrue);
+    },
+  );
+
+  test(
+    '[UT-FE-PAY-006] confirmVnpayReturn returns false when the backend reports a non-success outcome',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onGet(
+        '/Payments/vnpay-confirm',
+        (server) => server.reply(200, {
+          'success': true,
+          'message': 'ok',
+          'data': {'success': false, 'outcome': 'InvalidSignature'},
+          'errorCode': null,
+        }),
+        queryParameters: {'vnp_TxnRef': '123456', 'vnp_ResponseCode': '24'},
+      );
+      final repository = ApiPaymentRepository(harness.dio);
+
+      final success = await repository.confirmVnpayReturn(
+        'https://api.example.com/api/Payments/vnpay-return?vnp_TxnRef=123456&vnp_ResponseCode=24',
+      );
+
+      expect(success, isFalse);
+    },
+  );
+
+  test(
+    '[UT-FE-PAY-007] confirmVnpayReturn returns false on a network error instead of throwing',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onGet(
+        '/Payments/vnpay-confirm',
+        (server) => server.reply(500, {'message': 'Lỗi hệ thống.'}),
+        queryParameters: {'vnp_TxnRef': '123456'},
+      );
+      final repository = ApiPaymentRepository(harness.dio);
+
+      final success = await repository.confirmVnpayReturn(
+        'https://api.example.com/api/Payments/vnpay-return?vnp_TxnRef=123456',
+      );
+
+      expect(success, isFalse);
     },
   );
 }

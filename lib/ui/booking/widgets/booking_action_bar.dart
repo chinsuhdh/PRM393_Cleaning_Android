@@ -246,7 +246,7 @@ class BookingActionBar extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Chuyển sang thanh toán tiền mặt?'),
         content: const Text(
-          'Bạn sẽ thanh toán trực tiếp cho nhân viên bằng tiền mặt thay vì payOS.',
+          'Bạn sẽ thanh toán trực tiếp cho nhân viên bằng tiền mặt thay vì VNPay.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Hủy')),

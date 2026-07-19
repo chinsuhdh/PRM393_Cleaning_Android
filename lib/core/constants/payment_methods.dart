@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum PaymentMethod { cash, payos }
+enum PaymentMethod { cash, vnpay }
 
 class PaymentMethodOption {
   final PaymentMethod method;
@@ -12,12 +12,12 @@ class PaymentMethodOption {
 
 const List<PaymentMethodOption> kPaymentMethods = [
   PaymentMethodOption(PaymentMethod.cash, 'Tiền mặt', Icons.payments_rounded),
-  PaymentMethodOption(PaymentMethod.payos, 'payOS', Icons.account_balance_wallet_rounded),
+  PaymentMethodOption(PaymentMethod.vnpay, 'VNPay', Icons.account_balance_wallet_rounded),
 ];
 
 extension PaymentMethodApi on PaymentMethod {
-  String get apiName => this == PaymentMethod.payos ? 'Payos' : 'Cash';
+  String get apiName => this == PaymentMethod.vnpay ? 'Vnpay' : 'Cash';
 
   static PaymentMethod fromApiName(String value) =>
-      value == 'Payos' ? PaymentMethod.payos : PaymentMethod.cash;
+      value == 'Vnpay' ? PaymentMethod.vnpay : PaymentMethod.cash;
 }
