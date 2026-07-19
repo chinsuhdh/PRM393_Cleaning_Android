@@ -92,7 +92,7 @@ jobs:
   publish-docker:
     name: Publish Docker image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     needs: [build-debug-apk]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
@@ -113,3 +113,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cleaning-android:sha-${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/cleaning-android:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
