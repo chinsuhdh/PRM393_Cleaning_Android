@@ -1133,6 +1133,9 @@ class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
+  Future<void> switchToCash(String bookingId) async {}
+
+  @override
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText}) async {}
 
   @override

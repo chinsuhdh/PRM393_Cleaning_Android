@@ -1,4 +1,5 @@
 import 'package:cleanai/data/models/worker.dart';
+import 'package:cleanai/data/models/worker_earning.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
 import 'package:cleanai/data/services/worker_location_sender.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,4 +79,14 @@ class _FakeWorkerRepository implements WorkerRepository {
 
   @override
   Future<WorkerOnlineStatus> getMyOnlineStatus() async => WorkerOnlineStatus.offline;
+
+  @override
+  Future<void> updatePayoutAccount({
+    required String bankBin,
+    required String accountNumber,
+    required String accountName,
+  }) async {}
+
+  @override
+  Future<List<WorkerEarning>> getMyEarnings() async => [];
 }

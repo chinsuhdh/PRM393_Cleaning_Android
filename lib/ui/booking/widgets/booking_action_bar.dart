@@ -25,6 +25,8 @@ class BookingActionBar extends StatelessWidget {
   final Future<void> Function() onStart;
   final Future<void> Function() onFinish;
   final Future<void> Function() onConfirmCash;
+  final Future<void> Function() onPayNow;
+  final Future<void> Function() onSwitchToCash;
 
   /// H.1: client pre-accept cancel — no reason required.
   final Future<void> Function() onCancelByClient;
@@ -61,6 +63,8 @@ class BookingActionBar extends StatelessWidget {
     required this.onStart,
     required this.onFinish,
     required this.onConfirmCash,
+    required this.onPayNow,
+    required this.onSwitchToCash,
     required this.onCancelByClient,
     required this.onWorkerCancel,
     required this.onClientCancel,
@@ -123,13 +127,17 @@ class BookingActionBar extends StatelessWidget {
       case BookingStatusName.pendingPayment:
         showChat = true;
         final isCash = paymentMethod == PaymentMethod.cash;
-        if (_isWorker && isCash) {
-          primary = _primary(context, 'Xác nhận đã nhận tiền mặt', onConfirmCash);
+        if (isCash) {
+          if (_isWorker) {
+            primary = _primary(context, 'Xác nhận đã nhận tiền mặt', onConfirmCash);
+          } else {
+            secondary = _hint(context, 'Vui lòng thanh toán tiền mặt cho nhân viên.');
+          }
+        } else if (_isClient) {
+          primary = _primary(context, 'Thanh toán ngay', onPayNow);
+          secondary = _textLink(context, 'Thanh toán bằng tiền mặt', () => _confirmSwitchToCash(context));
         } else {
-          secondary = _hint(
-            context,
-            isCash ? 'Vui lòng thanh toán tiền mặt cho nhân viên.' : 'Đang xử lý thanh toán VNPay…',
-          );
+          secondary = _hint(context, 'Đang chờ khách thanh toán…');
         }
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
 
@@ -237,6 +245,26 @@ class BookingActionBar extends StatelessWidget {
 
   Widget _danger(BuildContext context, String label, VoidCallback onPressed) =>
       dangerActionButton(label, onPressed);
+
+  Widget _textLink(BuildContext context, String label, VoidCallback onPressed) =>
+      TextButton(onPressed: onPressed, child: Text(label));
+
+  Future<void> _confirmSwitchToCash(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chuyển sang thanh toán tiền mặt?'),
+        content: const Text(
+          'Bạn sẽ thanh toán trực tiếp cho nhân viên bằng tiền mặt thay vì VNPay.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Xác nhận')),
+        ],
+      ),
+    );
+    if (confirmed == true) await onSwitchToCash();
+  }
 
   Future<void> _confirmCancelByClient(BuildContext context) async {
     final confirmed = await showDialog<bool>(

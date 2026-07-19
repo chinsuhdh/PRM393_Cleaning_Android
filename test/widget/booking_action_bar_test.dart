@@ -22,6 +22,8 @@ void main() {
     Future<void> Function()? onStart,
     Future<void> Function()? onFinish,
     Future<void> Function()? onConfirmCash,
+    Future<void> Function()? onPayNow,
+    Future<void> Function()? onSwitchToCash,
     Future<void> Function()? onCancelByClient,
     Future<void> Function(String reasonCode, String? freeText)? onWorkerCancel,
     Future<void> Function(String reasonCode, String? freeText)? onClientCancel,
@@ -46,6 +48,8 @@ void main() {
         onStart: onStart ?? () async {},
         onFinish: onFinish ?? () async {},
         onConfirmCash: onConfirmCash ?? () async {},
+        onPayNow: onPayNow ?? () async {},
+        onSwitchToCash: onSwitchToCash ?? () async {},
         onCancelByClient: onCancelByClient ?? () async {},
         onWorkerCancel: onWorkerCancel ?? (_, __) async {},
         onClientCancel: onClientCancel ?? (_, __) async {},
@@ -290,19 +294,55 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-16] PendingPayment (VNPay): nobody gets a button — both roles see the transient '
-    'auto-charge hint while the backend completes the booking on its own',
+    '[UT-FE-BOOKACT-16] PendingPayment (VNPay): the client sees Pay now plus a switch-to-cash link; '
+    'the worker only sees a passive waiting hint',
     (tester) async {
-      for (final role in [UserRole.client, UserRole.worker]) {
-        await tester.pumpWidget(wrap(bar(
-          status: BookingStatusName.pendingPayment,
-          viewerRole: role,
-          paymentMethod: PaymentMethod.vnpay,
-        )));
-        expect(find.text('Pay now'), findsNothing, reason: '$role');
-        expect(find.text('Xác nhận đã nhận tiền mặt'), findsNothing, reason: '$role');
-        expect(find.text('Đang xử lý thanh toán VNPay…'), findsOneWidget, reason: '$role');
-      }
+      var paidNow = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.pendingPayment,
+        viewerRole: UserRole.client,
+        paymentMethod: PaymentMethod.vnpay,
+        onPayNow: () async => paidNow = true,
+      )));
+
+      expect(find.widgetWithText(FilledButton, 'Thanh toán ngay'), findsOneWidget);
+      expect(find.text('Thanh toán bằng tiền mặt'), findsOneWidget);
+      expect(find.text('Xác nhận đã nhận tiền mặt'), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Thanh toán ngay'));
+      await tester.pumpAndSettle();
+      expect(paidNow, isTrue);
+
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.pendingPayment,
+        viewerRole: UserRole.worker,
+        paymentMethod: PaymentMethod.vnpay,
+      )));
+      expect(find.text('Thanh toán ngay'), findsNothing);
+      expect(find.text('Thanh toán bằng tiền mặt'), findsNothing);
+      expect(find.text('Đang chờ khách thanh toán…'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-20] PendingPayment (VNPay, client): confirming the switch-to-cash dialog reaches '
+    'onSwitchToCash',
+    (tester) async {
+      var switched = false;
+      await tester.pumpWidget(wrap(bar(
+        status: BookingStatusName.pendingPayment,
+        viewerRole: UserRole.client,
+        paymentMethod: PaymentMethod.vnpay,
+        onSwitchToCash: () async => switched = true,
+      )));
+
+      await tester.tap(find.text('Thanh toán bằng tiền mặt'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chuyển sang thanh toán tiền mặt?'), findsOneWidget);
+
+      await tester.tap(find.text('Xác nhận'));
+      await tester.pumpAndSettle();
+      expect(switched, isTrue);
     },
   );
 

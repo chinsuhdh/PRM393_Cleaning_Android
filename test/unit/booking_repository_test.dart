@@ -86,6 +86,21 @@ void main() {
   );
 
   test(
+    '[UT-FE-PAY-SWC-01] switchToCash POSTs the dedicated switch-to-cash endpoint',
+    () async {
+      final harness = DioTestHarness();
+      harness.adapter.onPost(
+        '/Bookings/b1/switch-to-cash',
+        (server) => server.reply(200, {'message': 'ok'}),
+        data: null,
+      );
+      final repository = ApiBookingRepository(harness.dio);
+
+      await repository.switchToCash('b1');
+    },
+  );
+
+  test(
     '[UT-FE-BOOK-CANCEL-04] clientCancelBooking POSTs the reason code and optional free text',
     () async {
       final harness = DioTestHarness();

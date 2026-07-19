@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// Thay đổi đường dẫn này nếu thư mục của bạn trỏ khác đi
 import '../../data/repositories/auth_repository.dart';
-import '../../core/theme/app_colors.dart'; // Import theme nếu bạn muốn dùng màu chuẩn của app
 
 class ReauthDialog extends ConsumerStatefulWidget {
   const ReauthDialog({super.key});

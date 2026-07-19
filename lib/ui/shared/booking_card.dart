@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/booking_enums.dart';
+import '../../core/constants/payment_methods.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
@@ -102,6 +103,11 @@ class BookingCard extends ConsumerWidget {
     this.isAvailableJob = false,
     this.onHide,
   });
+
+  bool get _needsVnpayPayment =>
+      role == BookingCardRole.customer &&
+      booking.status == BookingStatusName.pendingPayment &&
+      PaymentMethodApi.fromApiName(booking.paymentMethod) == PaymentMethod.vnpay;
 
   Future<void> _openGoogleMaps(BuildContext context, double? lat, double? lng) async {
     if (lat == null || lng == null) return;
@@ -205,6 +211,31 @@ class BookingCard extends ConsumerWidget {
                     ),
                 ],
               ),
+              if (_needsVnpayPayment) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.payments_rounded, size: 14, color: Colors.orange.shade900),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Cần thanh toán',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [

@@ -8,11 +8,13 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/utils/search_timeout.dart';
+import '../payment/vnpay_checkout_screen.dart';
 import 'widgets/booking_action_bar.dart';
 import 'widgets/booking_info_cards.dart';
 import 'widgets/booking_load_error.dart';
@@ -22,6 +24,7 @@ import 'widgets/reschedule_banner.dart';
 
 part 'widgets/booking_detail_action_handlers.dart';
 part 'widgets/booking_detail_cancellation_handlers.dart';
+part 'widgets/booking_detail_payment_handlers.dart';
 part 'widgets/booking_detail_reschedule_handlers.dart';
 
 final bookingDetailProvider = FutureProvider.autoDispose.family<Booking, String>((ref, id) async {
@@ -244,6 +247,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onStart: () => _advance(context, ref, BookingStatusName.inProgress),
                     onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
                     onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+                    onPayNow: () => _payNow(context, ref),
+                    onSwitchToCash: () => _switchToCash(context, ref),
                     onCancelByClient: () => _cancelByClient(context, ref),
                     onWorkerCancel: (reasonCode, freeText) =>
                         _workerCancelWithReason(context, ref, reasonCode, freeText),
@@ -331,6 +336,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onStart: () => _advance(context, ref, BookingStatusName.inProgress),
             onFinish: () => _advance(context, ref, BookingStatusName.pendingPayment),
             onConfirmCash: () => _advance(context, ref, BookingStatusName.completed),
+            onPayNow: () => _payNow(context, ref),
+            onSwitchToCash: () => _switchToCash(context, ref),
             onCancelByClient: () => _cancelByClient(context, ref),
             onWorkerCancel: (reasonCode, freeText) =>
                 _workerCancelWithReason(context, ref, reasonCode, freeText),

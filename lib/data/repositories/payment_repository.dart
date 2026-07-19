@@ -4,13 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
+import '../models/payment.dart';
 
-/// Simulated VNPay gateway: linking always succeeds server-side as long as the value is non-empty;
-/// the actual charge happens automatically on the backend when the worker finishes the job.
 abstract class PaymentRepository {
-  /// The client's linked VNPay account, or null when not linked yet.
-  Future<String?> getVnpayAccount();
-  Future<String?> linkVnpayAccount(String vnpayAccount);
+  Future<({String paymentId, String paymentUrl})> payNow(String bookingId);
+  Future<Payment?> getPaymentByBooking(String bookingId);
+  Future<bool> confirmVnpayReturn(String returnUrl);
 }
 
 class ApiPaymentRepository implements PaymentRepository {
@@ -19,31 +18,46 @@ class ApiPaymentRepository implements PaymentRepository {
   final Dio _dio;
 
   @override
-  Future<String?> getVnpayAccount() async {
+  Future<({String paymentId, String paymentUrl})> payNow(String bookingId) async {
     try {
-      final response = await _dio.get('/Payments/vnpay-account');
-      return (response.data as Map?)?['vnpayAccount'] as String?;
+      final response = await _dio.post('/Payments', data: {'bookingId': bookingId});
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return (paymentId: data['paymentId'].toString(), paymentUrl: data['paymentUrl'].toString());
     } on DioException catch (error) {
-      debugPrint('[PaymentRepository] getVnpayAccount failed: $error');
+      debugPrint('[PaymentRepository] payNow failed: $error');
       throw Exception(
-        backendMessageFromDioException(error, fallback: 'Không thể tải thông tin VNPay.'),
+        backendMessageFromDioException(error, fallback: 'Không thể bắt đầu thanh toán VNPay.'),
       );
     }
   }
 
   @override
-  Future<String?> linkVnpayAccount(String vnpayAccount) async {
+  Future<Payment?> getPaymentByBooking(String bookingId) async {
     try {
-      final response = await _dio.put(
-        '/Payments/vnpay-account',
-        data: {'vnpayAccount': vnpayAccount},
-      );
-      return (response.data as Map?)?['vnpayAccount'] as String?;
+      final response = await _dio.get('/Payments/booking/$bookingId');
+      if (response.data is Map<String, dynamic>) {
+        return Payment.fromJson(response.data as Map<String, dynamic>);
+      }
+      return null;
     } on DioException catch (error) {
-      debugPrint('[PaymentRepository] linkVnpayAccount failed: $error');
+      if (error.response?.statusCode == 404) return null;
+      debugPrint('[PaymentRepository] getPaymentByBooking failed: $error');
       throw Exception(
-        backendMessageFromDioException(error, fallback: 'Không thể liên kết tài khoản VNPay.'),
+        backendMessageFromDioException(error, fallback: 'Không thể tải thông tin thanh toán.'),
       );
+    }
+  }
+
+  @override
+  Future<bool> confirmVnpayReturn(String returnUrl) async {
+    try {
+      final params = Uri.parse(returnUrl).queryParameters;
+      final response = await _dio.get('/Payments/vnpay-confirm', queryParameters: params);
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return data['success'] == true;
+    } on DioException catch (error) {
+      debugPrint('[PaymentRepository] confirmVnpayReturn failed: $error');
+      return false;
     }
   }
 }

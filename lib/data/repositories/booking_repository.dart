@@ -35,6 +35,8 @@ abstract class BookingRepository {
   Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message});
 
   Future<Booking> respondReschedule(String bookingId, String requestId, String action);
+
+  Future<void> switchToCash(String bookingId);
 }
 
 class QuoteStaleException implements Exception {
@@ -322,6 +324,21 @@ class ApiBookingRepository implements BookingRepository {
         backendMessageFromDioException(
           error,
           fallback: 'Không thể phản hồi yêu cầu dời lịch.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> switchToCash(String bookingId) async {
+    try {
+      await _dio.post('/Bookings/$bookingId/switch-to-cash');
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] switchToCash failed: $error');
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể chuyển sang thanh toán tiền mặt.',
         ),
       );
     }
