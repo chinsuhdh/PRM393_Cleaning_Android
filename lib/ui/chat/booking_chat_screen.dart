@@ -56,8 +56,13 @@ class _BookingChatScreenState extends ConsumerState<BookingChatScreen> {
       final newMsg = ChatMessage.fromJson(msg);
       if (newMsg.bookingId != widget.bookingId) return;
 
+      // Our own sent messages are already rendered via the optimistic add in
+      // _sendMessage(); relying on this echo too raced with that HTTP response
+      // and could show the message twice.
+      final currentUserId = ref.read(authProvider).userId;
+      if (newMsg.senderId == currentUserId) return;
+
       setState(() {
-        // Prevent duplicate messages if we just sent it
         if (!_messages.any((m) => m.id == newMsg.id)) {
           _messages.add(newMsg);
         }
