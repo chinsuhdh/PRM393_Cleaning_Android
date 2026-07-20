@@ -55,6 +55,9 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   final Map<String, dynamic> _answers = {};
   Map<String, dynamic>? _quote;
   final List<XFile> _photos = [];
+  // Client's own expected-duration override, purely for scheduling/display — it never affects
+  // price, which always comes from the server's own BookingPricingCalculator computation.
+  double? _durationOverrideHours;
 
   @override
   void initState() {
@@ -83,6 +86,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     'optionAnswers': _answers,
     if (_scheduledStart != null)
       'scheduledStartTime': _scheduledStart!.toUtc().toIso8601String(),
+    if (_durationOverrideHours != null) 'durationHours': _durationOverrideHours,
   };
 
   bool _questionsAreValid(Map<String, dynamic>? service) {
@@ -135,6 +139,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         'serviceVersion': _quote?['serviceVersion'],
         'optionAnswers': _answers,
         'notes': _notesController.text.isNotEmpty ? _notesController.text : 'Không có ghi chú',
+        if (_durationOverrideHours != null) 'durationHours': _durationOverrideHours,
       };
 
       final newBooking = await ref
@@ -226,6 +231,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     }),
                     photoCount: _photos.length,
                     onPhotosChanged: (photos) => setState(() => _photos.addAll(photos)),
+                    durationOverrideHours: _durationOverrideHours,
+                    onDurationOverrideChanged: (hours) => setState(() => _durationOverrideHours = hours),
                   ),
                   BookingAddressStep(
                     addressesAsync: addressesAsync,

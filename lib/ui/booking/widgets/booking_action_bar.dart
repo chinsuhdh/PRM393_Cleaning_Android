@@ -45,7 +45,7 @@ class BookingActionBar extends StatelessWidget {
   /// H.5: propose a new time for an already-accepted Scheduled booking.
   final Future<void> Function(DateTime newStartTime, String? message) onProposeReschedule;
   final VoidCallback onRetryAsNewBooking;
-  final VoidCallback onReview;
+  final Future<void> Function() onAdjustDuration;
   final VoidCallback onViewEarning;
   final VoidCallback onViewReason;
 
@@ -72,7 +72,7 @@ class BookingActionBar extends StatelessWidget {
     required this.onReport,
     required this.onProposeReschedule,
     required this.onRetryAsNewBooking,
-    required this.onReview,
+    required this.onAdjustDuration,
     required this.onViewEarning,
     required this.onViewReason,
   });
@@ -108,6 +108,7 @@ class BookingActionBar extends StatelessWidget {
           overflow.add(_OverflowAction('Hủy công việc này', () => _openWorkerCancelSheet(context), icon: Icons.cancel_outlined));
         }
         if (_isClient) {
+          overflow.add(_OverflowAction('Điều chỉnh thời lượng', onAdjustDuration, icon: Icons.schedule_outlined));
           overflow.add(_OverflowAction('Hủy công việc này', () => _openClientCancelSheet(context), icon: Icons.cancel_outlined));
         }
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
@@ -120,11 +121,17 @@ class BookingActionBar extends StatelessWidget {
       case BookingStatusName.onTheWay:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Bắt đầu công việc', onStart);
+        if (_isClient) {
+          overflow.add(_OverflowAction('Điều chỉnh thời lượng', onAdjustDuration, icon: Icons.schedule_outlined));
+        }
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.inProgress:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Hoàn thành', onFinish);
+        if (_isClient) {
+          overflow.add(_OverflowAction('Điều chỉnh thời lượng', onAdjustDuration, icon: Icons.schedule_outlined));
+        }
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.pendingPayment:

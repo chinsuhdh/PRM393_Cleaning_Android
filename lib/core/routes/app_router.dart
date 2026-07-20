@@ -49,7 +49,6 @@ class AppRoutes {
   static const addressManagement = '/address';
   static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password';
-  static const review = '/review/:bookingId';
 
   static const workerShell = '/worker';
   static const workerDashboard = '/worker/dashboard';
@@ -140,12 +139,6 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.changePassword,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ChangePasswordScreen(),
-    ),
-
-    GoRoute(
-      path: '/review/:bookingId',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => Scaffold(appBar: AppBar(title: const Text('Viết đánh giá')), body: const Center(child: Text('ReviewScreen'))),
     ),
 
     GoRoute(

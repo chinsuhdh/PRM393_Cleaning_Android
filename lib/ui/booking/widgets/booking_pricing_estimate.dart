@@ -31,12 +31,14 @@ Delta? optionDelta(Map<String, dynamic> option) => _deltaOf(option);
 class PricingEstimate {
   final num totalPrice;
   final double durationHours;
-  const PricingEstimate({required this.totalPrice, required this.durationHours});
+  final double minDurationHours;
+  const PricingEstimate({required this.totalPrice, required this.durationHours, required this.minDurationHours});
 }
 
 PricingEstimate computeBookingEstimate({
   required Map<String, dynamic>? service,
   required Map<String, dynamic> answers,
+  double? durationOverrideHours,
 }) {
   final basePrice = (service?['basePrice'] as num?) ?? 0;
   final minimumHours = (service?['minimumHours'] as num?) ?? 0;
@@ -86,5 +88,13 @@ PricingEstimate computeBookingEstimate({
   }
 
   final roundedMinutes = (minutes / 30).ceil() * 30;
-  return PricingEstimate(totalPrice: total, durationHours: roundedMinutes / 60);
+  final computedDuration = roundedMinutes / 60;
+
+  var totalDuration = computedDuration;
+  if (durationOverrideHours != null && durationOverrideHours > computedDuration) {
+    total += (durationOverrideHours - computedDuration) * basePrice;
+    totalDuration = durationOverrideHours;
+  }
+
+  return PricingEstimate(totalPrice: total, durationHours: totalDuration, minDurationHours: computedDuration);
 }

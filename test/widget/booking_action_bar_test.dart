@@ -30,7 +30,7 @@ void main() {
     Future<void> Function(String reasonCode, String freeText)? onReport,
     Future<void> Function(DateTime newStartTime, String? message)? onProposeReschedule,
     VoidCallback? onRetryAsNewBooking,
-    VoidCallback? onReview,
+    Future<void> Function()? onAdjustDuration,
     VoidCallback? onViewEarning,
     VoidCallback? onViewReason,
   }) =>
@@ -56,7 +56,7 @@ void main() {
         onReport: onReport ?? (_, __) async {},
         onProposeReschedule: onProposeReschedule ?? (_, __) async {},
         onRetryAsNewBooking: onRetryAsNewBooking ?? () {},
-        onReview: onReview ?? () {},
+        onAdjustDuration: onAdjustDuration ?? () async {},
         onViewEarning: onViewEarning ?? () {},
         onViewReason: onViewReason ?? () {},
       );
@@ -220,6 +220,28 @@ void main() {
       )));
 
       expect(find.byTooltip('Yêu cầu đổi lịch'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    '[UT-FE-BOOKACT-21] Client can adjust the job duration from the overflow menu while '
+    'Accepted, OnTheWay, or InProgress',
+    (tester) async {
+      for (final status in [
+        BookingStatusName.accepted,
+        BookingStatusName.onTheWay,
+        BookingStatusName.inProgress,
+      ]) {
+        var adjusted = false;
+        await tester.pumpWidget(wrap(bar(
+          status: status,
+          viewerRole: UserRole.client,
+          onAdjustDuration: () async => adjusted = true,
+        )));
+
+        await tapOverflow(tester, 'Điều chỉnh thời lượng');
+        expect(adjusted, isTrue, reason: 'status=$status');
+      }
     },
   );
 

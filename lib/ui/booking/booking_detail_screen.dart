@@ -12,6 +12,7 @@ import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../../data/services/directions_service.dart';
+import '../../data/repositories/review_repository.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/utils/search_timeout.dart';
@@ -71,6 +72,13 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final client = ref.read(dispatchHubClientProvider);
     client.onBookingStatusChanged(() {
       if (!mounted) return;
+      // Also reused as a "a review was just submitted" signal (see ReviewService.CreateReviewAsync
+      // on the backend) — without this, the other party's already-open Booking Detail screen would
+      // keep showing stale review data (no review / an old one) until they left and re-entered.
+      final workerId = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull?.worker?.id;
+      if (workerId != null) {
+        ref.invalidate(bookingReviewProvider((workerUserId: workerId, bookingId: widget.bookingId)));
+      }
       ref.invalidate(bookingDetailProvider(widget.bookingId));
     });
     client.onReconnected(() {
@@ -289,7 +297,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onProposeReschedule: (newStartTime, message) =>
                         _proposeReschedule(context, ref, newStartTime, message),
                     onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-                    onReview: () => context.push('/review/${booking.id}'),
+                    onAdjustDuration: () => _adjustDuration(context, ref, booking),
                     onViewEarning: () => context.push('/worker/wallet'),
                     onViewReason: () => _showCancellationReason(context, booking),
                   ),
@@ -419,7 +427,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onProposeReschedule: (newStartTime, message) =>
                 _proposeReschedule(context, ref, newStartTime, message),
             onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-            onReview: () => context.push('/review/${booking.id}'),
+            onAdjustDuration: () => _adjustDuration(context, ref, booking),
             onViewEarning: () => context.push('/worker/wallet'),
             onViewReason: () => _showCancellationReason(context, booking),
           ),

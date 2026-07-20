@@ -172,6 +172,9 @@ class _FakeBookingRepository implements BookingRepository {
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
+
+  @override
+  Future<void> updateDuration(String bookingId, double hours) async {}
 }
 
 class _FailingBookingRepository implements BookingRepository {
@@ -228,4 +231,7 @@ class _FailingBookingRepository implements BookingRepository {
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
+
+  @override
+  Future<void> updateDuration(String bookingId, double hours) async {}
 }
