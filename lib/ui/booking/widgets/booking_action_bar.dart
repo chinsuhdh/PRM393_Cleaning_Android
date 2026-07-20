@@ -146,6 +146,7 @@ class BookingActionBar extends StatelessWidget {
         if (_isWorker) secondary = _outlinedSync(context, 'Xem thu nhập', onViewEarning);
 
       case BookingStatusName.cancelled:
+        showChat = true;
         secondary = _outlinedSync(context, 'Xem lý do', onViewReason);
     }
 

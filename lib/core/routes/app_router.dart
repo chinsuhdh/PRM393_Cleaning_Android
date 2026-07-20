@@ -16,6 +16,7 @@ import '../../ui/booking/bookings_screen.dart';
 import '../../ui/booking/create_booking_screen.dart';
 import '../../ui/booking/booking_detail_screen.dart';
 import '../../ui/chat/chat_screen.dart';
+import '../../ui/chat/booking_chat_screen.dart';
 import '../../ui/notification/notifications_screen.dart';
 import '../../ui/profile/profile_screen.dart';
 import '../../ui/profile/edit_profile_screen.dart';
@@ -150,7 +151,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/chat/:bookingId',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ChatScreen(),
+      builder: (context, state) => BookingChatScreen(bookingId: state.pathParameters['bookingId'] ?? ''),
     ),
 
     StatefulShellRoute.indexedStack(

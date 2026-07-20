@@ -368,7 +368,7 @@ void main() {
   );
 
   testWidgets(
-    '[UT-FE-BOOKACT-09] Cancelled shows only View reason, no chat or overflow',
+    '[UT-FE-BOOKACT-09] Cancelled shows View reason and Chat, no overflow',
     (tester) async {
       await tester.pumpWidget(wrap(bar(
         status: BookingStatusName.cancelled,
@@ -376,7 +376,7 @@ void main() {
       )));
 
       expect(find.text('Xem lý do'), findsOneWidget);
-      expect(find.byTooltip('Trò chuyện'), findsNothing);
+      expect(find.byTooltip('Trò chuyện'), findsOneWidget);
       expect(find.byTooltip('Thêm thao tác'), findsNothing);
     },
   );
