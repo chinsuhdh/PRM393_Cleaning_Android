@@ -20,7 +20,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard',
+        title: const Text('Bảng điều khiển quản trị',
             style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
@@ -55,12 +55,12 @@ class AdminDashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Welcome, Admin',
+                        Text('Chào mừng, Quản trị viên',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: 13)),
                         const SizedBox(height: 4),
-                        const Text('Platform Overview',
+                        const Text('Tổng quan hệ thống',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -114,30 +114,30 @@ class AdminDashboardScreen extends ConsumerWidget {
               final List<Map<String, dynamic>> realStats = [
                 {
                   'icon': Icons.people_rounded,
-                  'label': 'Total Clients',
+                  'label': 'Tổng khách hàng',
                   'value': data['totalClients']?.toString() ?? '0',
-                  'change': 'Live',
+                  'change': 'Trực tiếp',
                   'color': kPrimary
                 },
                 {
                   'icon': Icons.engineering_rounded,
-                  'label': 'Total Workers',
+                  'label': 'Tổng nhân viên',
                   'value': data['totalWorkers']?.toString() ?? '0',
-                  'change': 'Live',
+                  'change': 'Trực tiếp',
                   'color': kSecondary
                 },
                 {
                   'icon': Icons.list_alt_rounded,
-                  'label': 'Total Bookings',
+                  'label': 'Tổng đơn đặt lịch',
                   'value': data['totalBookings']?.toString() ?? '0',
-                  'change': 'Live',
+                  'change': 'Trực tiếp',
                   'color': kTertiary
                 },
                 {
                   'icon': Icons.attach_money_rounded,
-                  'label': 'Total Revenue',
+                  'label': 'Tổng doanh thu',
                   'value': '\$${data['totalRevenue']?.toString() ?? '0.00'}',
-                  'change': 'Done',
+                  'change': 'Hoàn tất',
                   'color': Colors.green
                 },
               ];
@@ -166,19 +166,19 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Management',
+                  Text('Quản lý',
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _ManageButton(icon: Icons.people_rounded, label: 'Users', onTap: () {})),
+                      Expanded(child: _ManageButton(icon: Icons.people_rounded, label: 'Khách hàng', onTap: () {})),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.engineering_rounded, label: 'Workers', onTap: () {})),
+                      Expanded(child: _ManageButton(icon: Icons.engineering_rounded, label: 'Nhân viên', onTap: () {})),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.list_alt_rounded, label: 'Bookings', onTap: () {})),
+                      Expanded(child: _ManageButton(icon: Icons.list_alt_rounded, label: 'Đơn đặt lịch', onTap: () {})),
                       const SizedBox(width: 10),
-                      Expanded(child: _ManageButton(icon: Icons.bar_chart_rounded, label: 'Reports', onTap: () {})),
+                      Expanded(child: _ManageButton(icon: Icons.bar_chart_rounded, label: 'Báo cáo', onTap: () {})),
                     ],
                   ),
                 ],
@@ -190,7 +190,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text('Recent Activity',
+              child: Text('Hoạt động gần đây',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),

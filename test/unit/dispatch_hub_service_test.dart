@@ -53,6 +53,74 @@ void main() {
       expect(changed, 1);
     });
 
+    test(
+      '[UT-FE-DISPATCHHUB-09] a failed initial connect() is retried in the background instead of '
+      'giving up on live updates for the rest of the session',
+      () async {
+        final client = _FakeDispatchHubClient()..failNextConnectAttempts = 1;
+        final controller = DispatchLiveFeedController(
+          client,
+          onFeedChanged: () {},
+          retryDelay: Duration.zero,
+        );
+
+        await controller.start();
+        expect(client.connected, isFalse);
+        expect(client.connectAttempts, 1);
+
+        // Retry timer fires after retryDelay (zero here) on the next event-loop turn.
+        await Future<void>.delayed(Duration.zero);
+        expect(client.connected, isTrue);
+        expect(client.connectAttempts, 2);
+      },
+    );
+
+    test(
+      '[UT-FE-DISPATCHHUB-10] once automatic-reconnect gives up and the connection closes for good, '
+      'the controller keeps retrying instead of leaving the feed dead for the rest of the session',
+      () async {
+        final client = _FakeDispatchHubClient();
+        final controller = DispatchLiveFeedController(
+          client,
+          onFeedChanged: () {},
+          retryDelay: Duration.zero,
+        );
+        await controller.start();
+        expect(client.connectAttempts, 1);
+
+        client.connected = false;
+        client.fireDisconnected();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(client.connectAttempts, 2);
+        expect(client.connected, isTrue);
+      },
+    );
+
+    test(
+      '[UT-FE-DISPATCHHUB-11] onBeforeRetry (token refresh) runs before a retry attempt, but not '
+      'before the initial connect in start()',
+      () async {
+        final client = _FakeDispatchHubClient()..failNextConnectAttempts = 1;
+        var refreshCount = 0;
+        final controller = DispatchLiveFeedController(
+          client,
+          onFeedChanged: () {},
+          onBeforeRetry: () async => refreshCount++,
+          retryDelay: Duration.zero,
+        );
+
+        await controller.start();
+        expect(refreshCount, 0, reason: 'no refresh before the very first connect attempt');
+        expect(client.connectAttempts, 1);
+
+        await Future<void>.delayed(Duration.zero);
+        expect(refreshCount, 1, reason: 'refreshed once before the retry');
+        expect(client.connectAttempts, 2);
+        expect(client.connected, isTrue);
+      },
+    );
+
     test('[UT-FE-DISPATCHHUB-05] stop() disconnects the hub client', () async {
       final client = _FakeDispatchHubClient();
       final controller = DispatchLiveFeedController(client, onFeedChanged: () {});
@@ -144,14 +212,24 @@ void main() {
 class _FakeDispatchHubClient implements DispatchHubClient {
   bool connected = false;
   bool disconnected = false;
+  int connectAttempts = 0;
+  int failNextConnectAttempts = 0;
   final List<String> subscribedBookingIds = [];
   void Function()? _onPosted;
   void Function()? _onTaken;
   void Function()? _onCancelled;
   void Function()? _onBookingStatusChanged;
+  void Function()? _onDisconnected;
 
   @override
-  Future<void> connect() async => connected = true;
+  Future<void> connect() async {
+    connectAttempts++;
+    if (failNextConnectAttempts > 0) {
+      failNextConnectAttempts--;
+      throw Exception('connect failed');
+    }
+    connected = true;
+  }
 
   @override
   Future<void> disconnect() async => disconnected = true;
@@ -181,11 +259,15 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   void onReconnected(void Function() handler) {}
 
   @override
+  void onDisconnected(void Function() handler) => _onDisconnected = handler;
+
+  @override
   void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 
   void fireJobPosted() => _onPosted?.call();
   void fireJobTaken() => _onTaken?.call();
   void fireJobCancelled() => _onCancelled?.call();
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
+  void fireDisconnected() => _onDisconnected?.call();
 }
 

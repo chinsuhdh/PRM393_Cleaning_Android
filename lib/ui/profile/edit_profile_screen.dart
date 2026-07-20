@@ -195,7 +195,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.pop()),
-        title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Chỉnh sửa hồ sơ', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -228,8 +228,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 32),
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Full Name', prefixIcon: const Icon(Icons.person_outline_rounded), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Please enter your full name' : null,
+                decoration: InputDecoration(labelText: 'Họ và tên', prefixIcon: const Icon(Icons.person_outline_rounded), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),
+                validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập họ tên' : null,
               ),
               const SizedBox(height: 24),
               TextFormField(
@@ -248,14 +248,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 controller: _phoneController,
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'Phone Number',
+                  labelText: 'Số điện thoại',
                   prefixIcon: const Icon(Icons.phone_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                   suffixIcon: _isPhoneVerified
                       ? const Icon(Icons.check_circle, color: Colors.green)
-                      : TextButton(onPressed: _handleVerifyPhoneFlow, child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.bold))),
+                      : TextButton(onPressed: _handleVerifyPhoneFlow, child: const Text('Xác minh', style: TextStyle(fontWeight: FontWeight.bold))),
                 ),
               ),
             ],
@@ -268,7 +268,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: FilledButton(
             onPressed: _isLoading ? null : _handleSave,
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Save Changes'),
+            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Lưu thay đổi'),
           ),
         ),
       ),

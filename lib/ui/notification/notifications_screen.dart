@@ -21,7 +21,7 @@ class NotificationsScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Notifications',
+          'Thông báo',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
@@ -31,7 +31,7 @@ class NotificationsScreen extends ConsumerWidget {
               // Tạm thời invalidate để load lại list
               ref.invalidate(notificationsProvider);
             },
-            child: const Text('Mark all read'),
+            child: const Text('Đánh dấu đã đọc'),
           ),
         ],
       ),
@@ -55,7 +55,7 @@ class NotificationsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No notifications yet',
+                    'Chưa có thông báo nào',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

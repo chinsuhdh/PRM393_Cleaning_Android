@@ -447,6 +447,9 @@ class _FakeDispatchHubClient implements DispatchHubClient {
   void onReconnected(void Function() handler) {}
 
   @override
+  void onDisconnected(void Function() handler) {}
+
+  @override
   void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 }
 
@@ -467,6 +470,9 @@ class _FakeWorkerRepository implements WorkerRepository {
 
   @override
   Future<void> updateLocation(double lat, double lng) async {}
+
+  @override
+  Future<void> updateSearchRadius(double radiusKm) async {}
 
   @override
   Future<void> registerAsWorker({

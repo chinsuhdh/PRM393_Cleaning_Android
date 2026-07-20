@@ -111,7 +111,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
           // TRUYỀN CHÍNH XÁC ID CỦA SERVICE THẬT VÀO ROUTER
           onPressed: _selectedService == null ? null : () => context.push('/booking/create/${_selectedService!['id']}'),
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-          child: const Text('Book This Service', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          child: const Text('Đặt dịch vụ này', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
       ),
     );

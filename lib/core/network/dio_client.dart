@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_envelope.dart';
+import 'auth_interceptor.dart';
 
 class DioClient {
   DioClient._();
@@ -54,4 +55,8 @@ class DioClient {
   }
 }
 
-final dioProvider = Provider<Dio>((ref) => DioClient.instance);
+final dioProvider = Provider<Dio>((ref) {
+  final dio = DioClient.instance;
+  dio.interceptors.add(AuthInterceptor(ref, dio));
+  return dio;
+});

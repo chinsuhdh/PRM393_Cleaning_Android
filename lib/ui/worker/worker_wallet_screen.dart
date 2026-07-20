@@ -31,7 +31,7 @@ class WorkerWalletScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Ví tiền',
+          'Thu nhập',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),

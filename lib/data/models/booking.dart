@@ -56,6 +56,7 @@ class Booking {
   final String bookingType;
   final Worker? worker;
   final DateTime? scheduledStartTime;
+  final DateTime? actualStartTime;
   final DateTime? updatedAt;
   final DateTime? createdAt;
   final List<Map<String, dynamic>> statusTimeline;
@@ -90,6 +91,7 @@ class Booking {
     this.bookingType = '',
     this.worker,
     this.scheduledStartTime,
+    this.actualStartTime,
     this.updatedAt,
     this.createdAt,
     this.statusTimeline = const [],
@@ -160,6 +162,7 @@ class Booking {
       bookingType: (json['bookingType'] as String?) ?? '',
       worker: json['worker'] != null ? Worker.fromJson(json['worker'] as Map<String, dynamic>) : null,
       scheduledStartTime: rawScheduled == null ? null : DateTime.tryParse(rawScheduled)?.toLocal(),
+      actualStartTime: DateTime.tryParse(json['actualStartTime']?.toString() ?? '')?.toLocal(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toLocal(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
       statusTimeline: List<Map<String, dynamic>>.from(json['statusTimeline'] as List? ?? const []),

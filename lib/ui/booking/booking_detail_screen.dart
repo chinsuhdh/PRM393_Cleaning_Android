@@ -11,6 +11,7 @@ import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
+import '../../data/services/directions_service.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/utils/search_timeout.dart';
@@ -47,6 +48,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   Timer? _searchTicker;
   int _searchTickCount = 0;
+  Timer? _progressTicker;
   bool _liveUpdatesWired = false;
   String? _lastKnownStatus;
   bool _selfCancelling = false;
@@ -54,6 +56,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   bool _hasResolvedOnce = false;
   bool _showingMapLayout = false;
   bool _mapTornDown = false;
+  double? _liveDistanceMeters;
+  DirectionsRoute? _liveRoute;
 
   @override
   void initState() {
@@ -93,7 +97,26 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   }
 
   void _ensureSearchTracking(bool isSearching) {
-    // Đã có SignalR lo việc update, không cần dùng Timer đếm giờ để spam API nữa.
+    // SignalR lo việc cập nhật trạng thái, ticker này chỉ đếm giây hiển thị UI (không gọi API).
+    if (isSearching && _searchTicker == null) {
+      _searchTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!isSearching && _searchTicker != null) {
+      _searchTicker!.cancel();
+      _searchTicker = null;
+    }
+  }
+
+  void _ensureProgressTracking(bool inProgress) {
+    if (inProgress && _progressTicker == null) {
+      _progressTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!inProgress && _progressTicker != null) {
+      _progressTicker!.cancel();
+      _progressTicker = null;
+    }
   }
 
   void _refreshBooking() => ref.invalidate(bookingDetailProvider(widget.bookingId));
@@ -104,6 +127,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   @override
   void dispose() {
     _searchTicker?.cancel();
+    _progressTicker?.cancel();
     super.dispose();
   }
 
@@ -144,6 +168,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         booking.isImmediate &&
         role == UserRole.client;
     _ensureSearchTracking(isSearching);
+    final isInProgress = booking.status == BookingStatusName.inProgress;
+    _ensureProgressTracking(isInProgress);
 
     if (_mapTornDown) {
       return Scaffold(
@@ -229,6 +255,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (isSearching) ...[_searchStatusCard(theme, booking), const SizedBox(height: 16)],
+                  if (booking.status == BookingStatusName.inProgress) ...[
+                    _progressStatusCard(theme, booking),
+                    const SizedBox(height: 16),
+                  ],
                   if (booking.pendingReschedule != null) ...[
                     _rescheduleBanner(context, ref, booking),
                     const SizedBox(height: 16),
@@ -275,6 +305,13 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               child: _floatingBackButton(context),
             ),
           ),
+          if (_liveDistanceMeters != null)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Align(alignment: Alignment.topRight, child: _distanceBadge(theme)),
+              ),
+            ),
         ],
       ),
     );
@@ -307,6 +344,41 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           ],
         ),
       );
+
+  Widget _progressStatusCard(ThemeData theme, Booking booking) {
+    final startedAt = booking.actualStartTime;
+    if (startedAt == null) return const SizedBox.shrink();
+
+    final elapsed = DateTime.now().difference(startedAt);
+    final target = Duration(minutes: (booking.durationHours * 60).round());
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_outlined, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Đã làm ${_formatJobDuration(elapsed)} / Dự kiến ${_formatJobDuration(target)}',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatJobDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
 
   AppBar _appBar(BuildContext context) => AppBar(
         title: const Text('Chi tiết đơn đặt lịch', style: TextStyle(fontWeight: FontWeight.w800)),
@@ -369,6 +441,35 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       viewerRole: role,
       fullBleed: true,
       showRoute: booking.status == BookingStatusName.accepted || booking.status == BookingStatusName.onTheWay,
+      onDistanceUpdate: (distanceMeters, route) {
+        if (!mounted) return;
+        if (distanceMeters == _liveDistanceMeters && route == _liveRoute) return;
+        setState(() {
+          _liveDistanceMeters = distanceMeters;
+          _liveRoute = route;
+        });
+      },
+    );
+  }
+
+  Widget _distanceBadge(ThemeData theme) {
+    final distance = _liveDistanceMeters;
+    final route = _liveRoute;
+    if (distance == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
+      ),
+      child: Text(
+        route != null
+            ? 'Cách ${route.distanceText} · ${route.durationText}'
+            : 'Cách ${formatDistance(distance)} · ${formatDuration(estimatedTravelDuration(distance))}',
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+      ),
     );
   }
 }

@@ -88,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Booking Platform',
+                    'Nền tảng đặt lịch dọn dẹp',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white.withValues(alpha: 0.85),

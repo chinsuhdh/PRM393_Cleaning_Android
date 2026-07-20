@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/service_category.dart';
 import '../../data/repositories/service_catalog_repository.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../shared/logout_action.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -43,7 +44,7 @@ class _HeaderSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back,',
+                  'Chào mừng trở lại,',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -59,16 +60,24 @@ class _HeaderSection extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: kPrimaryContainer,
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: kOnPrimaryContainer,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Đăng xuất',
+            onPressed: () => confirmAndLogout(context, ref),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => confirmAndLogout(context, ref),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: kPrimaryContainer,
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: kOnPrimaryContainer,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -84,7 +93,7 @@ class _SearchSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: SearchBar(
-        hintText: 'Search services...',
+        hintText: 'Tìm dịch vụ...',
         leading: const Icon(Icons.search_rounded),
         padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -149,7 +158,7 @@ class _PromoBanner extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Get 20% Off',
+                    'Dọn dẹp nhà cửa dễ dàng',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -158,33 +167,10 @@ class _PromoBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'on your first deep cleaning',
+                    'Đặt lịch chỉ trong vài phút, nhân viên tận tâm',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kTertiary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      minimumSize: Size.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Book Now',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
                     ),
                   ),
                 ],
@@ -206,8 +192,7 @@ class _CategoriesSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(
-          title: 'Service Categories',
-          onSeeAll: () {},
+          title: 'Danh mục dịch vụ',
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
         ),
         const SizedBox(height: 16),
@@ -216,7 +201,7 @@ class _CategoriesSection extends ConsumerWidget {
           child: categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) {
-                return const Center(child: Text('No categories available'));
+                return const Center(child: Text('Chưa có danh mục dịch vụ nào'));
               }
               return ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -230,7 +215,7 @@ class _CategoriesSection extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
               child: Text(
-                'Could not load categories',
+                'Không thể tải danh mục dịch vụ',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -295,12 +280,10 @@ class _CategoryItem extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
-  final VoidCallback? onSeeAll;
   final EdgeInsets padding;
 
   const _SectionTitle({
     required this.title,
-    this.onSeeAll,
     this.padding = EdgeInsets.zero,
   });
 
@@ -309,24 +292,13 @@ class _SectionTitle extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: padding,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (onSeeAll != null) ...[
-            const SizedBox(width: 16),
-            TextButton(onPressed: onSeeAll, child: const Text('See All')),
-          ],
-        ],
+      child: Text(
+        title,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

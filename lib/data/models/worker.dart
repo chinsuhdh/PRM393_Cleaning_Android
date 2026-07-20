@@ -9,6 +9,7 @@ class Worker {
   final int reviews;
   final double? latitude;
   final double? longitude;
+  final double serviceRadiusKm;
 
   final DateTime? suspendedAt;
 
@@ -23,6 +24,7 @@ class Worker {
     this.reviews = 0,
     this.latitude,
     this.longitude,
+    this.serviceRadiusKm = 10,
     this.suspendedAt,
   });
 
@@ -41,6 +43,7 @@ class Worker {
     int? reviews,
     double? latitude,
     double? longitude,
+    double? serviceRadiusKm,
     DateTime? suspendedAt,
   }) {
     return Worker(
@@ -54,6 +57,7 @@ class Worker {
       reviews: reviews ?? this.reviews,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      serviceRadiusKm: serviceRadiusKm ?? this.serviceRadiusKm,
       suspendedAt: suspendedAt ?? this.suspendedAt,
     );
   }
@@ -70,6 +74,7 @@ class Worker {
       reviews: json['reviews'] as int? ?? 0,
       latitude: (json['latitude'] as num?)?.toDouble() ?? (json['currentLat'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble() ?? (json['currentLng'] as num?)?.toDouble(),
+      serviceRadiusKm: (json['serviceRadiusKm'] as num?)?.toDouble() ?? 10,
       suspendedAt: DateTime.tryParse(json['suspendedAt']?.toString() ?? '')?.toLocal(),
     );
   }
@@ -85,6 +90,7 @@ class Worker {
     'reviews': reviews,
     'latitude': latitude,
     'longitude': longitude,
+    'serviceRadiusKm': serviceRadiusKm,
     'suspendedAt': suspendedAt?.toIso8601String(),
   };
 }

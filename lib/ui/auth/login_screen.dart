@@ -102,14 +102,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Welcome Back',
+                  'Chào mừng trở lại',
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Login to your account',
+                  'Đăng nhập vào tài khoản của bạn',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -119,18 +119,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email or Phone Number',
+                    labelText: 'Email hoặc số điện thoại',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter your email or phone number' : null,
+                  v == null || v.isEmpty ? 'Vui lòng nhập email hoặc số điện thoại' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_passwordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Mật khẩu',
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(_passwordVisible
@@ -141,7 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   validator: (v) => v == null || v.length < 6
-                      ? 'Password must be at least 6 characters'
+                      ? 'Mật khẩu phải có ít nhất 6 ký tự'
                       : null,
                 ),
                 const SizedBox(height: 8),
@@ -151,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () {
                       context.push('/forgot-password');
                     },
-                    child: const Text('Forgot Password?'),
+                    child: const Text('Quên mật khẩu?'),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -170,7 +170,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   )
                       : const Text(
-                    'Login',
+                    'Đăng nhập',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w600),
                   ),
@@ -180,14 +180,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account?",
+                      "Chưa có tài khoản?",
                       style: TextStyle(
                           color: theme.colorScheme.onSurfaceVariant),
                     ),
                     TextButton(
                       onPressed: () => context.push('/register'),
                       child: const Text(
-                        'Register',
+                        'Đăng ký',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),

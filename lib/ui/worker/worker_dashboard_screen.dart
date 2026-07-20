@@ -11,7 +11,8 @@ import '../../data/repositories/booking_repository.dart';
 import '../../data/repositories/dispatch_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
-import '../shared/destructive_dialog_actions.dart';
+import '../shared/logout_action.dart';
+import '../shared/popup_menu_action_item.dart';
 import 'widgets/worker_dashboard_stats.dart';
 
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
@@ -91,31 +92,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.logout_rounded, color: Colors.white),
                 tooltip: 'Đăng xuất',
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Đăng xuất'),
-                      content: const Text(
-                        'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?',
-                      ),
-                      actions: [
-                        DestructiveDialogActions(
-                          confirmLabel: 'Đăng xuất',
-                          onConfirm: () => Navigator.pop(context, true),
-                          onCancel: () => Navigator.pop(context, false),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm == true) {
-                    ref.read(authProvider.notifier).logout();
-                    if (context.mounted) {
-                      context.go('/login');
-                    }
-                  }
-                },
+                onPressed: () => confirmAndLogout(context, ref),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -154,14 +131,17 @@ class WorkerDashboardScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                        GestureDetector(
+                          onTap: () => confirmAndLogout(context, ref),
+                          child: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            child: Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
@@ -227,7 +207,7 @@ class WorkerDashboardScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     WorkerQuickAction(
                       icon: Icons.account_balance_wallet_rounded,
-                      label: 'Ví tiền',
+                      label: 'Thu nhập',
                       onTap: () => context.push('/worker/wallet'),
                     ),
                   ],
@@ -320,7 +300,10 @@ class WorkerDashboardScreen extends ConsumerWidget {
                               if (value == 'hide') _hideJob(context, ref, newestJob);
                             },
                             itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'hide', child: Text('Ẩn công việc này')),
+                              PopupMenuItem(
+                                value: 'hide',
+                                child: PopupMenuActionItem(icon: Icons.visibility_off_rounded, label: 'Ẩn công việc này'),
+                              ),
                             ],
                           ),
                         ],

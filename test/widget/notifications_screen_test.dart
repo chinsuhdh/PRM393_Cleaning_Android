@@ -15,7 +15,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('Chưa có thông báo nào'), findsOneWidget);
     },
   );
 }

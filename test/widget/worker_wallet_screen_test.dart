@@ -23,6 +23,9 @@ class _FakeWorkerRepository implements WorkerRepository {
   Future<void> updateLocation(double lat, double lng) async {}
 
   @override
+  Future<void> updateSearchRadius(double radiusKm) async {}
+
+  @override
   Future<void> registerAsWorker({
     required String identityCardNumber,
     required List<Map<String, dynamic>> skills,

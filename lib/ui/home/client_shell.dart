@@ -16,27 +16,27 @@ class ClientShell extends StatelessWidget {
     NavigationDestination(
       icon: Icon(Icons.home_outlined),
       selectedIcon: Icon(Icons.home_rounded),
-      label: 'Home',
+      label: 'Trang chủ',
     ),
     NavigationDestination(
       icon: Icon(Icons.list_alt_outlined),
       selectedIcon: Icon(Icons.list_alt_rounded),
-      label: 'Bookings',
+      label: 'Đơn đặt lịch',
     ),
     NavigationDestination(
       icon: Icon(Icons.chat_bubble_outline_rounded),
       selectedIcon: Icon(Icons.chat_bubble_rounded),
-      label: 'AI Chat',
+      label: 'Trợ lý AI',
     ),
     NavigationDestination(
       icon: Icon(Icons.notifications_outlined),
       selectedIcon: Icon(Icons.notifications_rounded),
-      label: 'Alerts',
+      label: 'Thông báo',
     ),
     NavigationDestination(
       icon: Icon(Icons.person_outline_rounded),
       selectedIcon: Icon(Icons.person_rounded),
-      label: 'Profile',
+      label: 'Hồ sơ',
     ),
   ];
 
@@ -75,17 +75,17 @@ class WorkerShell extends ConsumerWidget {
     NavigationDestination(
       icon: Icon(Icons.dashboard_outlined),
       selectedIcon: Icon(Icons.dashboard_rounded),
-      label: 'Dashboard',
+      label: 'Tổng quan',
     ),
     NavigationDestination(
       icon: Icon(Icons.work_outline_rounded),
       selectedIcon: Icon(Icons.work_rounded),
-      label: 'Jobs',
+      label: 'Công việc',
     ),
     NavigationDestination(
       icon: Icon(Icons.account_balance_wallet_outlined),
       selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-      label: 'Wallet',
+      label: 'Thu nhập',
     ),
   ];
 

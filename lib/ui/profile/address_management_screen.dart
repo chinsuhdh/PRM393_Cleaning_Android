@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/location_helper.dart';
 import '../../core/network/dio_client.dart';
+import '../shared/popup_menu_action_item.dart';
 
 class AddressManagementScreen extends StatefulWidget {
   const AddressManagementScreen({super.key});
@@ -80,7 +81,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Saved Addresses', style: TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(title: const Text('Địa chỉ đã lưu', style: TextStyle(fontWeight: FontWeight.w800))),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _addresses.isEmpty
@@ -143,9 +144,19 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                       }
                     },
                     itemBuilder: (context) => [
-                      if (addr['isDefault'] != true) const PopupMenuItem(value: 'set_default', child: Text('Đặt mặc định')),
-                      const PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa')),
-                      const PopupMenuItem(value: 'delete', child: Text('Xóa', style: TextStyle(color: Colors.red))),
+                      if (addr['isDefault'] != true)
+                        const PopupMenuItem(
+                          value: 'set_default',
+                          child: PopupMenuActionItem(icon: Icons.check_circle_outline_rounded, label: 'Đặt mặc định'),
+                        ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: PopupMenuActionItem(icon: Icons.edit_outlined, label: 'Chỉnh sửa'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: PopupMenuActionItem(icon: Icons.delete_outline_rounded, label: 'Xóa', color: Colors.red),
+                      ),
                     ],
                   ),
                 ],
@@ -157,7 +168,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddressBottomSheet(),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Address'),
+        label: const Text('Thêm địa chỉ'),
         backgroundColor: kPrimary,
       ),
     );
@@ -251,11 +262,11 @@ class _AddressBottomSheetState extends State<AddressBottomSheet> {
       child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _labelController, decoration: const InputDecoration(labelText: 'Label')),
+            TextField(controller: _labelController, decoration: const InputDecoration(labelText: 'Nhãn')),
             TextField(
                 controller: _addressController,
                 decoration: InputDecoration(
-                    labelText: 'Address',
+                    labelText: 'Địa chỉ',
                     suffixIcon: _isFetchingGPS
                         ? const Padding(
                       padding: EdgeInsets.all(12.0),
@@ -276,7 +287,7 @@ class _AddressBottomSheetState extends State<AddressBottomSheet> {
                 onPressed: _isSaving ? null : _handleSave,
                 child: _isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Save')
+                    : const Text('Lưu')
             ),
           ]
       ),

@@ -49,6 +49,12 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
 
   final bool showRoute;
 
+  // The full-bleed booking-detail layout renders this map underneath a DraggableScrollableSheet
+  // that can cover up to the whole screen, so any distance/ETA chip drawn inside this widget's own
+  // Stack would be hidden behind that sheet — this lets the parent render its own always-visible
+  // copy instead, using whatever this widget last computed.
+  final void Function(double? distanceMeters, DirectionsRoute? route)? onDistanceUpdate;
+
   const LiveTrackingMap({
     super.key,
     required this.bookingId,
@@ -56,6 +62,7 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
     required this.viewerRole,
     this.fullBleed = false,
     this.showRoute = false,
+    this.onDistanceUpdate,
   });
 
   @override
@@ -161,6 +168,13 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> with SingleTi
     final hasDestination = booking.latitude != null && booking.longitude != null;
     final hasWorkerFix = workerLat != null && workerLng != null;
 
+    if (widget.onDistanceUpdate != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        widget.onDistanceUpdate!(widget.showRoute ? distance : null, widget.showRoute ? _route : null);
+      });
+    }
+
     final content = Stack(
           children: [
             Positioned.fill(
@@ -235,25 +249,6 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> with SingleTi
                           ],
                         ),
             ),
-            if (distance != null)
-              Positioned(
-                left: 12,
-                bottom: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
-                  ),
-                  child: Text(
-                    widget.showRoute && _route != null
-                        ? 'Cách ${_route!.distanceText} · ${_route!.durationText}'
-                        : 'Cách ${formatDistance(distance)} · ${formatDuration(estimatedTravelDuration(distance))}',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                ),
-              ),
           ],
         );
 

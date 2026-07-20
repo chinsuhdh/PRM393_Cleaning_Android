@@ -30,23 +30,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const List<_OnboardingPage> _pages = [
     _OnboardingPage(
       icon: Icons.search_rounded,
-      title: 'Find Expert Workers',
+      title: 'Tìm nhân viên chuyên nghiệp',
       subtitle:
-          'Browse hundreds of verified cleaning professionals near you in seconds.',
+          'Duyệt hàng trăm nhân viên vệ sinh đã xác minh gần bạn chỉ trong vài giây.',
       iconColor: kPrimary,
     ),
     _OnboardingPage(
       icon: Icons.psychology_rounded,
-      title: 'Smart AI Matching',
+      title: 'Ghép nối thông minh bằng AI',
       subtitle:
-          'Our AI analyzes your preferences and finds the perfect cleaner for your needs.',
+          'AI của chúng tôi phân tích nhu cầu của bạn để tìm nhân viên phù hợp nhất.',
       iconColor: kSecondary,
     ),
     _OnboardingPage(
       icon: Icons.check_circle_rounded,
-      title: 'Book & Relax',
+      title: 'Đặt lịch & Thư giãn',
       subtitle:
-          'Schedule a service in minutes, track progress, and enjoy a spotless space.',
+          'Đặt lịch chỉ trong vài phút, theo dõi tiến độ và tận hưởng không gian sạch sẽ.',
       iconColor: kTertiary,
     ),
   ];
@@ -79,7 +79,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Skip'),
+                child: const Text('Bỏ qua'),
               ),
             ),
             Expanded(
@@ -159,8 +159,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 child: Text(
                   _currentPage == _pages.length - 1
-                      ? 'Get Started'
-                      : 'Next',
+                      ? 'Bắt đầu'
+                      : 'Tiếp theo',
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w600),
                 ),

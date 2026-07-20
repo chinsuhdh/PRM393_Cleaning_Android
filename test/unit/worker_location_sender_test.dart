@@ -66,6 +66,9 @@ class _FakeWorkerRepository implements WorkerRepository {
   Future<void> updateLocation(double lat, double lng) async => updates.add((lat, lng));
 
   @override
+  Future<void> updateSearchRadius(double radiusKm) async {}
+
+  @override
   Future<Worker?> getMyWorkerProfile() async => null;
 
   @override

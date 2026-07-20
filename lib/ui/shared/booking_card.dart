@@ -11,6 +11,7 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 import '../../data/services/directions_service.dart' show formatDuration;
 import '../booking/widgets/booking_info_cards.dart' show bookingQuestionRows;
+import 'popup_menu_action_item.dart';
 
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
@@ -206,7 +207,10 @@ class BookingCard extends ConsumerWidget {
                         if (value == 'hide') onHide!();
                       },
                       itemBuilder: (context) => const [
-                        PopupMenuItem(value: 'hide', child: Text('Ẩn công việc này')),
+                        PopupMenuItem(
+                          value: 'hide',
+                          child: PopupMenuActionItem(icon: Icons.visibility_off_rounded, label: 'Ẩn công việc này'),
+                        ),
                       ],
                     ),
                 ],

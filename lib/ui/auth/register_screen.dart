@@ -66,7 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: const Text('Tạo tài khoản'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -81,14 +81,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Join CleanAI',
+                  'Tham gia CleanAI',
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Create your account to get started',
+                  'Tạo tài khoản để bắt đầu',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -98,11 +98,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name',
+                    labelText: 'Họ và tên',
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                   validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter your name' : null,
+                  v == null || v.isEmpty ? 'Vui lòng nhập họ tên' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -113,25 +113,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter your email' : null,
+                  v == null || v.isEmpty ? 'Vui lòng nhập email' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                    labelText: 'Số điện thoại',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter your phone' : null,
+                  v == null || v.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_passwordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Mật khẩu',
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(_passwordVisible
@@ -142,7 +142,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   validator: (v) => v == null || v.length < 6
-                      ? 'Password must be at least 6 characters'
+                      ? 'Mật khẩu phải có ít nhất 6 ký tự'
                       : null,
                 ),
                 const SizedBox(height: 16),
@@ -150,7 +150,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _confirmPasswordController,
                   obscureText: !_confirmPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: 'Confirm Password',
+                    labelText: 'Xác nhận mật khẩu',
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(_confirmPasswordVisible
@@ -161,7 +161,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   validator: (v) => v != _passwordController.text
-                      ? 'Passwords do not match'
+                      ? 'Mật khẩu xác nhận không khớp'
                       : null,
                 ),
                 const SizedBox(height: 32),
@@ -180,7 +180,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   )
                       : const Text(
-                    'Create Account',
+                    'Tạo tài khoản',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w600),
                   ),
@@ -190,14 +190,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account?',
+                      'Đã có tài khoản?',
                       style: TextStyle(
                           color: theme.colorScheme.onSurfaceVariant),
                     ),
                     TextButton(
                       onPressed: () => context.pop(),
                       child: const Text(
-                        'Login',
+                        'Đăng nhập',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),

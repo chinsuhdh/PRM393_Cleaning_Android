@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 import '../../core/network/dio_client.dart';
+import '../repositories/auth_repository.dart';
 import '../repositories/booking_repository.dart';
 import '../repositories/dispatch_repository.dart';
 
@@ -16,6 +17,7 @@ abstract class DispatchHubClient {
   void onJobCancelled(void Function() handler);
 
   void onReconnected(void Function() handler);
+  void onDisconnected(void Function() handler);
 
   Future<void> subscribeToBooking(String bookingId);
   void onBookingStatusChanged(void Function() handler);
@@ -60,6 +62,9 @@ class SignalrDispatchHubClient implements DispatchHubClient {
 
   @override
   void onReconnected(void Function() handler) => _connection.onreconnected(({connectionId}) => handler());
+
+  @override
+  void onDisconnected(void Function() handler) => _connection.onclose(({error}) => handler());
 
   @override
   Future<void> subscribeToBooking(String bookingId) => _connection.invoke('SubscribeBooking', args: [bookingId]);
@@ -113,25 +118,69 @@ final dispatchHubClientProvider = Provider<DispatchHubClient>((ref) {
 });
 
 class DispatchLiveFeedController {
-  DispatchLiveFeedController(this._client, {required this.onFeedChanged});
+  DispatchLiveFeedController(
+    this._client, {
+    required this.onFeedChanged,
+    this.onBeforeRetry,
+    this.retryDelay = const Duration(seconds: 10),
+  });
 
   final DispatchHubClient _client;
   final void Function() onFeedChanged;
+  // Access tokens expire in 15 minutes (JwtConfig:AccessTokenExpirationMinutes) and nothing else
+  // proactively refreshes one while a worker just idles on Available Jobs with no REST calls firing —
+  // so a reconnect attempt after that window presents an already-expired JWT and the hub's [Authorize]
+  // rejects it. Called before every RETRY (not the very first connect in start()) so a stale token gets
+  // refreshed before it can cause a permanently-failing reconnect loop.
+  final Future<void> Function()? onBeforeRetry;
+  final Duration retryDelay;
+  bool _stopped = false;
+  Timer? _retryTimer;
 
   Future<void> start() async {
     _client.onJobPosted(onFeedChanged);
     _client.onJobTaken(onFeedChanged);
     _client.onJobCancelled(onFeedChanged);
     _client.onReconnected(onFeedChanged);
+    // withAutomaticReconnect() only covers drops after a connection was established at least once,
+    // and it eventually gives up retrying — onDisconnected fires whenever the connection ends up
+    // Disconnected either way, so this is the single place that keeps trying to get the live feed
+    // back instead of leaving the worker stuck on manual pull-to-refresh for the rest of the session.
+    _client.onDisconnected(_scheduleReconnect);
+    await _connectWithRetry();
+  }
+
+  Future<void> _connectWithRetry({bool refreshFirst = false}) async {
+    if (_stopped) return;
+    if (refreshFirst) {
+      try {
+        await onBeforeRetry?.call();
+      } catch (_) {
+        // Best-effort — if the refresh itself fails, still attempt to connect with whatever
+        // token is currently set; a failure there just schedules another retry as usual.
+      }
+    }
     try {
       await _client.connect();
     } catch (_) {
       // Best-effort: the Available Jobs feed still works via REST pull-to-refresh without live
-      // updates (same tolerance as WorkerRepository.updateLocation's background pings).
+      // updates (same tolerance as WorkerRepository.updateLocation's background pings) — but keep
+      // retrying in the background instead of giving up on live updates for the rest of the session.
+      _scheduleReconnect();
     }
   }
 
-  Future<void> stop() => _client.disconnect();
+  void _scheduleReconnect() {
+    if (_stopped) return;
+    _retryTimer?.cancel();
+    _retryTimer = Timer(retryDelay, () => _connectWithRetry(refreshFirst: true));
+  }
+
+  Future<void> stop() async {
+    _stopped = true;
+    _retryTimer?.cancel();
+    await _client.disconnect();
+  }
 }
 
 
@@ -142,6 +191,7 @@ final dispatchLiveFeedProvider = Provider.autoDispose<void>((ref) {
       ref.invalidate(availableBookingsProvider);
       ref.invalidate(workerBookingsProvider);
     },
+    onBeforeRetry: () => ref.read(authProvider.notifier).refreshToken(),
   );
   controller.start();
   ref.onDispose(() {

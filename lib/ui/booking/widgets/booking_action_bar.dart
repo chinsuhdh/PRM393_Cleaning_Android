@@ -5,6 +5,7 @@ import '../../../core/constants/booking_enums.dart';
 import '../../../core/constants/payment_methods.dart';
 import '../../../core/constants/user_role.dart';
 import '../../shared/destructive_dialog_actions.dart';
+import '../../shared/popup_menu_action_item.dart';
 import 'booking_buttons.dart';
 import 'client_cancel_reason_sheet.dart';
 import 'propose_reschedule_sheet.dart';
@@ -95,19 +96,21 @@ class BookingActionBar extends StatelessWidget {
               : _cancelAndRetryRow(context);
         }
         if (_isWorker && onAccept != null) primary = _primary(context, 'Nhận việc', onAccept!);
-        if (_isWorker && onHideJob != null) overflow.add(_OverflowAction('Ẩn công việc này', onHideJob!));
+        if (_isWorker && onHideJob != null) {
+          overflow.add(_OverflowAction('Ẩn công việc này', onHideJob!, icon: Icons.visibility_off_rounded));
+        }
 
       case BookingStatusName.accepted:
         showChat = true;
         showReschedule = isScheduled;
         if (_isWorker) {
           primary = _primary(context, 'Đang di chuyển', onGoingThere);
-          overflow.add(_OverflowAction('Hủy công việc này', () => _openWorkerCancelSheet(context)));
+          overflow.add(_OverflowAction('Hủy công việc này', () => _openWorkerCancelSheet(context), icon: Icons.cancel_outlined));
         }
         if (_isClient) {
-          overflow.add(_OverflowAction('Hủy công việc này', () => _openClientCancelSheet(context)));
+          overflow.add(_OverflowAction('Hủy công việc này', () => _openClientCancelSheet(context), icon: Icons.cancel_outlined));
         }
-        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.rescheduleRequested:
         // RescheduleBanner (rendered above this action bar on the screen) owns this status's
@@ -117,12 +120,12 @@ class BookingActionBar extends StatelessWidget {
       case BookingStatusName.onTheWay:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Bắt đầu công việc', onStart);
-        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.inProgress:
         showChat = true;
         if (_isWorker) primary = _primary(context, 'Hoàn thành', onFinish);
-        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.pendingPayment:
         showChat = true;
@@ -139,7 +142,7 @@ class BookingActionBar extends StatelessWidget {
         } else {
           secondary = _hint(context, 'Đang chờ khách thanh toán…');
         }
-        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context)));
+        overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.completed:
         showChat = true;
@@ -211,7 +214,10 @@ class BookingActionBar extends StatelessWidget {
         onSelected: (index) => actions[index].onSelected(),
         itemBuilder: (context) => [
           for (var i = 0; i < actions.length; i++)
-            PopupMenuItem<int>(value: i, child: Text(actions[i].label)),
+            PopupMenuItem<int>(
+              value: i,
+              child: PopupMenuActionItem(icon: actions[i].icon, label: actions[i].label),
+            ),
         ],
       );
 
@@ -356,6 +362,7 @@ class BookingActionBar extends StatelessWidget {
 
 class _OverflowAction {
   final String label;
+  final IconData icon;
   final Future<void> Function() onSelected;
-  const _OverflowAction(this.label, this.onSelected);
+  const _OverflowAction(this.label, this.onSelected, {this.icon = Icons.more_horiz_rounded});
 }

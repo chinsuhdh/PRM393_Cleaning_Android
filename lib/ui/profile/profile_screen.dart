@@ -9,6 +9,7 @@ import '../../core/theme/theme_provider.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../shared/reauth_dialog.dart';
+import '../shared/logout_action.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,7 +21,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile',
+        title: const Text('Hồ sơ',
             style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
@@ -149,13 +150,13 @@ class _ProfileBody extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.only(left: 8, bottom: 16),
               child: Text(
-                'Appearance / Giao diện',
+                'Giao diện',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-            _buildThemeOption(context, ref, 'System Default', ThemeMode.system, currentTheme, Icons.settings_suggest_outlined),
-            _buildThemeOption(context, ref, 'Light Mode', ThemeMode.light, currentTheme, Icons.light_mode_outlined),
-            _buildThemeOption(context, ref, 'Dark Mode', ThemeMode.dark, currentTheme, Icons.dark_mode_outlined),
+            _buildThemeOption(context, ref, 'Mặc định hệ thống', ThemeMode.system, currentTheme, Icons.settings_suggest_outlined),
+            _buildThemeOption(context, ref, 'Chế độ sáng', ThemeMode.light, currentTheme, Icons.light_mode_outlined),
+            _buildThemeOption(context, ref, 'Chế độ tối', ThemeMode.dark, currentTheme, Icons.dark_mode_outlined),
             const SizedBox(height: 16),
           ],
         ),
@@ -190,10 +191,10 @@ class _ProfileBody extends ConsumerWidget {
 
     final currentTheme = ref.watch(themeModeProvider);
     final themeSubtitle = currentTheme == ThemeMode.system
-        ? 'System Default'
+        ? 'Mặc định hệ thống'
         : currentTheme == ThemeMode.light
-        ? 'Light Mode'
-        : 'Dark Mode';
+        ? 'Chế độ sáng'
+        : 'Chế độ tối';
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -206,20 +207,23 @@ class _ProfileBody extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: kPrimary,
-                  backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
-                  child: !hasAvatar
-                      ? Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 24,
-                    ),
-                  )
-                      : null,
+                GestureDetector(
+                  onTap: () => confirmAndLogout(context, ref),
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: kPrimary,
+                    backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+                    child: !hasAvatar
+                        ? Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 24,
+                      ),
+                    )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -265,63 +269,63 @@ class _ProfileBody extends ConsumerWidget {
             Expanded(
               child: _StatCard(
                 value: bookingCount.toString(),
-                label: 'Bookings',
+                label: 'Đơn đặt lịch',
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _StatCard(
                 value: savedCount.toString(),
-                label: 'Saved',
+                label: 'Đã lưu',
               ),
             ),
           ],
         ),
         const SizedBox(height: 20),
 
-        _SectionHeader(title: 'Account'),
+        _SectionHeader(title: 'Tài khoản'),
         _ProfileMenuItem(
           icon: Icons.person_outline_rounded,
-          title: 'Edit Profile',
+          title: 'Chỉnh sửa hồ sơ',
           onTap: () => context.push('/profile/edit'),
         ),
         _ProfileMenuItem(
           icon: Icons.lock_outline_rounded,
-          title: 'Change Password',
+          title: 'Đổi mật khẩu',
           onTap: () => context.push('/profile/change-password'),
         ),
         _ProfileMenuItem(
           icon: Icons.location_on_outlined,
-          title: 'Saved Addresses',
+          title: 'Địa chỉ đã lưu',
           onTap: () => context.push('/address'),
         ),
         _ProfileMenuItem(
           icon: Icons.history_rounded,
-          title: 'Booking History',
+          title: 'Lịch sử đặt lịch',
           onTap: () => context.push('/bookings'),
         ),
 
         const SizedBox(height: 8),
 
-        _SectionHeader(title: 'Preferences'),
+        _SectionHeader(title: 'Tùy chọn'),
         _ProfileMenuItem(
           icon: Icons.notifications_outlined,
-          title: 'Notifications',
+          title: 'Thông báo',
           onTap: () => context.push('/notifications'),
         ),
         _ProfileMenuItem(
           icon: Icons.dark_mode_outlined,
-          title: 'Appearance',
+          title: 'Giao diện',
           subtitle: themeSubtitle,
           onTap: () => _showAppearanceBottomSheet(context, ref),
         ),
 
         const SizedBox(height: 8),
 
-        _SectionHeader(title: 'Support'),
+        _SectionHeader(title: 'Hỗ trợ'),
         _ProfileMenuItem(
           icon: Icons.help_outline_rounded,
-          title: 'Help & Support',
+          title: 'Trợ giúp & Hỗ trợ',
           onTap: () {
             _showInfoDialog(
                 context,
@@ -332,7 +336,7 @@ class _ProfileBody extends ConsumerWidget {
         ),
         _ProfileMenuItem(
           icon: Icons.privacy_tip_outlined,
-          title: 'Privacy Policy',
+          title: 'Chính sách bảo mật',
           onTap: () {
             _showInfoDialog(
                 context,
@@ -344,7 +348,7 @@ class _ProfileBody extends ConsumerWidget {
 
         _ProfileMenuItem(
           icon: Icons.delete_forever_rounded,
-          title: 'Delete Account',
+          title: 'Xóa tài khoản',
           itemColor: Colors.red,
           onTap: () => _handleDeleteAccount(context, ref),
         ),
@@ -357,7 +361,7 @@ class _ProfileBody extends ConsumerWidget {
             context.go('/login');
           },
           icon: const Icon(Icons.logout_rounded),
-          label: const Text('Log Out'),
+          label: const Text('Đăng xuất'),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
             foregroundColor: Colors.red,

@@ -14,6 +14,7 @@ abstract class WorkerRepository {
   Future<WorkerOnlineStatus> getMyOnlineStatus() async =>
       WorkerOnlineStatus.offline;
   Future<void> updateLocation(double lat, double lng);
+  Future<void> updateSearchRadius(double radiusKm);
 
   Future<void> registerAsWorker({
     required String identityCardNumber,
@@ -67,6 +68,24 @@ class ApiWorkerRepository implements WorkerRepository {
     } catch (e) {
       debugPrint('[WorkerRepository] updateLocation failed: $e');
       // Bỏ qua lỗi update location ngầm
+    }
+  }
+
+  @override
+  Future<void> updateSearchRadius(double radiusKm) async {
+    try {
+      await _dio.patch(
+        '/Workers/me/radius',
+        data: {'serviceRadiusKm': radiusKm},
+      );
+    } on DioException catch (e) {
+      debugPrint('[WorkerRepository] updateSearchRadius failed: $e');
+      throw Exception(
+        backendMessageFromDioException(
+          e,
+          fallback: 'Không thể cập nhật bán kính tìm việc.',
+        ),
+      );
     }
   }
 

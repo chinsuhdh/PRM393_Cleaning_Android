@@ -1063,6 +1063,9 @@ class _NoOpDispatchHubClient implements DispatchHubClient {
   void onReconnected(void Function() handler) {}
 
   @override
+  void onDisconnected(void Function() handler) {}
+
+  @override
   void onReceiveMessage(void Function(Map<String, dynamic> msg) handler) {}
 }
 
@@ -1196,6 +1199,9 @@ class _FakeLiveUpdateHubClient implements DispatchHubClient {
 
   @override
   void onReconnected(void Function() handler) => _onReconnected = handler;
+
+  @override
+  void onDisconnected(void Function() handler) {}
 
   void fireBookingStatusChanged() => _onBookingStatusChanged?.call();
   void fireReconnected() => _onReconnected?.call();

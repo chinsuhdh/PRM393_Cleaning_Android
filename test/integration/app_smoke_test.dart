@@ -32,7 +32,7 @@ void main() {
       );
       await _pumpUntilFound(tester, find.text(categoryName));
       expect(find.text(categoryName), findsOneWidget);
-      expect(find.text('No categories available'), findsNothing);
+      expect(find.text('Chưa có danh mục dịch vụ nào'), findsNothing);
     },
   );
 
@@ -51,9 +51,9 @@ void main() {
         child: const HomeScreen(),
         overrides: [dioProvider.overrideWithValue(harness.dio)],
       );
-      await _pumpUntilFound(tester, find.text('No categories available'));
+      await _pumpUntilFound(tester, find.text('Chưa có danh mục dịch vụ nào'));
 
-      expect(find.text('No categories available'), findsOneWidget);
+      expect(find.text('Chưa có danh mục dịch vụ nào'), findsOneWidget);
     },
   );
 }
