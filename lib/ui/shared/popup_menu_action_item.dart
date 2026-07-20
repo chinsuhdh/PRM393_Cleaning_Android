@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Consistent icon+label row for PopupMenuItem children, so every option renders
-/// as an aligned button-like row instead of bare, inconsistently-centered text.
 class PopupMenuActionItem extends StatelessWidget {
   final IconData icon;
   final String label;

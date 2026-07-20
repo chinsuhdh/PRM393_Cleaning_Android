@@ -130,7 +130,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
               ),
             ),
-            // Dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(_pages.length, (i) {

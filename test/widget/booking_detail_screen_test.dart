@@ -1112,6 +1112,9 @@ class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
+  Future<void> updateDuration(String bookingId, double hours) async {}
+
+  @override
   Future<List<Booking>> getClientBookings() async => [];
 
   @override

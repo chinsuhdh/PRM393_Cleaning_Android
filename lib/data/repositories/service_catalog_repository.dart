@@ -31,7 +31,6 @@ final serviceCatalogRepositoryProvider = Provider<ServiceCatalogRepository>((
   return ServiceCatalogRepository(ref.read(dioProvider));
 });
 
-/// FutureProvider that fetches categories from GET /api/ServiceCatalog/categories
 final categoriesProvider = FutureProvider<List<ServiceCategory>>((ref) async {
   final repo = ref.read(serviceCatalogRepositoryProvider);
   return repo.getCategories();

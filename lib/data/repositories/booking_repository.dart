@@ -22,6 +22,7 @@ abstract class BookingRepository {
   });
   Future<void> acceptBooking(String bookingId);
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason});
+  Future<void> updateDuration(String bookingId, double hours);
   Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos);
 
   Future<void> cancelBookingByClient(String bookingId);
@@ -378,6 +379,24 @@ class ApiBookingRepository implements BookingRepository {
         backendMessageFromDioException(
           error,
           fallback: 'Lỗi khi cập nhật trạng thái.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> updateDuration(String bookingId, double hours) async {
+    try {
+      await _dio.patch(
+        '/Bookings/$bookingId/duration',
+        data: {'durationHours': hours},
+      );
+    } on DioException catch (error) {
+      debugPrint('[BookingRepository] updateDuration failed: $error');
+      throw Exception(
+        backendMessageFromDioException(
+          error,
+          fallback: 'Không thể cập nhật thời lượng công việc.',
         ),
       );
     }

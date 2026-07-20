@@ -14,29 +14,24 @@ Delta? _deltaOf(Map<String, dynamic>? source) {
   return (price: price, duration: duration);
 }
 
-/// The per-unit price/duration a stepper or number question adds, read from its `unit` object
-/// (or the question itself, matching the server's fallback in BookingPricingCalculator.AddDelta).
 Delta? stepperUnitDelta(Map<String, dynamic> question) {
   final unit = question['unit'];
   return _deltaOf(unit is Map ? Map<String, dynamic>.from(unit) : question);
 }
 
-/// The price/duration a single choice/multi-choice option adds when selected.
 Delta? optionDelta(Map<String, dynamic> option) => _deltaOf(option);
 
-/// A client-side, non-authoritative preview of price and duration, computed from the same
-/// schema/answers the server uses in BookingPricingCalculator.Calculate. This lets the questions
-/// step show a running estimate without an extra network round-trip; the real, charged total still
-/// comes from the server's /quote call before the summary step.
 class PricingEstimate {
   final num totalPrice;
   final double durationHours;
-  const PricingEstimate({required this.totalPrice, required this.durationHours});
+  final double minDurationHours;
+  const PricingEstimate({required this.totalPrice, required this.durationHours, required this.minDurationHours});
 }
 
 PricingEstimate computeBookingEstimate({
   required Map<String, dynamic>? service,
   required Map<String, dynamic> answers,
+  double? durationOverrideHours,
 }) {
   final basePrice = (service?['basePrice'] as num?) ?? 0;
   final minimumHours = (service?['minimumHours'] as num?) ?? 0;
@@ -86,5 +81,13 @@ PricingEstimate computeBookingEstimate({
   }
 
   final roundedMinutes = (minutes / 30).ceil() * 30;
-  return PricingEstimate(totalPrice: total, durationHours: roundedMinutes / 60);
+  final computedDuration = roundedMinutes / 60;
+
+  var totalDuration = computedDuration;
+  if (durationOverrideHours != null && durationOverrideHours > computedDuration) {
+    total += (durationOverrideHours - computedDuration) * basePrice;
+    totalDuration = durationOverrideHours;
+  }
+
+  return PricingEstimate(totalPrice: total, durationHours: totalDuration, minDurationHours: computedDuration);
 }

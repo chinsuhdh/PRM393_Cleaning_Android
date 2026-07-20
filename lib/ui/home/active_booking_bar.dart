@@ -32,7 +32,6 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   void _ensureElapsedTicker(bool searching) {
     if (searching && _elapsedTicker == null) {
-      // Ticker này chỉ dùng để đếm giây hiển thị trên UI (1s/lần), không gọi API
       _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
@@ -80,10 +79,6 @@ class _ActiveBookingBarState extends ConsumerState<ActiveBookingBar> {
 
   @override
   Widget build(BuildContext context) {
-    // Keeps clientBookingsLiveFeedProvider alive for the whole client session (this bar is always
-    // mounted in ClientShell) — it invalidates bookingsProvider whenever the worker changes this
-    // booking's status over SignalR, so this bar (and the "Đơn của tôi" list) update live instead
-    // of only refreshing on a manual pull-to-refresh.
     ref.watch(clientBookingsLiveFeedProvider);
     final bookingsAsync = ref.watch(bookingsProvider);
 

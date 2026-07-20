@@ -13,7 +13,6 @@ class BookingStepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      // Centered as a group rather than stretched edge-to-edge.
       child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -74,7 +73,6 @@ class BookingStepIndicator extends StatelessWidget {
     return Container(
       width: _connectorWidth,
       height: 2,
-      // Align with the circle centers (circles are 32 tall).
       margin: const EdgeInsets.only(top: 15),
       color: isDone ? kPrimary : theme.colorScheme.surfaceContainerHighest,
     );

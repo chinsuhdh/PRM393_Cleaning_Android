@@ -4,17 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/network/dio_client.dart';
 
-// ĐÃ FIX: Gọi API lấy các Service thật theo đúng Endpoint của Backend
 final servicesByCategoryProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, categoryId) async {
-  // Thay vì gọi /services, ta gọi đúng URL có chứa categoryId
   final response = await DioClient.instance.get('/ServiceCatalog/categories/$categoryId/services');
 
-  // Trả về thẳng danh sách vì Backend đã lọc giúp chúng ta rồi
   return List<Map<String, dynamic>>.from(response.data);
 });
 
 class ServiceDetailScreen extends ConsumerStatefulWidget {
-  final String serviceId; // Nhận từ Router (Category ID)
+  final String serviceId;
   const ServiceDetailScreen({super.key, required this.serviceId});
 
   @override
@@ -108,7 +105,6 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(24),
         child: FilledButton(
-          // TRUYỀN CHÍNH XÁC ID CỦA SERVICE THẬT VÀO ROUTER
           onPressed: _selectedService == null ? null : () => context.push('/booking/create/${_selectedService!['id']}'),
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
           child: const Text('Đặt dịch vụ này', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),

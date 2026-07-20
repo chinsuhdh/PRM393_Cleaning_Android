@@ -44,14 +44,8 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
   @override
   void initState() {
     super.initState();
-    // Eagerly created here (not as a lazy `late final` field initializer) — the FlutterMap branch
-    // that reads `_camera` in build() may never run before dispose() if `_hasBookingLocation` is
-    // false, which would otherwise defer creation (and its vsync/Ticker lookup) until dispose(),
-    // when the element is no longer mounted.
     _camera = AnimatedMapCamera(vsync: this);
     _refresh();
-    // E.6/E.9: the booking-detail screen already connects and joins `booking:{id}` — this only
-    // needs to listen for the ~60s position pushes on that shared connection.
     ref.read(dispatchHubClientProvider).onNearbyWorkersUpdated((locations) {
       if (!mounted) return;
       setState(() => _nearbyWorkers = locations);
@@ -90,8 +84,6 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
     setState(() => _route = route);
   }
 
-  /// Keeps the job location, the worker's own position (if known), and every nearby-worker dot
-  /// comfortably in frame — like a navigation app, instead of a fixed zoom level.
   void _fitCameraToVisibleMarkers() {
     if (!_hasBookingLocation) return;
     final points = [
@@ -102,8 +94,6 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
     unawaited(_camera.animateFit(points));
   }
 
-  /// Straight-line fallback so the worker always sees a distance/line even when the OSRM route
-  /// call hasn't resolved yet (or fails) — mirrors LiveTrackingMap's `_distanceMeters`.
   double? get _straightLineDistanceMeters {
     if (_myPosition == null || !_hasBookingLocation) return null;
     return Geolocator.distanceBetween(
@@ -183,9 +173,6 @@ class _NearbyWorkersGoogleMapState extends ConsumerState<NearbyWorkersGoogleMap>
                   ],
                 )
               else if (_myPosition != null)
-                // Immediate straight-line preview between the worker and the job while the real
-                // driving route is still loading (or unavailable) — replaced by the routed
-                // polyline above as soon as it resolves.
                 PolylineLayer(
                   polylines: [
                     Polyline(

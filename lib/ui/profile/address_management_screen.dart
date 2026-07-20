@@ -217,7 +217,6 @@ class _AddressBottomSheetState extends State<AddressBottomSheet> {
   }
 
   Future<void> _handleSave() async {
-    // Kiểm tra tính hợp lệ trước khi gửi API
     if (_addressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng nhập địa chỉ trước khi lưu!')),

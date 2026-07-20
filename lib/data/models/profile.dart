@@ -7,7 +7,7 @@ class Profile {
   final bool? isPhoneVerified;
 
   final int? bookingCount;
-  final int? savedCount; // Đã xóa rating
+  final int? savedCount;
 
   Profile({
     required this.id,

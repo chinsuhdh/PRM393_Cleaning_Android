@@ -328,6 +328,9 @@ class _FakeBookingRepository implements BookingRepository {
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
+
+  @override
+  Future<void> updateDuration(String bookingId, double hours) async {}
 }
 
 class _FakeDispatchHubClient implements DispatchHubClient {
@@ -426,5 +429,8 @@ class _FailingBookingRepository implements BookingRepository {
 
   @override
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason}) async {}
+
+  @override
+  Future<void> updateDuration(String bookingId, double hours) async {}
 }
 

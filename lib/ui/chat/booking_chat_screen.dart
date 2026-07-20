@@ -5,7 +5,7 @@ import '../../data/models/booking.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
-import '../booking/booking_detail_screen.dart'; // For bookingDetailProvider
+import '../booking/booking_detail_screen.dart';
 
 class BookingChatScreen extends ConsumerStatefulWidget {
   final String bookingId;
@@ -56,9 +56,6 @@ class _BookingChatScreenState extends ConsumerState<BookingChatScreen> {
       final newMsg = ChatMessage.fromJson(msg);
       if (newMsg.bookingId != widget.bookingId) return;
 
-      // Our own sent messages are already rendered via the optimistic add in
-      // _sendMessage(); relying on this echo too raced with that HTTP response
-      // and could show the message twice.
       final currentUserId = ref.read(authProvider).userId;
       if (newMsg.senderId == currentUserId) return;
 
@@ -96,9 +93,8 @@ class _BookingChatScreenState extends ConsumerState<BookingChatScreen> {
     final repo = ref.read(chatRepositoryProvider);
     final userId = ref.read(authProvider).userId;
 
-    // Optimistic UI update
     final optimisticMsg = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), // Temporary ID
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       bookingId: widget.bookingId,
       senderId: userId ?? '',
       content: text,
@@ -181,11 +177,10 @@ class _BookingChatScreenState extends ConsumerState<BookingChatScreen> {
                           )
                         : ListView.builder(
                             controller: _scrollController,
-                            reverse: true, // Show newest at the bottom
+                            reverse: true,
                             padding: const EdgeInsets.all(16),
                             itemCount: _messages.length,
                             itemBuilder: (context, index) {
-                              // Since we are reversing the list view, we need to reverse the index
                               final msg = _messages[_messages.length - 1 - index];
                               final isMe = msg.senderId == currentUserId;
                               return _buildMessageBubble(msg, isMe, theme);

@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import 'slot_picker.dart';
 
 class BookingDateTimeStep extends StatelessWidget {
-  final int bookingType; // 1 = Immediate, 0 = Scheduled
+  final int bookingType;
   final DateTime selectedDate;
   final TimeOfDay selectedTime;
   final TextEditingController notesController;

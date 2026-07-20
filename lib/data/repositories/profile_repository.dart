@@ -21,7 +21,6 @@ class ProfileRepository {
     }
   }
 
-  // Sửa Future<Profile> thành Future<void>
   Future<void> updateProfile({
     required String fullName,
     String? avatarUrl,
@@ -34,8 +33,6 @@ class ProfileRepository {
           if (avatarUrl != null) 'avatarUrl': avatarUrl,
         },
       );
-      // Xóa đoạn check Map<String, dynamic> và Profile.fromJson
-      // Vì API PUT chỉ trả về object thông báo thành công, không trả về object Profile
     } on DioException catch (e) {
       throw Exception(
         e.response?.data['message'] ?? 'Lỗi khi cập nhật Profile',
@@ -45,7 +42,6 @@ class ProfileRepository {
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  // Giả định dioProvider đã được khởi tạo trong core/network/dio_client.dart
   return ProfileRepository(ref.read(dioProvider));
 });
 

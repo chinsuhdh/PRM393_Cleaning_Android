@@ -5,17 +5,12 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import 'booking_pricing_estimate.dart';
 
-/// Whether an answer value counts as "filled in" — matches the predicate
-/// create_booking_screen.dart uses to gate the required-questions check, kept
-/// here as the single source of truth so both stay in sync.
 bool isQuestionAnswered(dynamic value) {
   if (value == null || value == '') return false;
   if (value is Iterable && value.isEmpty) return false;
   return true;
 }
 
-/// Parses the `questions` array out of a service's `bookingFormSchema`. Shared by
-/// [BookingQuestionsStep] and create_booking_screen.dart so both read the schema the same way.
 List<Map<String, dynamic>> parseBookingQuestions(Map<String, dynamic>? service) {
   final raw = service?['bookingFormSchema'];
   final schema = raw is String ? jsonDecode(raw) : raw;
@@ -31,6 +26,8 @@ class BookingQuestionsStep extends StatelessWidget {
     required this.onChanged,
     required this.onPhotosChanged,
     required this.photoCount,
+    this.durationOverrideHours,
+    this.onDurationOverrideChanged,
   });
 
   final Map<String, dynamic>? service;
@@ -38,14 +35,23 @@ class BookingQuestionsStep extends StatelessWidget {
   final void Function(String id, dynamic value) onChanged;
   final ValueChanged<List<XFile>> onPhotosChanged;
   final int photoCount;
+  final double? durationOverrideHours;
+  final ValueChanged<double>? onDurationOverrideChanged;
 
   List<Map<String, dynamic>> get _questions => parseBookingQuestions(service);
 
   @override
   Widget build(BuildContext context) {
     final questions = _questions;
-    if (questions.isEmpty) return const Center(child: Text('Dịch vụ này không có câu hỏi bổ sung.'));
-    final estimate = computeBookingEstimate(service: service, answers: answers);
+    final estimate = computeBookingEstimate(service: service, answers: answers, durationOverrideHours: durationOverrideHours);
+    if (questions.isEmpty) {
+      return Column(
+        children: [
+          const Expanded(child: Center(child: Text('Dịch vụ này không có câu hỏi bổ sung.'))),
+          _EstimateBar(estimate: estimate, onDurationOverrideChanged: onDurationOverrideChanged),
+        ],
+      );
+    }
     return Column(
       children: [
         Expanded(
@@ -61,20 +67,23 @@ class BookingQuestionsStep extends StatelessWidget {
             ),
           ),
         ),
-        _EstimateBar(estimate: estimate),
+        _EstimateBar(estimate: estimate, onDurationOverrideChanged: onDurationOverrideChanged),
       ],
     );
   }
 }
 
-/// Non-authoritative running total shown while answering questions — the confirmed price still
-/// comes from the server's /quote call before the summary step.
 class _EstimateBar extends StatelessWidget {
-  const _EstimateBar({required this.estimate});
+  const _EstimateBar({required this.estimate, required this.onDurationOverrideChanged});
   final PricingEstimate estimate;
+  final ValueChanged<double>? onDurationOverrideChanged;
+
+  static const _step = 0.5;
+  static const _max = 12.0;
 
   @override
   Widget build(BuildContext context) {
+    final hours = estimate.durationHours;
     return Container(
       margin: const EdgeInsets.only(top: 12, bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -86,9 +95,34 @@ class _EstimateBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('Tạm tính', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          Text(
-            '${vndFormat.format(estimate.totalPrice)} · ${estimate.durationHours.toStringAsFixed(1)} giờ',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                vndFormat.format(estimate.totalPrice),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
+              ),
+              const Text(' · ', style: TextStyle(fontWeight: FontWeight.w800, color: kPrimary)),
+              if (onDurationOverrideChanged != null)
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, size: 20),
+                  color: kPrimary,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: hours > estimate.minDurationHours ? () => onDurationOverrideChanged!(hours - _step) : null,
+                ),
+              Text(
+                '${hours.toStringAsFixed(1)} giờ',
+                key: const ValueKey('duration-override-value'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
+              ),
+              if (onDurationOverrideChanged != null)
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
+                  color: kPrimary,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: hours < _max ? () => onDurationOverrideChanged!(hours + _step) : null,
+                ),
+            ],
           ),
         ],
       ),
@@ -234,9 +268,6 @@ class _Question extends StatelessWidget {
         color: fillColor,
         border: borderColor != null ? Border.all(color: borderColor) : null,
       ),
-      // ListTile-family controls (Radio/Checkbox/SwitchListTile) paint ink splashes on the
-      // nearest Material ancestor; without this, the colored/bordered decoration above hides
-      // them and Flutter throws an assertion in debug/test builds.
       child: Material(
         type: MaterialType.transparency,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -257,7 +288,6 @@ class _Question extends StatelessWidget {
   }
 }
 
-/// "+50.000₫ · +45 phút" caption showing exactly what selecting/adding this option costs.
 class _DeltaCaption extends StatelessWidget {
   const _DeltaCaption({required this.delta, this.suffix});
   final Delta delta;

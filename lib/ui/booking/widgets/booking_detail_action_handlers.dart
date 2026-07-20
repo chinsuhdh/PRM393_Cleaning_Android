@@ -101,6 +101,68 @@ extension _BookingDetailActionHandlers on _BookingDetailScreenState {
     }
   }
 
+  Future<void> _adjustDuration(BuildContext context, WidgetRef ref, Booking booking) async {
+    var hours = 1.0;
+    final result = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Điều chỉnh thời lượng', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(
+                'Ước tính công việc này sẽ mất ${hours.toStringAsFixed(1)} giờ.',
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              Slider(
+                value: hours,
+                min: 0.5,
+                max: 12,
+                divisions: 23,
+                label: '${hours.toStringAsFixed(1)} giờ',
+                onChanged: (value) => setSheetState(() => hours = value),
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, hours),
+                  child: const Text('Lưu'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result == null || !context.mounted) return;
+    try {
+      await ref.read(bookingRepositoryProvider).updateDuration(widget.bookingId, result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật thời lượng công việc.')),
+        );
+      }
+      await _reloadFresh(ref);
+    } catch (error) {
+      debugPrint('[BookingDetailScreen] adjustDuration failed: $error');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   void _showCancellationReason(BuildContext context, Booking booking) {
     final cancelEntry = booking.statusTimeline.lastWhere(
       (entry) => entry['newStatus']?.toString() == BookingStatusName.cancelled,

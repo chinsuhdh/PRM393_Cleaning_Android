@@ -66,7 +66,6 @@ class ClientShell extends StatelessWidget {
   }
 }
 
-/// Worker shell with 3 tabs
 class WorkerShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
   const WorkerShell({super.key, required this.navigationShell});
@@ -91,10 +90,6 @@ class WorkerShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Keeps WorkerProfile.current_lat/current_lng fresh for as long as the worker is Online/Busy
-    // (not just while they happen to have an assigned job's tracking screen open) — this is what
-    // the client's "available workers" nearby-dots map and the on-the-way map's initial snapshot
-    // both read from. Stops as soon as the worker goes Offline.
     final onlineStatus = ref.watch(workerOnlineStatusProvider).valueOrNull;
     if (onlineStatus != null && onlineStatus != WorkerOnlineStatus.offline) {
       ref.watch(workerLocationSenderProvider);

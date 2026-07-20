@@ -4,8 +4,6 @@ import 'package:latlong2/latlong.dart';
 
 import '../../ui/booking/widgets/live_tracking_map.dart' show formatDistance;
 
-/// A driving route between two points, decoded from an OSRM route response: the polyline to draw
-/// plus the distance/duration it quoted for that specific route.
 class DirectionsRoute {
   final List<LatLng> points;
   final String distanceText;
@@ -20,10 +18,6 @@ class DirectionsRoute {
   });
 }
 
-/// Fetches a driving route from OSRM's free, key-less public routing server for the live-tracking
-/// map's route line/ETA (`LiveTrackingMap`). Deliberately on its own bare `Dio` — this talks straight
-/// to OSRM, not CleanAI's backend, so it has none of `DioClient`'s base URL, auth header, or response
-/// envelope.
 class DirectionsService {
   DirectionsService({Dio? dio})
       : _dio = dio ??
@@ -34,9 +28,6 @@ class DirectionsService {
 
   final Dio _dio;
 
-  /// Returns null on any failure (no network, no route found) — callers fall back to the
-  /// straight-line distance they already have, same tolerance as the rest of this screen's
-  /// best-effort location plumbing (`WorkerLocationSender`, `WorkerRepository.updateLocation`).
   Future<DirectionsRoute?> fetchRoute({
     required double originLat,
     required double originLng,
@@ -44,7 +35,6 @@ class DirectionsService {
     required double destLng,
   }) async {
     try {
-      // OSRM's coordinate order is lng,lat (opposite of this method's own lat/lng-named params).
       final response = await _dio.get<Map<String, dynamic>>(
         'https://router.project-osrm.org/route/v1/driving/'
         '$originLng,$originLat;$destLng,$destLat',
@@ -75,8 +65,6 @@ class DirectionsService {
   }
 }
 
-/// OSRM gives only raw seconds, no localized string — a small Vietnamese-language formatter to match
-/// the rest of this screen's copy.
 String formatDuration(Duration duration) {
   final totalMinutes = duration.inMinutes;
   if (totalMinutes < 1) return '1 phút';
@@ -87,9 +75,6 @@ String formatDuration(Duration duration) {
   return '$hours giờ $minutes phút';
 }
 
-/// Standard Google/OSRM encoded-polyline decoder (precision 5): turns the compact string OSRM
-/// returns (`routes[0].geometry` with `geometries=polyline`) back into the list of lat/lng points
-/// that make up the route.
 List<LatLng> decodePolyline(String encoded) {
   final points = <LatLng>[];
   var index = 0;

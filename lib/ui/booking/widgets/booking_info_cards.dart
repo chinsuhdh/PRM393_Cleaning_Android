@@ -15,6 +15,10 @@ List<Widget> buildBookingDetailContent(ThemeData theme, Booking booking, UserRol
   final isCompleted = booking.status == BookingStatusName.completed;
   return [
     _summaryCard(theme, booking),
+    if (isCompleted && booking.worker != null) ...[
+      const SizedBox(height: 16),
+      BookingReviewSection(booking: booking, viewerRole: role),
+    ],
     const SizedBox(height: 20),
     if (isCompleted && booking.latitude != null && booking.longitude != null) ...[
       CompletedJobLocationCard(booking: booking),
@@ -29,10 +33,6 @@ List<Widget> buildBookingDetailContent(ThemeData theme, Booking booking, UserRol
     ],
     if (booking.photos.isNotEmpty) ...[const SizedBox(height: 16), _photosRow(booking)],
     if (booking.worker != null) ...[const SizedBox(height: 16), _WorkerCard(theme: theme, booking: booking)],
-    if (isCompleted && booking.worker != null) ...[
-      const SizedBox(height: 16),
-      BookingReviewSection(booking: booking, viewerRole: role),
-    ],
   ];
 }
 

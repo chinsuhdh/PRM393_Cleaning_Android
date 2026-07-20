@@ -12,6 +12,7 @@ import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/worker_repository.dart';
 import '../../data/services/dispatch_hub_service.dart';
 import '../../data/services/directions_service.dart';
+import '../../data/repositories/review_repository.dart';
 import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/utils/search_timeout.dart';
@@ -71,6 +72,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final client = ref.read(dispatchHubClientProvider);
     client.onBookingStatusChanged(() {
       if (!mounted) return;
+      final workerId = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull?.worker?.id;
+      if (workerId != null) {
+        ref.invalidate(bookingReviewProvider((workerUserId: workerId, bookingId: widget.bookingId)));
+      }
       ref.invalidate(bookingDetailProvider(widget.bookingId));
     });
     client.onReconnected(() {
@@ -90,14 +95,11 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         await client.subscribeToBooking(widget.bookingId);
       } catch (e) {
         debugPrint('[BookingDetailScreen] live update subscribe failed: $e');
-        // Best-effort: there is no polling fallback if this fails — the screen stays on
-        // whatever it last fetched until the user navigates away and back.
       }
     }());
   }
 
   void _ensureSearchTracking(bool isSearching) {
-    // SignalR lo việc cập nhật trạng thái, ticker này chỉ đếm giây hiển thị UI (không gọi API).
     if (isSearching && _searchTicker == null) {
       _searchTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
@@ -289,7 +291,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     onProposeReschedule: (newStartTime, message) =>
                         _proposeReschedule(context, ref, newStartTime, message),
                     onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-                    onReview: () => context.push('/review/${booking.id}'),
+                    onAdjustDuration: () => _adjustDuration(context, ref, booking),
                     onViewEarning: () => context.push('/worker/wallet'),
                     onViewReason: () => _showCancellationReason(context, booking),
                   ),
@@ -419,7 +421,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onProposeReschedule: (newStartTime, message) =>
                 _proposeReschedule(context, ref, newStartTime, message),
             onRetryAsNewBooking: () => _retryAsNewBooking(context, ref, booking),
-            onReview: () => context.push('/review/${booking.id}'),
+            onAdjustDuration: () => _adjustDuration(context, ref, booking),
             onViewEarning: () => context.push('/worker/wallet'),
             onViewReason: () => _showCancellationReason(context, booking),
           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Consistent action layout for destructive confirmations.
 class DestructiveDialogActions extends StatelessWidget {
   final String confirmLabel;
   final String cancelLabel;

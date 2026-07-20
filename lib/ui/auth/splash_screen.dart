@@ -62,7 +62,6 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo circle
                   Container(
                     width: 100,
                     height: 100,

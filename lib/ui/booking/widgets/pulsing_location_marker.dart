@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// A static pin icon with a looping, expanding, fading ring behind it — used to draw attention to
-/// the client's chosen/current job location on the booking-detail maps.
 class PulsingLocationMarker extends StatefulWidget {
   const PulsingLocationMarker({
     super.key,

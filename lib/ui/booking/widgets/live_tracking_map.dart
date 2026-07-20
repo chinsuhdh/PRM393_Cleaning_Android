@@ -33,10 +33,8 @@ double? onTheWayDistanceMeters(Booking booking) => _distanceMeters(
 String formatDistance(double meters) =>
     meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '${meters.round()} m';
 
-const _assumedAverageSpeedKmh = 25.0; // city-driving estimate, used when no OSRM route is available yet
+const _assumedAverageSpeedKmh = 25.0;
 
-/// Straight-line ETA fallback so the distance/duration chip always shows a time estimate, not just
-/// distance, even before (or if) the real OSRM route resolves.
 Duration estimatedTravelDuration(double meters) =>
     Duration(minutes: (meters / 1000 / _assumedAverageSpeedKmh * 60).round());
 
@@ -49,10 +47,6 @@ class LiveTrackingMap extends ConsumerStatefulWidget {
 
   final bool showRoute;
 
-  // The full-bleed booking-detail layout renders this map underneath a DraggableScrollableSheet
-  // that can cover up to the whole screen, so any distance/ETA chip drawn inside this widget's own
-  // Stack would be hidden behind that sheet — this lets the parent render its own always-visible
-  // copy instead, using whatever this widget last computed.
   final void Function(double? distanceMeters, DirectionsRoute? route)? onDistanceUpdate;
 
   const LiveTrackingMap({
@@ -81,15 +75,9 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> with SingleTi
   @override
   void initState() {
     super.initState();
-    // Eagerly created here (not as a lazy `late final` field initializer) — the FlutterMap branch
-    // that reads `_camera` in build() may never run before dispose() if the map never gets a
-    // destination+worker fix in time, which would otherwise defer creation (and its vsync/Ticker
-    // lookup) until dispose(), when the element is no longer mounted.
     _camera = AnimatedMapCamera(vsync: this);
     _liveWorkerLat = widget.booking.worker?.latitude;
     _liveWorkerLng = widget.booking.worker?.longitude;
-    // F.2/F.3: the booking-detail screen already connects and joins `booking:{id}` — this only
-    // needs to listen for the worker's live position pushes on that shared connection.
     ref.read(dispatchHubClientProvider).onWorkerPosition((lat, lng) {
       if (!mounted) return;
       setState(() {
@@ -120,9 +108,6 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> with SingleTi
     super.dispose();
   }
 
-  /// Keeps both the destination and the worker's live position comfortably in frame — like a
-  /// navigation app, the camera zooms in as they close in and out if they're far apart, instead of
-  /// staying at a fixed zoom level.
   void _fitCameraToDestinationAndWorker() {
     final workerLat = _liveWorkerLat;
     final workerLng = _liveWorkerLng;

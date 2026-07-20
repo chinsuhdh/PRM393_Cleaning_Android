@@ -5,8 +5,6 @@ import 'package:geolocator/geolocator.dart';
 
 import '../repositories/worker_repository.dart';
 
-/// Wraps the geolocator plugin behind an interface so WorkerLocationSender is testable without a
-/// real device/emulator location fix.
 abstract class DeviceLocationSource {
   Future<({double latitude, double longitude})?> getCurrentPosition();
 }
@@ -30,9 +28,6 @@ class GeolocatorLocationSource implements DeviceLocationSource {
   }
 }
 
-/// F-T5: while a worker is OnTheWay, pushes their position to the backend on an interval so the
-/// client's live map has something real to track. Best-effort — a denied permission or GPS-off just
-/// means no update gets sent this tick, same tolerance as WorkerRepository.updateLocation itself.
 class WorkerLocationSender {
   WorkerLocationSender(this._locationSource, this._workerRepository);
 
@@ -59,8 +54,6 @@ class WorkerLocationSender {
 
 final deviceLocationSourceProvider = Provider<DeviceLocationSource>((ref) => GeolocatorLocationSource());
 
-/// Watch this from the worker's Booking Detail screen only while status is OnTheWay and the viewer
-/// is the assigned worker; disposed (and the timer stopped) once nothing watches it anymore.
 final workerLocationSenderProvider = Provider.autoDispose<void>((ref) {
   final sender = WorkerLocationSender(
     ref.watch(deviceLocationSourceProvider),
