@@ -18,9 +18,6 @@ abstract class DispatchRepository {
   Future<void> hideBooking(String bookingId);
   Future<void> retryBroadcast(String bookingId);
 
-  /// Anonymous coordinates only for nearby online, non-busy workers eligible for this booking —
-  /// used to render reassurance dots on the search map. Never carries a worker id/name/rating (the
-  /// backend enforces that too, not just this client).
   Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId);
 }
 
@@ -48,8 +45,6 @@ class ApiDispatchRepository implements DispatchRepository {
       return parseNearbyWorkerLocations(response.data);
     } catch (e) {
       debugPrint('[DispatchRepository] getNearbyWorkerLocations failed: $e');
-      // A failed nearby-worker fetch shouldn't block or error out the whole search map — it's
-      // reassurance UI, not load-bearing data.
       return [];
     }
   }

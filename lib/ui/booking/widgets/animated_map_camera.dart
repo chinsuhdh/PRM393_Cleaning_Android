@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-/// Wraps a flutter_map [MapController] with animated pan/zoom transitions, so the camera can
-/// smoothly reframe (like turn-by-turn navigation) instead of jumping. flutter_map's own
-/// `MapController.move()` is an instant, unanimated jump — this hand-builds the animation the
-/// same way [PulsingLocationMarker] does (single reused `AnimationController`, no extra package).
 class AnimatedMapCamera {
   AnimatedMapCamera({required TickerProvider vsync})
       : _controller = AnimationController(vsync: vsync, duration: const Duration(milliseconds: 600));
@@ -15,7 +11,6 @@ class AnimatedMapCamera {
   VoidCallback? _activeTick;
   bool _ready = false;
 
-  /// Call from `MapOptions.onMapReady` — camera calls before the map has rendered once throw.
   void onMapReady() => _ready = true;
 
   Future<void> animateTo(LatLng center, double zoom) async {
@@ -38,8 +33,6 @@ class AnimatedMapCamera {
     }
   }
 
-  /// Reframes the camera to keep every point in [points] comfortably visible — the "zoom in/out to
-  /// keep both pins in view" behavior. A single point just pans to it at the current zoom.
   Future<void> animateFit(
     List<LatLng> points, {
     EdgeInsets padding = const EdgeInsets.all(60),

@@ -40,10 +40,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           _emailController.text = currentProfile.email ?? '';
           _phoneController.text = currentProfile.phoneNumber ?? '';
 
-          // LƯU Ý: Bạn cần vào class Profile (trong profile_repository.dart hoặc file model)
-          // và thêm thuộc tính: final bool? isPhoneVerified;
-          // Sau đó bỏ comment dòng bên dưới. Tạm thời set false để code không báo lỗi đỏ.
-          // _isPhoneVerified = currentProfile.isPhoneVerified ?? false;
           _isPhoneVerified = false;
         });
       }
@@ -58,7 +54,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  // CHỨC NĂNG 1: CHỌN VÀ UPLOAD FILE ẢNH AVATAR THỰC TẾ LÊN BACKEND
   Future<void> _pickAndUploadAvatar() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -75,7 +70,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       final response = await DioClient.instance.post('/Profiles/me/avatar', data: formData);
 
-      // Chặn lỗi BuildContext across async gaps
       if (!mounted) return;
 
       setState(() {
@@ -98,12 +92,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
-  // CHỨC NĂNG 2: XÁC THỰC SỐ ĐIỆN THOẠI QUA SĐT VÀ OTP DIALOG
   Future<void> _handleVerifyPhoneFlow() async {
     try {
       await DioClient.instance.post('/Auth/send-phone-otp');
 
-      // Chặn lỗi BuildContext across async gaps
       if (!mounted) return;
 
       final otpController = TextEditingController();
@@ -132,13 +124,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     'otpCode': otpController.text.trim(),
                   });
 
-                  // Chặn lỗi BuildContext across async gaps
                   if (!mounted) return;
 
                   setState(() => _isPhoneVerified = true);
                   ref.invalidate(myProfileProvider);
 
-                  Navigator.pop(dialogContext); // Đóng dialog
+                  Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Xác thực số điện thoại thành công!'), backgroundColor: kSecondary)
                   );
@@ -172,7 +163,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         avatarUrl: _currentAvatarUrl,
       );
 
-      // Chặn lỗi BuildContext across async gaps
       if (!mounted) return;
 
       ref.invalidate(myProfileProvider);

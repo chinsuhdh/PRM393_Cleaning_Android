@@ -67,7 +67,6 @@ class ApiWorkerRepository implements WorkerRepository {
       );
     } catch (e) {
       debugPrint('[WorkerRepository] updateLocation failed: $e');
-      // Bỏ qua lỗi update location ngầm
     }
   }
 

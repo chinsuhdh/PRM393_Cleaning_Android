@@ -29,20 +29,14 @@ class BookingActionBar extends StatelessWidget {
   final Future<void> Function() onPayNow;
   final Future<void> Function() onSwitchToCash;
 
-  /// H.1: client pre-accept cancel — no reason required.
   final Future<void> Function() onCancelByClient;
 
-  /// H.1/H.2: worker releases an already-accepted job back to AwaitingWorker with a reason.
   final Future<void> Function(String reasonCode, String? freeText) onWorkerCancel;
 
-  /// Client-side mirror of onWorkerCancel: releases an already-accepted job back to
-  /// AwaitingWorker with a reason, no suspension penalty (that mechanic is worker-only).
   final Future<void> Function(String reasonCode, String? freeText) onClientCancel;
 
-  /// H.1/H.7: report the other party on an in-progress booking — dedicated reason + free-text sheet.
   final Future<void> Function(String reasonCode, String freeText) onReport;
 
-  /// H.5: propose a new time for an already-accepted Scheduled booking.
   final Future<void> Function(DateTime newStartTime, String? message) onProposeReschedule;
   final VoidCallback onRetryAsNewBooking;
   final Future<void> Function() onAdjustDuration;
@@ -114,8 +108,6 @@ class BookingActionBar extends StatelessWidget {
         overflow.add(_OverflowAction('Báo cáo', () => _openReportSheet(context), icon: Icons.flag_outlined));
 
       case BookingStatusName.rescheduleRequested:
-        // RescheduleBanner (rendered above this action bar on the screen) owns this status's
-        // primary UI (Accept/Reject/Withdraw) — the action bar just keeps Chat available.
         showChat = true;
 
       case BookingStatusName.onTheWay:

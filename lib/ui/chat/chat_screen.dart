@@ -23,7 +23,6 @@ final _greeting = ChatMessage(
   isUser: false,
 );
 
-// State quản lý danh sách tin nhắn và trạng thái loading
 class ChatState {
   final List<ChatMessage> messages;
   final bool isAiTyping;
@@ -65,7 +64,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
         Random().nextInt(1000).toString();
   }
 
-  // Phiên trò chuyện được lưu cục bộ để lịch sử không bị mất khi khởi động lại app.
   Future<void> _restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     final storedSessionId = prefs.getString(_sessionPrefsKey);
@@ -215,7 +213,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final chatState = ref.watch(chatProvider);
     final theme = Theme.of(context);
 
-    // Tự động cuộn khi có tin nhắn mới
     ref.listen(chatProvider, (prev, next) {
       if (prev?.messages.length != next.messages.length) {
         _scrollToBottom();
@@ -285,7 +282,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           if (chatState.messages.length <= 1 && !chatState.isAiTyping)
             _SuggestedQuestions(onSelected: _send),
-          // Input bar
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -303,7 +299,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    enabled: !chatState.isAiTyping, // Khóa input khi AI đang gõ
+                    enabled: !chatState.isAiTyping,
                     decoration: InputDecoration(
                       hintText: chatState.isAiTyping
                           ? 'AI đang suy nghĩ...'

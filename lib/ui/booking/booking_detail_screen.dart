@@ -72,9 +72,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final client = ref.read(dispatchHubClientProvider);
     client.onBookingStatusChanged(() {
       if (!mounted) return;
-      // Also reused as a "a review was just submitted" signal (see ReviewService.CreateReviewAsync
-      // on the backend) — without this, the other party's already-open Booking Detail screen would
-      // keep showing stale review data (no review / an old one) until they left and re-entered.
       final workerId = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull?.worker?.id;
       if (workerId != null) {
         ref.invalidate(bookingReviewProvider((workerUserId: workerId, bookingId: widget.bookingId)));
@@ -98,14 +95,11 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         await client.subscribeToBooking(widget.bookingId);
       } catch (e) {
         debugPrint('[BookingDetailScreen] live update subscribe failed: $e');
-        // Best-effort: there is no polling fallback if this fails — the screen stays on
-        // whatever it last fetched until the user navigates away and back.
       }
     }());
   }
 
   void _ensureSearchTracking(bool isSearching) {
-    // SignalR lo việc cập nhật trạng thái, ticker này chỉ đếm giây hiển thị UI (không gọi API).
     if (isSearching && _searchTicker == null) {
       _searchTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});

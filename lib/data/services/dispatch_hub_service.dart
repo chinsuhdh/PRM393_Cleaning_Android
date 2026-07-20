@@ -127,11 +127,6 @@ class DispatchLiveFeedController {
 
   final DispatchHubClient _client;
   final void Function() onFeedChanged;
-  // Access tokens expire in 15 minutes (JwtConfig:AccessTokenExpirationMinutes) and nothing else
-  // proactively refreshes one while a worker just idles on Available Jobs with no REST calls firing —
-  // so a reconnect attempt after that window presents an already-expired JWT and the hub's [Authorize]
-  // rejects it. Called before every RETRY (not the very first connect in start()) so a stale token gets
-  // refreshed before it can cause a permanently-failing reconnect loop.
   final Future<void> Function()? onBeforeRetry;
   final Duration retryDelay;
   bool _stopped = false;
@@ -142,10 +137,6 @@ class DispatchLiveFeedController {
     _client.onJobTaken(onFeedChanged);
     _client.onJobCancelled(onFeedChanged);
     _client.onReconnected(onFeedChanged);
-    // withAutomaticReconnect() only covers drops after a connection was established at least once,
-    // and it eventually gives up retrying — onDisconnected fires whenever the connection ends up
-    // Disconnected either way, so this is the single place that keeps trying to get the live feed
-    // back instead of leaving the worker stuck on manual pull-to-refresh for the rest of the session.
     _client.onDisconnected(_scheduleReconnect);
     await _connectWithRetry();
   }
@@ -156,16 +147,11 @@ class DispatchLiveFeedController {
       try {
         await onBeforeRetry?.call();
       } catch (_) {
-        // Best-effort — if the refresh itself fails, still attempt to connect with whatever
-        // token is currently set; a failure there just schedules another retry as usual.
       }
     }
     try {
       await _client.connect();
     } catch (_) {
-      // Best-effort: the Available Jobs feed still works via REST pull-to-refresh without live
-      // updates (same tolerance as WorkerRepository.updateLocation's background pings) — but keep
-      // retrying in the background instead of giving up on live updates for the rest of the session.
       _scheduleReconnect();
     }
   }
@@ -199,19 +185,11 @@ final dispatchLiveFeedProvider = Provider.autoDispose<void>((ref) {
   });
 });
 
-/// Keeps the client's booking list (`bookingsProvider` — the active-booking bar and "Đơn của tôi"
-/// list both read it) fresh as the worker moves a booking through its statuses, even when the
-/// client isn't on that specific booking's detail screen. Backed by the client's always-joined
-/// `client:{clientId}` SignalR group (auto-joined server-side on connect — no per-booking
-/// SubscribeBooking call needed, unlike BookingDetailScreen's own live-update wiring).
 final clientBookingsLiveFeedProvider = Provider.autoDispose<void>((ref) {
   final client = ref.watch(dispatchHubClientProvider);
   void refresh() => ref.invalidate(bookingsProvider);
 
   client.onBookingStatusChanged(refresh);
-  // Group membership isn't preserved across a reconnect, but OnConnectedAsync re-runs on every new
-  // connection and re-joins client:{clientId} automatically — this refresh is just a defensive
-  // catch-up for anything that changed while disconnected, matching BookingDetailScreen's approach.
   client.onReconnected(refresh);
   unawaited(client.connect());
 });

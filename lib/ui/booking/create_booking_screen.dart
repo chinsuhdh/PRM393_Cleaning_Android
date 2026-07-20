@@ -44,7 +44,7 @@ class CreateBookingScreen extends ConsumerStatefulWidget {
 class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   int _currentStep = 0;
   bool _isBooking = false;
-  int _bookingType = 0; // 1 = Immediate (Đặt ngay), 0 = Scheduled (Hẹn giờ)
+  int _bookingType = 0;
   late String _idempotencyKey;
 
   Map<String, dynamic>? _selectedAddress;
@@ -55,8 +55,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   final Map<String, dynamic> _answers = {};
   Map<String, dynamic>? _quote;
   final List<XFile> _photos = [];
-  // Client's own expected-duration override, purely for scheduling/display — it never affects
-  // price, which always comes from the server's own BookingPricingCalculator computation.
   double? _durationOverrideHours;
 
   @override
@@ -75,7 +73,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     _idempotencyKey = '${DateTime.now().microsecondsSinceEpoch}-${widget.serviceId}';
   }
 
-  /// The concrete start time chosen for a Scheduled booking (null for Immediate).
   DateTime? get _scheduledStart => _bookingType == 0
       ? DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day,
           _selectedTime.hour, _selectedTime.minute)
@@ -98,9 +95,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     return true;
   }
 
-  /// Numeric questions render a display-only default (e.g. "1") even before the user has
-  /// touched +/-. Without seeding `_answers` here, that displayed default is never actually
-  /// submitted, so a mandatory numeric question with an untouched default fails validation.
   void _seedNumericDefaults(Map<String, dynamic>? service) {
     final defaults = <String, dynamic>{};
     for (final question in parseBookingQuestions(service)) {
@@ -134,7 +128,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         if (_bookingType == 0)
           'scheduledStartTime': _scheduledStart?.toUtc().toIso8601String(),
         'bookingType': _bookingType == 1 ? BookingTypeName.immediate : BookingTypeName.scheduled,
-        // Enum by NAME, matching the API convention ('Cash' | 'Vnpay').
         'paymentMethod': _paymentMethod == PaymentMethod.vnpay ? 'Vnpay' : 'Cash',
         'serviceVersion': _quote?['serviceVersion'],
         'optionAnswers': _answers,
@@ -155,8 +148,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       ref.invalidate(bookingsProvider);
       if (mounted) {
         if (_bookingType == 1) {
-          // Clears the multi-step creation flow off the stack first, so Back from Booking Detail
-          // returns to the Bookings tab instead of back into the (now stale) creation form.
           context.go('/bookings');
           context.push('/booking/${newBooking.id}');
         } else {

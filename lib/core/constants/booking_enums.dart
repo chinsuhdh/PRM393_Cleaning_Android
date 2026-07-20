@@ -1,5 +1,3 @@
-/// Backend `BookingStatus` values, serialized by name. Pay-after-job lifecycle:
-/// AwaitingWorker -> Accepted -> OnTheWay -> InProgress -> PendingPayment -> Completed.
 class BookingStatusName {
   const BookingStatusName._();
 

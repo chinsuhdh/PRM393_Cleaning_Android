@@ -14,20 +14,13 @@ Delta? _deltaOf(Map<String, dynamic>? source) {
   return (price: price, duration: duration);
 }
 
-/// The per-unit price/duration a stepper or number question adds, read from its `unit` object
-/// (or the question itself, matching the server's fallback in BookingPricingCalculator.AddDelta).
 Delta? stepperUnitDelta(Map<String, dynamic> question) {
   final unit = question['unit'];
   return _deltaOf(unit is Map ? Map<String, dynamic>.from(unit) : question);
 }
 
-/// The price/duration a single choice/multi-choice option adds when selected.
 Delta? optionDelta(Map<String, dynamic> option) => _deltaOf(option);
 
-/// A client-side, non-authoritative preview of price and duration, computed from the same
-/// schema/answers the server uses in BookingPricingCalculator.Calculate. This lets the questions
-/// step show a running estimate without an extra network round-trip; the real, charged total still
-/// comes from the server's /quote call before the summary step.
 class PricingEstimate {
   final num totalPrice;
   final double durationHours;

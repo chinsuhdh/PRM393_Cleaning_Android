@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // [THÊM MỚI] Để lưu token cục bộ
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/user_role.dart';
 import '../../core/network/dio_client.dart';
 
@@ -40,9 +39,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   final Dio _dio;
 
-  // ==========================================
-  // 1. LOGIN API
-  // ==========================================
   Future<bool> login(String emailOrPhone, String password) async {
     try {
       final response = await _dio.post(
@@ -52,25 +48,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final data = response.data;
       final token = data['accessToken'];
-      final refreshToken = data['refreshToken']; // Lấy refreshToken từ API
+      final refreshToken = data['refreshToken'];
       final fullName = data['fullName'] ?? 'Người dùng';
       final profileId = data['profileId'];
 
-      // Lấy Role từ API trả về và chuyển đổi sang Enum
       final roleString = data['role']?.toString().toLowerCase() ?? 'client';
       UserRole parsedRole = UserRole.client;
       if (roleString == 'worker') parsedRole = UserRole.worker;
       if (roleString == 'admin') parsedRole = UserRole.admin;
 
-      // [BỔ SUNG] Lưu token vào SharedPreferences để dùng cho việc refresh sau này
       final prefs = await SharedPreferences.getInstance();
       if (token != null) await prefs.setString('accessToken', token);
       if (refreshToken != null) await prefs.setString('refreshToken', refreshToken);
 
-      // Inject Token into Dio for subsequent requests
       DioClient.setAuthToken(_dio, token);
 
-      // Update App State
       state = AuthState(
         isAuthenticated: true,
         userId: profileId,
@@ -94,9 +86,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ==========================================
-  // 2. REGISTER API
-  // ==========================================
   Future<bool> register({
     required String name,
     required String email,
@@ -127,9 +116,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ==========================================
-  // 3. REAUTH API
-  // ==========================================
   Future<String?> reauthenticate(String password) async {
     try {
       final response = await _dio.post(
@@ -147,9 +133,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ==========================================
-  // 4. REFRESH TOKEN API [THÊM MỚI]
-  // ==========================================
   Future<bool> refreshToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -161,12 +144,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
 
-      // Dùng một instance Dio MỚI hoàn toàn, lấy baseUrl từ _dio hiện tại
-      // KHÔNG dùng _dio có gắn AuthInterceptor để tránh bị lặp vô hạn (Infinite Loop)
       final refreshDio = Dio(BaseOptions(baseUrl: _dio.options.baseUrl));
 
       final response = await refreshDio.post(
-        '/Auth/refresh-token', // Thay bằng endpoint thực tế của Backend C# nếu khác
+        '/Auth/refresh-token',
         data: {
           'accessToken': currentAccessToken,
           'refreshToken': currentRefreshToken,
@@ -177,11 +158,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final newAccessToken = response.data['accessToken'];
         final newRefreshToken = response.data['refreshToken'];
 
-        // Cập nhật lại vào Local Storage
         await prefs.setString('accessToken', newAccessToken);
         await prefs.setString('refreshToken', newRefreshToken);
 
-        // Cập nhật token mới vào DioClient đang dùng
         DioClient.setAuthToken(_dio, newAccessToken);
 
         return true;
@@ -195,11 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ==========================================
-  // 5. LOGOUT
-  // ==========================================
   Future<void> logout() async {
-    // [BỔ SUNG] Xóa token khỏi bộ nhớ cục bộ khi đăng xuất
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('accessToken');
     await prefs.remove('refreshToken');
@@ -213,7 +188,6 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.read(dioProvider));
 });
 
-// Các hàm tiện ích độc lập (không cần lưu state nội bộ)
 Future<bool> verifyAccount(String email, String otpCode) async {
   try {
     final response = await DioClient.instance.post(

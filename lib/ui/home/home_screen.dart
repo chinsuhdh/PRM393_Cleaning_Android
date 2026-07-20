@@ -246,7 +246,6 @@ class _CategoryItem extends StatelessWidget {
     final theme = Theme.of(context);
     final icon = _icons[category.iconName] ?? Icons.cleaning_services_rounded;
     return GestureDetector(
-      // ĐÃ SỬA: Chuyển hướng sang trang Danh sách Dịch vụ (CategoryServicesScreen)
       onTap: () => context.push('/category/${category.id}'),
       child: SizedBox(
         width: 80,

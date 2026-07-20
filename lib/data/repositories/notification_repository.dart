@@ -11,7 +11,6 @@ class NotificationRepository {
   Future<List<NotificationItem>> getNotifications() async {
     try {
       final response = await _dio.get('/Notifications');
-      // Giả sử API trả về list trực tiếp, nếu bọc trong 'data' thì đổi thành response.data['data']
       final raw = response.data;
       if (raw is List) {
         return raw.whereType<Map<String, dynamic>>().map((json) {
@@ -33,7 +32,6 @@ class NotificationRepository {
     try {
       await _dio.patch('/Notifications/$notificationId/read');
     } catch (e) {
-      // Ignore
     }
   }
 }

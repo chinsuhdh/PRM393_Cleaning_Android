@@ -33,13 +33,11 @@ class _ReauthDialogState extends ConsumerState<ReauthDialog> {
       _errorMessage = null;
     });
 
-    // Gọi hàm reauthenticate từ AuthNotifier
     final reauthToken = await ref.read(authProvider.notifier).reauthenticate(password);
 
     if (mounted) {
       setState(() => _isLoading = false);
       if (reauthToken != null) {
-        // Trả về token cho hàm gọi Dialog
         Navigator.of(context).pop(reauthToken);
       } else {
         setState(() => _errorMessage = 'Mật khẩu không chính xác.');

@@ -30,16 +30,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Gọi Login API (Trả về bool)
       final isSuccess = await ref
           .read(authProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text);
 
       if (isSuccess && mounted) {
-        // 2. Lấy Role từ State của Riverpod
         final userRole = ref.read(authProvider).role;
 
-        // 3. Phân quyền điều hướng
         switch (userRole) {
           case UserRole.client:
             context.go('/home');
@@ -52,7 +49,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             break;
         }
       } else if (!isSuccess && mounted) {
-        // Hiển thị thông báo lỗi
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Sai thông tin hoặc Tài khoản chưa xác thực!'),

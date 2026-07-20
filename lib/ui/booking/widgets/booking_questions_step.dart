@@ -5,17 +5,12 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import 'booking_pricing_estimate.dart';
 
-/// Whether an answer value counts as "filled in" — matches the predicate
-/// create_booking_screen.dart uses to gate the required-questions check, kept
-/// here as the single source of truth so both stay in sync.
 bool isQuestionAnswered(dynamic value) {
   if (value == null || value == '') return false;
   if (value is Iterable && value.isEmpty) return false;
   return true;
 }
 
-/// Parses the `questions` array out of a service's `bookingFormSchema`. Shared by
-/// [BookingQuestionsStep] and create_booking_screen.dart so both read the schema the same way.
 List<Map<String, dynamic>> parseBookingQuestions(Map<String, dynamic>? service) {
   final raw = service?['bookingFormSchema'];
   final schema = raw is String ? jsonDecode(raw) : raw;
@@ -273,9 +268,6 @@ class _Question extends StatelessWidget {
         color: fillColor,
         border: borderColor != null ? Border.all(color: borderColor) : null,
       ),
-      // ListTile-family controls (Radio/Checkbox/SwitchListTile) paint ink splashes on the
-      // nearest Material ancestor; without this, the colored/bordered decoration above hides
-      // them and Flutter throws an assertion in debug/test builds.
       child: Material(
         type: MaterialType.transparency,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -296,7 +288,6 @@ class _Question extends StatelessWidget {
   }
 }
 
-/// "+50.000₫ · +45 phút" caption showing exactly what selecting/adding this option costs.
 class _DeltaCaption extends StatelessWidget {
   const _DeltaCaption({required this.delta, this.suffix});
   final Delta delta;

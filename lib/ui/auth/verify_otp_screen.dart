@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/repositories/auth_repository.dart'; // [THÊM] Import file chứa API
+import '../../data/repositories/auth_repository.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
   const VerifyOtpScreen({super.key});
@@ -35,7 +35,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     setState(() => _isLoading = true);
 
-    // Gọi API thật xuống Backend
     final success = await verifyAccount(email, otp);
 
     if (mounted) {
@@ -45,7 +44,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Xác thực thành công! Vui lòng đăng nhập.')),
         );
-        // Xác thực xong thì đẩy về trang Đăng nhập
         context.go('/login');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -95,7 +93,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Ô nhập Email
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -109,7 +106,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Ô nhập OTP
               TextField(
                 controller: _otpController,
                 textAlign: TextAlign.center,

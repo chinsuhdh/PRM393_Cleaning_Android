@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
-// Gọi API từ repository của bạn
 import '../../data/repositories/auth_repository.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -26,7 +25,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    // FE gọi API Quên mật khẩu. BE sẽ kiểm tra DB, tạo OTP và tự động gửi Email bằng IEmailService.
     final success = await forgotPassword(email);
 
     if (mounted) {
@@ -36,7 +34,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Mã OTP đã được gửi đến email của bạn!')),
         );
-        // Chuyển sang màn hình nhập OTP
         context.push('/verify-otp');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -10,7 +10,6 @@ class NotificationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Sử dụng provider thật từ Repository
     final notificationsAsync = ref.watch(notificationsProvider);
     final theme = Theme.of(context);
 
@@ -27,8 +26,6 @@ class NotificationsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () async {
-              // Gọi API đánh dấu tất cả đã đọc (nếu backend hỗ trợ)
-              // Tạm thời invalidate để load lại list
               ref.invalidate(notificationsProvider);
             },
             child: const Text('Đánh dấu đã đọc'),
@@ -78,9 +75,8 @@ class NotificationsScreen extends ConsumerWidget {
                       await ref
                           .read(notificationRepositoryProvider)
                           .markAsRead(notif.id);
-                      ref.invalidate(notificationsProvider); // Cập nhật lại UI
+                      ref.invalidate(notificationsProvider);
                     } catch (e) {
-                      // ignore
                     }
                   }
                 },

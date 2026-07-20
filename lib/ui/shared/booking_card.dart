@@ -15,7 +15,6 @@ import 'popup_menu_action_item.dart';
 
 final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
-/// Which screen a [BookingCard] renders for — controls which role-specific sections show.
 enum BookingCardRole { customer, worker }
 
 Color statusColor(String status) {
@@ -54,7 +53,6 @@ Color statusBgColor(String status) {
   }
 }
 
-/// Icon + centered message empty state shared by the customer and worker booking lists.
 Widget bookingListEmptyState(BuildContext context, String message) {
   final theme = Theme.of(context);
   return Center(
@@ -87,10 +85,6 @@ class _MetaChip extends StatelessWidget {
   }
 }
 
-/// A single booking list card shared by the customer's "Đơn của tôi" screen and the worker's
-/// "Việc của tôi" screen, so both stay visually consistent. [role] controls which extra sections
-/// render: the customer's assigned-worker footer vs. the worker's distance/duration/photo chips,
-/// question-answer chips, address+map row, and accept/status action.
 class BookingCard extends ConsumerWidget {
   final Booking booking;
   final BookingCardRole role;

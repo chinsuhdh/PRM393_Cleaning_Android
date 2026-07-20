@@ -36,7 +36,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // FE gọi API Đăng ký. BE sẽ nhận request, tạo Account, tạo OTP và gửi Email ở bên dưới BE.
       final success = await ref.read(authProvider.notifier).register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -45,11 +44,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (success && mounted) {
-        // Thông báo cho user biết để check mail
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực.')),
         );
-        // Chuyển sang màn hình nhập OTP thay vì vào home
         context.push('/verify-otp');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

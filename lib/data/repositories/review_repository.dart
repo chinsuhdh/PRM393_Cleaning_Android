@@ -65,9 +65,6 @@ final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
   return ApiReviewRepository(ref.read(dioProvider));
 });
 
-/// Finds this booking's review (if any) among the worker's reviews — the backend only exposes a
-/// per-user review list (GET /Reviews/user/{id}), not a per-booking lookup, so the caller filters
-/// client-side. Only ever watch this when the booking is Completed and a worker is assigned.
 final bookingReviewProvider = FutureProvider.autoDispose
     .family<Review?, ({String workerUserId, String bookingId})>((ref, args) async {
   final reviews = await ref.read(reviewRepositoryProvider).getReviewsForUser(args.workerUserId);

@@ -7,9 +7,6 @@ import '../../../data/models/review.dart';
 import '../../../data/repositories/review_repository.dart';
 import 'star_rating.dart';
 
-/// Inline review card for a Completed booking: the client rates + comments on the worker (once,
-/// enforced server-side); the worker sees the client's review read-only, or an empty state if none
-/// yet. Client reviews worker only — there is no reverse flow.
 class BookingReviewSection extends ConsumerStatefulWidget {
   const BookingReviewSection({
     super.key,

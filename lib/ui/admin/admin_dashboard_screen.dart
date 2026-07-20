@@ -8,14 +8,12 @@ import '../../data/repositories/auth_repository.dart';
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
-  // Khởi tạo Activity tạm thời trống cho đến khi viết API log hoạt động gần đây
   static const List<Map<String, String>> _activity = [];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    // Lắng nghe Provider thống kê từ AdminRepository
     final statsAsync = ref.watch(adminStatsProvider);
 
     return Scaffold(
@@ -27,7 +25,6 @@ class AdminDashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Đăng xuất',
             onPressed: () {
-              // Gọi hàm logout void đồng bộ để xoá token và reset state
               ref.read(authProvider.notifier).logout();
               context.go('/login');
             },
@@ -36,7 +33,6 @@ class AdminDashboardScreen extends ConsumerWidget {
       ),
       body: CustomScrollView(
         slivers: [
-          // 1. Welcome banner hiển thị tổng quan hệ thống
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.all(16),
@@ -90,7 +86,6 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
           ),
 
-          // 2. Grid thống kê dữ liệu thời gian thực lấy từ PostgreSQL
           statsAsync.when(
             loading: () => const SliverToBoxAdapter(
               child: Center(
@@ -110,7 +105,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             ),
             data: (data) {
-              // Ánh xạ dữ liệu JSON trả về từ ASP.NET Core Controller sang List cục bộ
               final List<Map<String, dynamic>> realStats = [
                 {
                   'icon': Icons.people_rounded,
@@ -159,7 +153,6 @@ class AdminDashboardScreen extends ConsumerWidget {
             },
           ),
 
-          // 3. Phân hệ điều hướng quản lý nhanh (Quick Management)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
@@ -186,7 +179,6 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
           ),
 
-          // 4. Luồng hoạt động gần đây của toàn hệ thống
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

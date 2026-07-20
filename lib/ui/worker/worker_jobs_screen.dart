@@ -98,7 +98,6 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
   Widget build(BuildContext context) {
     ref.watch(dispatchLiveFeedProvider);
 
-    // Gọi 2 nguồn dữ liệu khác biệt
     final myBookingsAsync = ref.watch(workerBookingsProvider);
     final availableBookingsAsync = ref.watch(availableBookingsProvider);
     final profileAsync = ref.watch(workerProfileProvider);
@@ -125,7 +124,6 @@ class _WorkerJobsScreenState extends ConsumerState<WorkerJobsScreen> with Single
       body: TabBarView(
         controller: _tabController,
         children: [
-          // TAB 1: ACTIVE
           myBookingsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Lỗi: $err')),
