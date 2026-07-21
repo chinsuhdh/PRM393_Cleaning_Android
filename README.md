@@ -14,6 +14,18 @@ Frontend communicates with ASP.NET Core Backend APIs and PostgreSQL Database.
 
 ---
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Main Features](#main-features)
+- [Project Structure](#project-structure)
+- [Technology Stack](#technology-stack)
+- [Installation](#installation)
+- [Security](#security)
+- [Team](#team)
+
+---
+
 ## Main Features
 
 ### Client
