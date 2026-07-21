@@ -93,8 +93,8 @@ lib/
 
 ## Technology Stack
 
-- Flutter
-- Dart
+- **Flutter**
+- **Dart**
 - Dio
 - SignalR
 - JWT Authentication
