@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,33 +10,61 @@ import '../models/booking.dart';
 export '../../core/network/typed_exceptions.dart' show WorkerSuspendedException;
 
 abstract class BookingRepository {
+  /// Fetches the list of bookings belonging to the currently authenticated client.
   Future<List<Booking>> getClientBookings();
+
+  /// Fetches the list of bookings assigned to the currently authenticated worker.
   Future<List<Booking>> getWorkerBookings();
+
+  /// Fetches the list of available bookings that the current worker can accept.
   Future<List<Booking>> getAvailableBookings();
+
+  /// Retrieves detailed information for a specific booking by its ID.
   Future<Booking?> getBookingById(String bookingId);
+
+  /// Checks the availability of workers based on the provided criteria.
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data);
+
+  /// Retrieves a price quote for a potential booking based on the provided criteria.
   Future<Map<String, dynamic>> getQuote(Map<String, dynamic> data);
+
+  /// Creates a new booking with the specified details.
   Future<Booking> createBooking(
     Map<String, dynamic> data, {
     required String idempotencyKey,
   });
+
+  /// Accepts an available booking on behalf of the current worker.
   Future<void> acceptBooking(String bookingId);
+
+  /// Updates the status of an existing booking.
   Future<void> updateBookingStatus(String bookingId, String newStatus, {String? reason});
+
+  /// Updates the estimated or actual duration of a booking.
   Future<void> updateDuration(String bookingId, double hours);
+
+  /// Uploads completion photos for a specific booking.
   Future<void> uploadPhotos(String bookingId, List<MultipartFile> photos);
 
+  /// Cancels an existing booking from the client side.
   Future<void> cancelBookingByClient(String bookingId);
 
+  /// Cancels an assigned booking from the worker side, requiring a reason.
   Future<void> workerCancelBooking(String bookingId, String reasonCode, {String? freeText});
 
+  /// Cancels a booking from the client side with a specific reason code.
   Future<void> clientCancelBooking(String bookingId, String reasonCode, {String? freeText});
 
+  /// Submits a report or complaint regarding a specific booking.
   Future<void> reportBooking(String bookingId, String reasonCode, String freeText);
 
+  /// Proposes a new start time for an existing booking.
   Future<Booking> proposeReschedule(String bookingId, DateTime newStartTime, {String? message});
 
+  /// Responds to a proposed reschedule request (accept, reject, or withdraw).
   Future<Booking> respondReschedule(String bookingId, String requestId, String action);
 
+  /// Switches the payment method of a booking to cash.
   Future<void> switchToCash(String bookingId);
 }
 
