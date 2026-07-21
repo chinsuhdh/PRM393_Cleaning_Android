@@ -39,6 +39,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   final Dio _dio;
 
+  /// Authenticates a user using their email or phone number and password.
+  /// 
+  /// Upon successful authentication, it stores the access and refresh tokens locally
+  /// and updates the application's authentication state.
+  /// Returns [true] if login was successful, [false] otherwise.
   Future<bool> login(String emailOrPhone, String password) async {
     try {
       final response = await _dio.post(
@@ -86,6 +91,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Registers a new user account with the specified role.
+  /// 
+  /// The default role is [UserRole.client] if not provided.
+  /// Returns [true] if the registration API returns successfully.
   Future<bool> register({
     required String name,
     required String email,
