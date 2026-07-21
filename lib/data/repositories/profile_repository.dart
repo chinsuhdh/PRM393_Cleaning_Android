@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/dio_client.dart';
 import '../models/profile.dart';
 
+/// Repository responsible for handling user profile operations via the backend API.
+/// Utilizes Dio for network requests.
 class ProfileRepository {
   ProfileRepository(this._dio);
 
   final Dio _dio;
 
+  /// Fetches the profile data of the currently authenticated user.
+  /// Throws an exception if the data format is invalid or if the network request fails.
   Future<Profile> getMyProfile() async {
     try {
       final response = await _dio.get('/Profiles/me');
