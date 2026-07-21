@@ -9,20 +9,32 @@ import '../models/worker_earning.dart';
 
 export '../../core/network/typed_exceptions.dart' show WorkerSuspendedException;
 
+/// Abstract definition for the Worker repository.
+/// Handles operations related to the worker's profile, location, status, and earnings.
 abstract class WorkerRepository {
+  /// Fetches the authenticated worker's profile data.
   Future<Worker?> getMyWorkerProfile();
+  
+  /// Fetches the current online status of the worker.
   Future<WorkerOnlineStatus> getMyOnlineStatus() async =>
       WorkerOnlineStatus.offline;
+      
+  /// Updates the worker's GPS location.
   Future<void> updateLocation(double lat, double lng);
+  
+  /// Updates the service radius within which the worker accepts jobs.
   Future<void> updateSearchRadius(double radiusKm);
 
+  /// Registers a normal user as a worker by submitting their ID and skills.
   Future<void> registerAsWorker({
     required String identityCardNumber,
     required List<Map<String, dynamic>> skills,
   });
 
+  /// Toggles the worker's online status (Online/Offline).
   Future<void> updateOnlineStatus(bool online);
 
+  /// Updates the worker's bank account information for payouts.
   Future<void> updatePayoutAccount({
     required String bankBin,
     required String accountNumber,
