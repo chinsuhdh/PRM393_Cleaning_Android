@@ -4,8 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/backend_error_message.dart';
 import '../../core/network/dio_client.dart';
+import '../models/chat_message.dart';
 
-typedef ChatBotReply = ({String sessionId, String reply, bool success});
+typedef ChatBotReply = ({
+  String sessionId,
+  String reply,
+  bool success,
+  List<ChatSuggestion> suggestions,
+});
 
 class AiHistoryMessage {
   final String senderType;
@@ -42,10 +48,23 @@ class AiRepository {
         data: {"sessionId": sessionId, "message": message},
       );
       final data = response.data as Map;
+      final rawSuggestions = data['suggestions'];
+      final suggestions = <ChatSuggestion>[];
+      if (rawSuggestions is List) {
+        for (final item in rawSuggestions) {
+          if (item is Map && item['label'] != null && item['route'] != null) {
+            suggestions.add((
+              label: item['label'].toString(),
+              route: item['route'].toString(),
+            ));
+          }
+        }
+      }
       return (
         sessionId: data['sessionId']?.toString() ?? sessionId,
         reply: data['reply']?.toString() ?? 'AI không có phản hồi.',
         success: data['success'] == true,
+        suggestions: suggestions,
       );
     } on DioException catch (e) {
       debugPrint('[AiRepository] chatWithBot failed: $e');
