@@ -2,11 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/models/chat_message.dart';
 import '../../data/repositories/ai_repository.dart';
+import '../shared/destructive_dialog_actions.dart';
 
 const _sessionPrefsKey = 'ai_chat_session_id';
 
@@ -113,6 +115,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         isUser: false,
         isError: !reply.success,
         retryText: reply.success ? null : text,
+        suggestions: reply.suggestions,
       );
       state = state.copyWith(
         messages: [...state.messages, aiMsg],
@@ -180,13 +183,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: const Text('Xóa lịch sử trò chuyện?'),
         content: const Text('Toàn bộ tin nhắn trong cuộc trò chuyện này sẽ bị xóa.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Xóa'),
+          DestructiveDialogActions(
+            confirmLabel: 'Xóa',
+            onConfirm: () => Navigator.pop(dialogContext, true),
+            onCancel: () => Navigator.pop(dialogContext, false),
           ),
         ],
       ),
@@ -479,6 +479,24 @@ class _MessageBubble extends StatelessWidget {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
+                    ),
+                  ),
+                if (!isUser && !message.isError && message.suggestions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: message.suggestions
+                          .map(
+                            (s) => ActionChip(
+                              label: Text(s.label, style: const TextStyle(fontSize: 13)),
+                              avatar: const Icon(Icons.arrow_outward_rounded, size: 14),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => context.go(s.route),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
               ],
