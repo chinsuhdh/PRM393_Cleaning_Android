@@ -7,11 +7,9 @@ import '../../core/constants/booking_enums.dart';
 import '../../core/constants/payment_methods.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/network/error_codes.dart';
-import '../../core/utils/location_helper.dart';
 import '../../data/models/booking.dart';
 import '../../data/models/user_address.dart';
 import '../../data/repositories/booking_repository.dart';
-import '../../data/repositories/user_address_repository.dart';
 import 'booking_questions.dart';
 
 part 'create_booking_notifier.g.dart';
@@ -31,7 +29,6 @@ class CreateBookingState {
     this.photos = const [],
     this.durationOverrideHours,
     this.quoteStaleRetryCount = 0,
-    this.currentLocationAddress,
   });
 
   final String idempotencyKey;
@@ -47,7 +44,6 @@ class CreateBookingState {
   final List<XFile> photos;
   final double? durationOverrideHours;
   final int quoteStaleRetryCount;
-  final UserAddress? currentLocationAddress;
 
   DateTime? get scheduledStart => bookingType == 0
       ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day, selectedTime.hour, selectedTime.minute)
@@ -67,7 +63,6 @@ class CreateBookingState {
     List<XFile>? photos,
     Object? durationOverrideHours = _unset,
     int? quoteStaleRetryCount,
-    Object? currentLocationAddress = _unset,
   }) {
     return CreateBookingState(
       idempotencyKey: idempotencyKey ?? this.idempotencyKey,
@@ -84,9 +79,6 @@ class CreateBookingState {
       durationOverrideHours:
           identical(durationOverrideHours, _unset) ? this.durationOverrideHours : durationOverrideHours as double?,
       quoteStaleRetryCount: quoteStaleRetryCount ?? this.quoteStaleRetryCount,
-      currentLocationAddress: identical(currentLocationAddress, _unset)
-          ? this.currentLocationAddress
-          : currentLocationAddress as UserAddress?,
     );
   }
 }
@@ -117,39 +109,6 @@ class CreateBookingNotifier extends _$CreateBookingNotifier {
   void defaultAddressIfNeeded(List<UserAddress> addresses) {
     if (state.selectedAddress != null || addresses.isEmpty) return;
     state = state.copyWith(selectedAddress: addresses.first);
-  }
-
-  /// Silently attempts to read the device's current GPS position and reverse-geocode
-  /// it into a display-only address. Any denial or failure (permission refused,
-  /// GPS disabled, reverse-geocoding error) is swallowed — the current-location
-  /// option simply doesn't appear, per the "don't show it if they don't allow access" rule.
-  Future<void> loadCurrentLocation() async {
-    if (state.currentLocationAddress != null) return;
-    try {
-      final result = await LocationHelper.getCurrentAddress();
-      if (result == null) return;
-      state = state.copyWith(
-        currentLocationAddress: UserAddress(
-          id: '',
-          label: 'Vị trí hiện tại',
-          addressText: result['addressText'] as String,
-          latitude: result['latitude'] as double,
-          longitude: result['longitude'] as double,
-        ),
-      );
-    } catch (_) {
-      // GPS off, permission denied, or reverse-geocoding failed — no current-location option.
-    }
-  }
-
-  /// Persists the current-location pick as a real saved address (so it has a
-  /// server-assigned id the booking can reference) and selects it.
-  Future<void> selectCurrentLocationAddress() async {
-    final candidate = state.currentLocationAddress;
-    if (candidate == null) return;
-    final saved = await ref.read(userAddressRepositoryProvider).createAddress(candidate);
-    ref.invalidate(savedAddressesProvider);
-    state = state.copyWith(selectedAddress: saved);
   }
 
   void changeBookingType(int type) {

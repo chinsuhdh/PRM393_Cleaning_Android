@@ -7,7 +7,7 @@ part of 'create_booking_notifier.dart';
 // **************************************************************************
 
 String _$createBookingNotifierHash() =>
-    r'b71f137e1a662d4d55efec9ee96739e9468bb4a4';
+    r'e53b5f3e0dffd032e11cf5e1346880a3538a8484';
 
 /// Copied from Dart SDK
 class _SystemHash {

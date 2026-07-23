@@ -12,8 +12,6 @@ class BookingAddressStep extends StatelessWidget {
     required this.onAddressSelected,
     required this.onAddAddressPressed,
     required this.onRetryAddresses,
-    this.currentLocationAddress,
-    this.onCurrentLocationSelected,
   });
 
   final AsyncValue<List<UserAddress>> addressesAsync;
@@ -21,14 +19,6 @@ class BookingAddressStep extends StatelessWidget {
   final ValueChanged<UserAddress> onAddressSelected;
   final VoidCallback onAddAddressPressed;
   final VoidCallback onRetryAddresses;
-  final UserAddress? currentLocationAddress;
-  final VoidCallback? onCurrentLocationSelected;
-
-  bool get _isCurrentLocationSelected =>
-      currentLocationAddress != null &&
-      selectedAddress != null &&
-      selectedAddress!.label == currentLocationAddress!.label &&
-      selectedAddress!.addressText == currentLocationAddress!.addressText;
 
   Widget _addressTile({
     required BuildContext context,
@@ -86,7 +76,7 @@ class BookingAddressStep extends StatelessWidget {
         Expanded(
           child: addressesAsync.when(
             data: (addresses) {
-              if (addresses.isEmpty && currentLocationAddress == null) {
+              if (addresses.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -104,18 +94,9 @@ class BookingAddressStep extends StatelessWidget {
 
               return ListView(
                 children: [
-                  if (currentLocationAddress != null)
-                    _addressTile(
-                      context: context,
-                      icon: Icons.my_location_rounded,
-                      label: currentLocationAddress!.label,
-                      addressText: currentLocationAddress!.addressText,
-                      isSelected: _isCurrentLocationSelected,
-                      onTap: onCurrentLocationSelected ?? () {},
-                    ),
                   ...List.generate(addresses.length, (index) {
                     final address = addresses[index];
-                    final isSelected = !_isCurrentLocationSelected && selectedAddress?.id == address.id;
+                    final isSelected = selectedAddress?.id == address.id;
 
                     return _addressTile(
                       context: context,

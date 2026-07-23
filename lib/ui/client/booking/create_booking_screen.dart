@@ -26,12 +26,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   final TextEditingController _notesController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _notifier.loadCurrentLocation();
-  }
-
-  @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
@@ -148,8 +142,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     onAddressSelected: notifier.selectAddress,
                     onAddAddressPressed: _navigateAndRefresh,
                     onRetryAddresses: () => ref.invalidate(savedAddressesProvider),
-                    currentLocationAddress: state.currentLocationAddress,
-                    onCurrentLocationSelected: notifier.selectCurrentLocationAddress,
                   ),
                   BookingDateTimeStep(
                     bookingType: state.bookingType,
