@@ -1,19 +1,20 @@
 import 'dart:async';
 
+import 'package:cleanai/core/auth/auth_state.dart';
 import 'package:cleanai/core/constants/booking_enums.dart';
+import 'package:cleanai/core/network/app_exception.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/models/worker.dart';
-import 'package:cleanai/data/repositories/auth_repository.dart';
 import 'package:cleanai/data/models/review.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:cleanai/data/repositories/dispatch_repository.dart';
 import 'package:cleanai/data/repositories/review_repository.dart';
 import 'package:cleanai/data/services/dispatch_hub_service.dart';
-import 'package:cleanai/ui/booking/booking_detail_screen.dart';
-import 'package:cleanai/ui/booking/widgets/live_tracking_map.dart';
-import 'package:cleanai/ui/booking/widgets/nearby_workers_google_map.dart';
-import 'package:cleanai/ui/booking/widgets/star_rating.dart';
-import 'package:cleanai/ui/chat/chat_screen.dart';
+import 'package:cleanai/ui/client/booking/booking_detail_screen.dart';
+import 'package:cleanai/ui/client/booking/widgets/maps/live_tracking_map.dart';
+import 'package:cleanai/ui/client/booking/widgets/maps/nearby_workers_google_map.dart';
+import 'package:cleanai/ui/client/booking/widgets/common/star_rating.dart';
+import 'package:cleanai/ui/client/chat/chat_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -107,18 +108,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            bookingDetailProvider('gone').overrideWith((ref) async => throw DioException(
-                  requestOptions: RequestOptions(path: '/Bookings/gone'),
-                  type: DioExceptionType.badResponse,
-                  response: Response(
-                    requestOptions: RequestOptions(path: '/Bookings/gone'),
-                    statusCode: 403,
-                    data: {
-                      'success': false,
-                      'message': 'Bạn không có quyền thực hiện thao tác này.',
-                      'errorCode': 'FORBIDDEN',
-                    },
-                  ),
+            bookingDetailProvider('gone').overrideWith((ref) async => throw const AppException(
+                  code: 'FORBIDDEN',
+                  message: 'Bạn không có quyền thực hiện thao tác này.',
+                  type: AppErrorType.forbidden,
+                  statusCode: 403,
                 )),
             dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
           ],
@@ -128,7 +122,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('DioException'), findsNothing);
-      expect(find.textContaining('không còn khả dụng'), findsOneWidget);
+      expect(find.textContaining('Bạn không có quyền thực hiện thao tác này.'), findsOneWidget);
+      expect(find.text('Quay lại'), findsOneWidget);
     },
   );
 
@@ -183,7 +178,7 @@ void main() {
       ProviderScope(
         overrides: [
           bookingDetailProvider(booking.id).overrideWith((ref) async => booking),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), role)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(role)),
           dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
           reviewRepositoryProvider.overrideWithValue(_NoOpReviewRepository()),
           dispatchRepositoryProvider.overrideWithValue(_NoOpDispatchRepository()),
@@ -272,7 +267,7 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingDetailProvider(booking.id).overrideWith((ref) async => booking),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
           bookingRepositoryProvider.overrideWithValue(repo),
           dispatchRepositoryProvider.overrideWithValue(_NoOpDispatchRepository()),
@@ -339,7 +334,7 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingDetailProvider(booking.id).overrideWith((ref) async => booking),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
           bookingRepositoryProvider.overrideWithValue(repo),
           dispatchRepositoryProvider.overrideWithValue(_NoOpDispatchRepository()),
@@ -393,7 +388,7 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingDetailProvider(cancelled.id).overrideWith((ref) => completer.future),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
         ],
         child: MaterialApp.router(routerConfig: router),
@@ -786,7 +781,7 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingDetailProvider(booking.id).overrideWith((ref) async => booking),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(_NoOpDispatchHubClient()),
           bookingRepositoryProvider.overrideWithValue(repo),
           dispatchRepositoryProvider.overrideWithValue(_NoOpDispatchRepository()),
@@ -829,7 +824,7 @@ void main() {
       await tester.pumpWidget(ProviderScope(
         overrides: [
           bookingDetailProvider(booking.id).overrideWith((ref) async => booking),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.worker)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.worker)),
           dispatchHubClientProvider.overrideWithValue(client),
         ],
         child: MaterialApp.router(routerConfig: router),
@@ -884,7 +879,7 @@ void main() {
             fetchCount++;
             return booking;
           }),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(client),
         ],
         child: MaterialApp.router(routerConfig: router),
@@ -928,7 +923,7 @@ void main() {
             fetchCount++;
             return booking;
           }),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(Dio(), UserRole.client)),
+          authNotifierProvider.overrideWith(() => _TestAuthNotifier(UserRole.client)),
           dispatchHubClientProvider.overrideWithValue(client),
         ],
         child: MaterialApp.router(routerConfig: router),
@@ -1124,7 +1119,8 @@ class _FakeBookingRepository implements BookingRepository {
   Future<List<Booking>> getAvailableBookings() async => [];
 
   @override
-  Future<Booking?> getBookingById(String bookingId) async => null;
+  Future<Booking> getBookingById(String bookingId) async =>
+      throw const AppException(code: 'BOOKING_NOT_FOUND', message: 'not found', type: AppErrorType.notFound);
 
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {};
@@ -1214,7 +1210,10 @@ class _FakeLiveUpdateHubClient implements DispatchHubClient {
 }
 
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(super.dio, UserRole role) {
-    state = AuthState(isAuthenticated: true, role: role);
-  }
+  _TestAuthNotifier(this._role);
+
+  final UserRole _role;
+
+  @override
+  AuthState build() => AuthState(isAuthenticated: true, role: _role);
 }

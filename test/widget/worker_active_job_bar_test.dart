@@ -1,6 +1,7 @@
+import 'package:cleanai/core/network/app_exception.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
-import 'package:cleanai/ui/worker/worker_active_job_bar.dart';
+import 'package:cleanai/ui/worker/dashboard/worker_active_job_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -128,8 +129,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<void> uploadPhotos(String bookingId, photos) async {}
 
   @override
-  Future<Booking?> getBookingById(String bookingId) async =>
-      bookings.where((b) => b.id == bookingId).firstOrNull;
+  Future<Booking> getBookingById(String bookingId) async =>
+      bookings.where((b) => b.id == bookingId).firstOrNull ??
+      (throw AppException(code: 'BOOKING_NOT_FOUND', message: 'not found', type: AppErrorType.notFound));
 
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {};
@@ -188,7 +190,8 @@ class _FailingBookingRepository implements BookingRepository {
   Future<void> uploadPhotos(String bookingId, photos) async {}
 
   @override
-  Future<Booking?> getBookingById(String bookingId) async => null;
+  Future<Booking> getBookingById(String bookingId) async =>
+      throw AppException(code: 'BOOKING_NOT_FOUND', message: 'not found', type: AppErrorType.notFound);
 
   @override
   Future<Map<String, dynamic>> getAvailability(Map<String, dynamic> data) async => {};

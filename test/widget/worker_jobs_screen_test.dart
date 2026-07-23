@@ -2,7 +2,7 @@ import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:cleanai/data/repositories/dispatch_repository.dart';
 import 'package:cleanai/data/services/dispatch_hub_service.dart';
-import 'package:cleanai/ui/worker/worker_jobs_screen.dart';
+import 'package:cleanai/ui/worker/jobs/worker_jobs_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

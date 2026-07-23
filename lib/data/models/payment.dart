@@ -1,23 +1,21 @@
-class Payment {
-  final String id;
-  final String bookingId;
-  final double amount;
-  final String method;
-  final String status;
-  final String? transactionId;
-  final DateTime? paidAt;
-  final DateTime? createdAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const Payment({
-    required this.id,
-    required this.bookingId,
-    required this.amount,
-    required this.method,
-    required this.status,
-    this.transactionId,
-    this.paidAt,
-    this.createdAt,
-  });
+part 'payment.freezed.dart';
+
+@Freezed(fromJson: false, toJson: false)
+class Payment with _$Payment {
+  const Payment._();
+
+  const factory Payment({
+    required String id,
+    required String bookingId,
+    required double amount,
+    required String method,
+    required String status,
+    String? transactionId,
+    DateTime? paidAt,
+    DateTime? createdAt,
+  }) = _Payment;
 
   bool get isSuccess => status == 'Success';
 

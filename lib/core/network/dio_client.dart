@@ -1,17 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
 import 'api_envelope.dart';
 import 'auth_interceptor.dart';
 
+part 'dio_client.g.dart';
+
 class DioClient {
   DioClient._();
-
-  static final Dio _legacyInstance = create();
-
-  @Deprecated('Inject dioProvider instead.')
-  static Dio get instance => _legacyInstance;
 
   static Dio create({String? baseUrl}) {
     final dio = Dio(
@@ -55,8 +53,9 @@ class DioClient {
   }
 }
 
-final dioProvider = Provider<Dio>((ref) {
-  final dio = DioClient.instance;
+@Riverpod(keepAlive: true)
+Dio dio(Ref ref) {
+  final dio = DioClient.create();
   dio.interceptors.add(AuthInterceptor(ref, dio));
   return dio;
-});
+}

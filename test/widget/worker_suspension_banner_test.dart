@@ -1,6 +1,6 @@
 import 'package:cleanai/data/models/worker.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
-import 'package:cleanai/ui/worker/widgets/worker_suspension_banner.dart';
+import 'package:cleanai/ui/worker/shared/worker_suspension_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

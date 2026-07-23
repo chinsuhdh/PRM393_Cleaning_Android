@@ -1,7 +1,7 @@
 import 'package:cleanai/data/models/worker.dart';
 import 'package:cleanai/data/models/worker_earning.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
-import 'package:cleanai/ui/worker/worker_wallet_screen.dart';
+import 'package:cleanai/ui/worker/wallet/worker_wallet_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

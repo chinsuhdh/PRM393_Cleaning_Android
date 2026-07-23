@@ -2,34 +2,31 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
 import '../../ui/auth/splash_screen.dart';
-import '../../ui/auth/onboarding_screen.dart';
 import '../../ui/auth/login_screen.dart';
 import '../../ui/auth/register_screen.dart';
 import '../../ui/auth/forgot_password_screen.dart';
 import '../../ui/auth/verify_otp_screen.dart';
 import '../../ui/auth/reset_password_screen.dart';
-import '../../ui/profile/change_password_screen.dart';
+import '../../ui/client/profile/change_password_screen.dart';
 
-import '../../ui/home/client_shell.dart';
-import '../../ui/home/home_screen.dart';
-import '../../ui/booking/bookings_screen.dart';
-import '../../ui/booking/create_booking_screen.dart';
-import '../../ui/booking/booking_detail_screen.dart';
-import '../../ui/chat/chat_screen.dart';
-import '../../ui/chat/booking_chat_screen.dart';
-import '../../ui/notification/notifications_screen.dart';
-import '../../ui/profile/profile_screen.dart';
-import '../../ui/profile/edit_profile_screen.dart';
-import '../../ui/profile/address_management_screen.dart';
-import '../../ui/service/service_detail_screen.dart';
-import '../../ui/worker/worker_dashboard_screen.dart';
-import '../../ui/worker/worker_jobs_screen.dart';
-import '../../ui/worker/worker_wallet_screen.dart';
-import '../../ui/admin/admin_dashboard_screen.dart';
+import '../../ui/client/home/client_shell.dart';
+import '../../ui/client/home/home_screen.dart';
+import '../../ui/client/booking/bookings_screen.dart';
+import '../../ui/client/booking/create_booking_screen.dart';
+import '../../ui/client/booking/booking_detail_screen.dart';
+import '../../ui/client/chat/chat_screen.dart';
+import '../../ui/client/chat/booking_chat_screen.dart';
+import '../../ui/client/notification/notifications_screen.dart';
+import '../../ui/client/profile/profile_screen.dart';
+import '../../ui/client/profile/edit_profile_screen.dart';
+import '../../ui/client/profile/address_management_screen.dart';
+import '../../ui/client/service/service_detail_screen.dart';
+import '../../ui/worker/dashboard/worker_dashboard_screen.dart';
+import '../../ui/worker/jobs/worker_jobs_screen.dart';
+import '../../ui/worker/wallet/worker_wallet_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
-  static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
   static const verifyOtp = '/verify-otp';
@@ -54,8 +51,6 @@ class AppRoutes {
   static const workerDashboard = '/worker/dashboard';
   static const workerJobs = '/worker/jobs';
   static const workerWallet = '/worker/wallet';
-
-  static const admin = '/admin';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -74,7 +69,6 @@ final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   routes: [
     GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
-    GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
     GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
     GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
     GoRoute(path: AppRoutes.verifyOtp, builder: (context, state) => const VerifyOtpScreen()),
@@ -171,7 +165,5 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(navigatorKey: _workerShellWalletKey, routes: [GoRoute(path: '/worker/wallet', builder: (context, state) => const WorkerWalletScreen())]),
       ],
     ),
-
-    GoRoute(path: AppRoutes.admin, builder: (context, state) => const AdminDashboardScreen()),
   ],
 );

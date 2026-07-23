@@ -1,9 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
 import '../repositories/worker_repository.dart';
+
+part 'worker_location_sender.g.dart';
 
 abstract class DeviceLocationSource {
   Future<({double latitude, double longitude})?> getCurrentPosition();
@@ -43,7 +47,13 @@ class WorkerLocationSender {
   Future<void> _tick() async {
     final position = await _locationSource.getCurrentPosition();
     if (position == null) return;
-    await _workerRepository.updateLocation(position.latitude, position.longitude);
+    try {
+      await _workerRepository.updateLocation(position.latitude, position.longitude);
+    } catch (e) {
+      // Best-effort background ping — a transient failure here shouldn't
+      // surface to the user or crash the periodic timer.
+      debugPrint('[WorkerLocationSender] updateLocation failed: $e');
+    }
   }
 
   void stop() {
@@ -52,13 +62,15 @@ class WorkerLocationSender {
   }
 }
 
-final deviceLocationSourceProvider = Provider<DeviceLocationSource>((ref) => GeolocatorLocationSource());
+@Riverpod(keepAlive: true)
+DeviceLocationSource deviceLocationSource(Ref ref) => GeolocatorLocationSource();
 
-final workerLocationSenderProvider = Provider.autoDispose<void>((ref) {
+@riverpod
+void workerLocationSender(Ref ref) {
   final sender = WorkerLocationSender(
     ref.watch(deviceLocationSourceProvider),
     ref.watch(workerRepositoryProvider),
   );
   sender.start();
   ref.onDispose(sender.stop);
-});
+}

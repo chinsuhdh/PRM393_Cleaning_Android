@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/repositories/auth_repository.dart';
+import '../../core/auth/auth_state.dart';
 import 'destructive_dialog_actions.dart';
 
 Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
@@ -22,7 +22,7 @@ Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
   );
 
   if (confirm == true) {
-    ref.read(authProvider.notifier).logout();
+    ref.read(authNotifierProvider.notifier).logout();
     if (context.mounted) {
       context.go('/login');
     }

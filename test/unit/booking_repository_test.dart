@@ -1,4 +1,6 @@
 import 'package:cleanai/core/constants/booking_enums.dart';
+import 'package:cleanai/core/network/app_exception.dart';
+import 'package:cleanai/core/network/error_codes.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,7 +82,7 @@ void main() {
 
       expect(
         () => repository.workerCancelBooking('b1', 'worker_cancel.too_far'),
-        throwsA(isA<WorkerSuspendedException>()),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.workerSuspended)),
       );
     },
   );
@@ -156,7 +158,7 @@ void main() {
 
       expect(
         () => repository.proposeReschedule('b1', newStart),
-        throwsA(isA<RescheduleAlreadyPendingException>()),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.rescheduleAlreadyPending)),
       );
     },
   );
@@ -261,8 +263,7 @@ void main() {
 
       final booking = await repository.getBookingById('b1');
 
-      expect(booking, isNotNull);
-      expect(booking!.status, 'AwaitingWorker');
+      expect(booking.status, 'AwaitingWorker');
       expect(booking.isImmediate, isTrue);
     },
   );

@@ -1,10 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
-import '../../core/network/backend_error_message.dart';
+import '../../core/network/api_guard.dart';
+import '../../core/network/app_exception.dart';
 import '../../core/network/dio_client.dart';
 import '../models/payment.dart';
+
+part 'payment_repository.g.dart';
 
 abstract class PaymentRepository {
   Future<({String paymentId, String paymentUrl})> payNow(String bookingId);
@@ -18,33 +22,25 @@ class ApiPaymentRepository implements PaymentRepository {
   final Dio _dio;
 
   @override
-  Future<({String paymentId, String paymentUrl})> payNow(String bookingId) async {
-    try {
-      final response = await _dio.post('/Payments', data: {'bookingId': bookingId});
-      final data = Map<String, dynamic>.from(response.data as Map);
-      return (paymentId: data['paymentId'].toString(), paymentUrl: data['paymentUrl'].toString());
-    } on DioException catch (error) {
-      debugPrint('[PaymentRepository] payNow failed: $error');
-      throw Exception(
-        backendMessageFromDioException(error, fallback: 'Không thể bắt đầu thanh toán VNPay.'),
-      );
-    }
-  }
+  Future<({String paymentId, String paymentUrl})> payNow(String bookingId) => guardApiCall(() async {
+    final response = await _dio.post('/Payments', data: {'bookingId': bookingId});
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (paymentId: data['paymentId'].toString(), paymentUrl: data['paymentUrl'].toString());
+  });
 
   @override
   Future<Payment?> getPaymentByBooking(String bookingId) async {
     try {
-      final response = await _dio.get('/Payments/booking/$bookingId');
-      if (response.data is Map<String, dynamic>) {
-        return Payment.fromJson(response.data as Map<String, dynamic>);
-      }
-      return null;
-    } on DioException catch (error) {
-      if (error.response?.statusCode == 404) return null;
-      debugPrint('[PaymentRepository] getPaymentByBooking failed: $error');
-      throw Exception(
-        backendMessageFromDioException(error, fallback: 'Không thể tải thông tin thanh toán.'),
-      );
+      return await guardApiCall(() async {
+        final response = await _dio.get('/Payments/booking/$bookingId');
+        if (response.data is Map<String, dynamic>) {
+          return Payment.fromJson(response.data as Map<String, dynamic>);
+        }
+        return null;
+      });
+    } on AppException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
     }
   }
 
@@ -62,6 +58,7 @@ class ApiPaymentRepository implements PaymentRepository {
   }
 }
 
-final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
+@Riverpod(keepAlive: true)
+PaymentRepository paymentRepository(Ref ref) {
   return ApiPaymentRepository(ref.read(dioProvider));
-});
+}

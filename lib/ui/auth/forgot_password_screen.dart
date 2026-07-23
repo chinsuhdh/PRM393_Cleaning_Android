@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/network/app_exception.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../shared/app_snackbar.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
 
@@ -25,21 +28,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    final success = await forgotPassword(email);
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-
-      if (success) {
+    try {
+      await ref.read(authRepositoryProvider).forgotPassword(email);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Mã OTP đã được gửi đến email của bạn!')),
         );
         context.push('/verify-otp');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy tài khoản với email này.')),
-        );
       }
+    } on AppException catch (e) {
+      if (mounted) showAppErrorSnackBar(context, e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

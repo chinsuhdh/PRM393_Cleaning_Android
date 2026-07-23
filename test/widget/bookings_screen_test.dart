@@ -1,7 +1,7 @@
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/models/worker.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
-import 'package:cleanai/ui/booking/bookings_screen.dart';
+import 'package:cleanai/ui/client/booking/bookings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

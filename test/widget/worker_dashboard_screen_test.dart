@@ -1,10 +1,11 @@
+import 'package:cleanai/core/network/app_exception.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/models/worker.dart';
 import 'package:cleanai/data/models/worker_earning.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
 import 'package:cleanai/data/services/dispatch_hub_service.dart';
-import 'package:cleanai/ui/worker/worker_dashboard_screen.dart';
+import 'package:cleanai/ui/worker/dashboard/worker_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -484,7 +485,11 @@ class _FakeWorkerRepository implements WorkerRepository {
   Future<void> updateOnlineStatus(bool online) async {
     calls.add(online);
     if (shouldFail) {
-      throw Exception('Không thể chuyển sang Online khi đang có công việc.');
+      throw const AppException(
+        code: 'WORKER_INVALID_ONLINE_STATUS_TRANSITION',
+        message: 'Không thể chuyển sang Online khi đang có công việc.',
+        type: AppErrorType.validation,
+      );
     }
   }
 

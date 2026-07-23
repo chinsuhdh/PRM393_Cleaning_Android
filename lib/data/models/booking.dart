@@ -1,32 +1,32 @@
 import 'dart:convert';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import '../../core/constants/booking_enums.dart';
 import 'worker.dart';
 
-class RescheduleProposal {
-  final String id;
-  final String requestedBy;
-  final DateTime oldStartTime;
-  final DateTime oldEndTime;
-  final DateTime newStartTime;
-  final DateTime newEndTime;
-  final String status;
-  final String? reason;
-  final DateTime? createdAt;
-  final DateTime? respondedAt;
+part 'booking.freezed.dart';
 
-  const RescheduleProposal({
-    required this.id,
-    required this.requestedBy,
-    required this.oldStartTime,
-    required this.oldEndTime,
-    required this.newStartTime,
-    required this.newEndTime,
-    required this.status,
-    this.reason,
-    this.createdAt,
-    this.respondedAt,
-  });
+const _emptyMapList = <Map<String, dynamic>>[];
+const _emptyJsonMap = <String, dynamic>{};
+const _emptyRescheduleList = <RescheduleProposal>[];
+
+@Freezed(fromJson: false, toJson: false)
+class RescheduleProposal with _$RescheduleProposal {
+  const RescheduleProposal._();
+
+  const factory RescheduleProposal({
+    required String id,
+    required String requestedBy,
+    required DateTime oldStartTime,
+    required DateTime oldEndTime,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    required String status,
+    String? reason,
+    DateTime? createdAt,
+    DateTime? respondedAt,
+  }) = _RescheduleProposal;
 
   bool get isPending => status == 'Pending';
 
@@ -44,74 +44,43 @@ class RescheduleProposal {
       );
 }
 
-class Booking {
-  final String id;
-  final String serviceId;
-  final String serviceName;
-  final String date;
-  final String time;
-  final double price;
-  final String status;
-  final String paymentMethod;
-  final String bookingType;
-  final Worker? worker;
-  final DateTime? scheduledStartTime;
-  final DateTime? actualStartTime;
-  final DateTime? updatedAt;
-  final DateTime? createdAt;
-  final List<Map<String, dynamic>> statusTimeline;
-  final List<Map<String, dynamic>> photos;
-  final List<Map<String, dynamic>> pricingBreakdown;
-  final double durationHours;
-  final double unitPrice;
-  final double extraFee;
-  final double discountAmount;
-  final String notes;
-  final Map<String, dynamic> optionAnswers;
-  final List<Map<String, dynamic>> bookingQuestions;
+@Freezed(fromJson: false, toJson: false)
+class Booking with _$Booking {
+  const Booking._();
 
-  final String? addressText;
-  final double? latitude;
-  final double? longitude;
-  final double? distanceKm;
-  final double? estimatedMinutes;
-
-  final RescheduleProposal? pendingReschedule;
-  final List<RescheduleProposal> rescheduleHistory;
-
-  const Booking({
-    required this.id,
-    this.serviceId = '',
-    required this.serviceName,
-    required this.date,
-    required this.time,
-    required this.price,
-    required this.status,
-    this.paymentMethod = 'Cash',
-    this.bookingType = '',
-    this.worker,
-    this.scheduledStartTime,
-    this.actualStartTime,
-    this.updatedAt,
-    this.createdAt,
-    this.statusTimeline = const [],
-    this.photos = const [],
-    this.pricingBreakdown = const [],
-    this.durationHours = 0,
-    this.unitPrice = 0,
-    this.extraFee = 0,
-    this.discountAmount = 0,
-    this.notes = '',
-    this.optionAnswers = const {},
-    this.bookingQuestions = const [],
-    this.addressText,
-    this.latitude,
-    this.longitude,
-    this.distanceKm,
-    this.estimatedMinutes,
-    this.pendingReschedule,
-    this.rescheduleHistory = const [],
-  });
+  const factory Booking({
+    required String id,
+    @Default('') String serviceId,
+    required String serviceName,
+    required String date,
+    required String time,
+    required double price,
+    required String status,
+    @Default('Cash') String paymentMethod,
+    @Default('') String bookingType,
+    Worker? worker,
+    DateTime? scheduledStartTime,
+    DateTime? actualStartTime,
+    DateTime? updatedAt,
+    DateTime? createdAt,
+    @Default(_emptyMapList) List<Map<String, dynamic>> statusTimeline,
+    @Default(_emptyMapList) List<Map<String, dynamic>> photos,
+    @Default(_emptyMapList) List<Map<String, dynamic>> pricingBreakdown,
+    @Default(0) double durationHours,
+    @Default(0) double unitPrice,
+    @Default(0) double extraFee,
+    @Default(0) double discountAmount,
+    @Default('') String notes,
+    @Default(_emptyJsonMap) Map<String, dynamic> optionAnswers,
+    @Default(_emptyMapList) List<Map<String, dynamic>> bookingQuestions,
+    String? addressText,
+    double? latitude,
+    double? longitude,
+    double? distanceKm,
+    double? estimatedMinutes,
+    RescheduleProposal? pendingReschedule,
+    @Default(_emptyRescheduleList) List<RescheduleProposal> rescheduleHistory,
+  }) = _Booking;
 
   bool get isImmediate => bookingType == BookingTypeName.immediate;
 
@@ -193,15 +162,15 @@ class Booking {
           .toList(),
     );
   }
+}
 
-  static Map<String, dynamic> _jsonMap(Object? value) {
-    if (value is Map) return Map<String, dynamic>.from(value);
-    if (value is String && value.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(value);
-        if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      } catch (_) {}
-    }
-    return const {};
+Map<String, dynamic> _jsonMap(Object? value) {
+  if (value is Map) return Map<String, dynamic>.from(value);
+  if (value is String && value.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
   }
+  return const {};
 }

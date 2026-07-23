@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../../core/auth/auth_state.dart';
 
 class ReauthDialog extends ConsumerStatefulWidget {
   const ReauthDialog({super.key});
@@ -33,7 +33,7 @@ class _ReauthDialogState extends ConsumerState<ReauthDialog> {
       _errorMessage = null;
     });
 
-    final reauthToken = await ref.read(authProvider.notifier).reauthenticate(password);
+    final reauthToken = await ref.read(authNotifierProvider.notifier).reauthenticate(password);
 
     if (mounted) {
       setState(() => _isLoading = false);

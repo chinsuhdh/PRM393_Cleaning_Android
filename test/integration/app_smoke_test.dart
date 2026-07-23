@@ -1,5 +1,5 @@
 import 'package:cleanai/core/network/dio_client.dart';
-import 'package:cleanai/ui/home/home_screen.dart';
+import 'package:cleanai/ui/client/home/home_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/dio_test_harness.dart';
@@ -37,7 +37,7 @@ void main() {
   );
 
   testWidgets(
-    '[IT-FE-HOME-001-02] Màn hình Home hiển thị trạng thái rỗng khi API lỗi',
+    '[IT-FE-HOME-001-02] Màn hình Home hiển thị trạng thái lỗi khi API lỗi (không lẫn với "chưa có dữ liệu")',
     (tester) async {
       final harness = DioTestHarness();
       harness.adapter.onGet(
@@ -51,9 +51,10 @@ void main() {
         child: const HomeScreen(),
         overrides: [dioProvider.overrideWithValue(harness.dio)],
       );
-      await _pumpUntilFound(tester, find.text('Chưa có danh mục dịch vụ nào'));
+      await _pumpUntilFound(tester, find.text('Không thể tải danh mục dịch vụ'));
 
-      expect(find.text('Chưa có danh mục dịch vụ nào'), findsOneWidget);
+      expect(find.text('Không thể tải danh mục dịch vụ'), findsOneWidget);
+      expect(find.text('Chưa có danh mục dịch vụ nào'), findsNothing);
     },
   );
 }
