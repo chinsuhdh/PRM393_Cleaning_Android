@@ -1,3 +1,5 @@
+import 'package:cleanai/core/network/app_exception.dart';
+import 'package:cleanai/core/network/error_codes.dart';
 import 'package:cleanai/data/repositories/worker_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,7 +69,7 @@ void main() {
 
       expect(
         () => repository.updateOnlineStatus(true),
-        throwsA(isA<WorkerSuspendedException>()),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.workerSuspended)),
       );
     },
   );

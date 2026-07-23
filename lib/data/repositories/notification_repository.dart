@@ -1,7 +1,11 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:riverpod/riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/network/dio_client.dart';
 import '../models/notification_item.dart';
+
+part 'notification_repository.g.dart';
 
 class NotificationRepository {
   NotificationRepository(this._dio);
@@ -13,17 +17,11 @@ class NotificationRepository {
       final response = await _dio.get('/Notifications');
       final raw = response.data;
       if (raw is List) {
-        return raw.whereType<Map<String, dynamic>>().map((json) {
-          return NotificationItem(
-            id: json['id']?.toString() ?? '',
-            title: json['title']?.toString() ?? 'Thông báo',
-            message: json['message']?.toString() ?? '',
-            isUnread: json['isUnread'] ?? false,
-          );
-        }).toList();
+        return raw.whereType<Map<String, dynamic>>().map(NotificationItem.fromJson).toList();
       }
       return [];
     } catch (e) {
+      debugPrint('[NotificationRepository] getNotifications failed: $e');
       return [];
     }
   }
@@ -32,15 +30,17 @@ class NotificationRepository {
     try {
       await _dio.patch('/Notifications/$notificationId/read');
     } catch (e) {
+      debugPrint('[NotificationRepository] markAsRead failed: $e');
     }
   }
 }
 
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+@Riverpod(keepAlive: true)
+NotificationRepository notificationRepository(Ref ref) {
   return NotificationRepository(ref.read(dioProvider));
-});
+}
 
-final notificationsProvider =
-    FutureProvider.autoDispose<List<NotificationItem>>((ref) async {
-      return ref.read(notificationRepositoryProvider).getNotifications();
-    });
+@riverpod
+Future<List<NotificationItem>> notifications(Ref ref) async {
+  return ref.read(notificationRepositoryProvider).getNotifications();
+}

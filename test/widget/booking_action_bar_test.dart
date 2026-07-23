@@ -1,7 +1,7 @@
 import 'package:cleanai/core/constants/booking_enums.dart';
 import 'package:cleanai/core/constants/payment_methods.dart';
 import 'package:cleanai/core/constants/user_role.dart';
-import 'package:cleanai/ui/booking/widgets/booking_action_bar.dart';
+import 'package:cleanai/ui/client/booking/widgets/display/booking_action_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

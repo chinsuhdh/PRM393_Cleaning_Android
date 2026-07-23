@@ -1,27 +1,20 @@
-class NotificationItem {
-  final String id;
-  final String title;
-  final String message;
-  final bool isUnread;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const NotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    this.isUnread = false,
-  });
+part 'notification_item.freezed.dart';
 
-  NotificationItem copyWith({
-    String? id,
-    String? title,
-    String? message,
-    bool? isUnread,
-  }) {
-    return NotificationItem(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      message: message ?? this.message,
-      isUnread: isUnread ?? this.isUnread,
-    );
-  }
+@Freezed(fromJson: false, toJson: false)
+class NotificationItem with _$NotificationItem {
+  const factory NotificationItem({
+    required String id,
+    required String title,
+    required String message,
+    @Default(false) bool isUnread,
+  }) = _NotificationItem;
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) => NotificationItem(
+        id: json['id']?.toString() ?? '',
+        title: json['title']?.toString() ?? 'Thông báo',
+        message: json['message']?.toString() ?? '',
+        isUnread: json['isUnread'] == true,
+      );
 }

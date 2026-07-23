@@ -1,11 +1,14 @@
+import 'package:cleanai/core/network/app_exception.dart';
 import 'package:cleanai/core/network/dio_client.dart';
+import 'package:cleanai/core/network/error_codes.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/repositories/booking_repository.dart';
-import 'package:cleanai/ui/booking/create_booking_screen.dart';
+import 'package:cleanai/ui/client/booking/create_booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 
 import '../support/dio_test_harness.dart';
 
@@ -341,15 +344,25 @@ Future<void> _pumpScreen(
   DioTestHarness harness,
   BookingRepository repository,
 ) {
+  final router = GoRouter(
+    initialLocation: '/booking/create/service-1',
+    routes: [
+      GoRoute(
+        path: '/booking/create/:serviceId',
+        builder: (_, state) => CreateBookingScreen(serviceId: state.pathParameters['serviceId']!),
+      ),
+      GoRoute(path: '/home', builder: (_, __) => const Scaffold(body: Text('home'))),
+      GoRoute(path: '/bookings', builder: (_, __) => const Scaffold(body: Text('bookings'))),
+      GoRoute(path: '/booking/:id', builder: (_, __) => const Scaffold(body: Text('booking-detail'))),
+    ],
+  );
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         dioProvider.overrideWithValue(harness.dio),
         bookingRepositoryProvider.overrideWithValue(repository),
       ],
-      child: const MaterialApp(
-        home: CreateBookingScreen(serviceId: 'service-1'),
-      ),
+      child: MaterialApp.router(routerConfig: router),
     ),
   );
 }
@@ -389,7 +402,9 @@ class _FakeBookingRepository implements BookingRepository {
   Future<Booking> createBooking(Map<String, dynamic> data, {required String idempotencyKey}) async {
     createCallCount++;
     lastCreatePayload = data;
-    if (failCreateOnce && createCallCount == 1) throw const QuoteStaleException();
+    if (failCreateOnce && createCallCount == 1) {
+      throw const AppException(code: ErrorCodes.quoteStale, message: 'Giá đã thay đổi.', type: AppErrorType.conflict);
+    }
     return const Booking(
       id: 'booking-1',
       serviceName: 'Apartment cleaning',
@@ -401,7 +416,8 @@ class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<Booking?> getBookingById(String bookingId) async => null;
+  Future<Booking> getBookingById(String bookingId) async =>
+      throw const AppException(code: 'BOOKING_NOT_FOUND', message: 'not found', type: AppErrorType.notFound);
 
   @override
   Future<void> acceptBooking(String bookingId) async {}

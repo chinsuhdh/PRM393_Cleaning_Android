@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../../core/auth/auth_state.dart';
+import '../../core/network/app_exception.dart';
+import '../../core/network/error_codes.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -30,12 +32,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final isSuccess = await ref
-          .read(authProvider.notifier)
+      await ref
+          .read(authNotifierProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text);
 
-      if (isSuccess && mounted) {
-        final userRole = ref.read(authProvider).role;
+      if (mounted) {
+        final userRole = ref.read(authNotifierProvider).role;
 
         switch (userRole) {
           case UserRole.client:
@@ -48,22 +50,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             context.go('/admin');
             break;
         }
-      } else if (!isSuccess && mounted) {
+      }
+    } on AppException catch (e) {
+      if (!mounted) return;
+
+      if (e.code == ErrorCodes.authAccountNotActive) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Sai thông tin hoặc Tài khoản chưa xác thực!'),
+            content: Text(e.message),
             duration: const Duration(seconds: 5),
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'XÁC THỰC OTP',
               textColor: kPrimary,
               backgroundColor: Colors.white,
-              onPressed: () {
-                context.push('/verify-otp');
-              },
+              onPressed: () => context.push('/verify-otp'),
             ),
           ),
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

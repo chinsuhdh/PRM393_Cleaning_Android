@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/booking_enums.dart';
-import '../../core/constants/payment_methods.dart';
+import '../../core/network/app_exception.dart';
+import '../../core/network/error_codes.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/app_formatters.dart';
 import '../../data/models/booking.dart';
 import '../../data/repositories/booking_repository.dart';
 import '../../data/services/directions_service.dart' show formatDuration;
-import '../booking/widgets/booking_info_cards.dart' show bookingQuestionRows;
+import '../../logic/booking/booking_action_rules.dart' show needsVnpayPayment;
+import '../client/booking/widgets/display/booking_info_cards.dart' show bookingQuestionRows;
+import 'app_snackbar.dart';
 import 'popup_menu_action_item.dart';
-
-final _vnd = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
 enum BookingCardRole { customer, worker }
 
@@ -100,9 +101,7 @@ class BookingCard extends ConsumerWidget {
   });
 
   bool get _needsVnpayPayment =>
-      role == BookingCardRole.customer &&
-      booking.status == BookingStatusName.pendingPayment &&
-      PaymentMethodApi.fromApiName(booking.paymentMethod) == PaymentMethod.vnpay;
+      needsVnpayPayment(booking, isCustomer: role == BookingCardRole.customer);
 
   Future<void> _openGoogleMaps(BuildContext context, double? lat, double? lng) async {
     if (lat == null || lng == null) return;
@@ -134,22 +133,21 @@ class BookingCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nhận đơn thành công!')));
       }
-    } on BookingNoLongerAvailableException {
-      debugPrint('[BookingCard] acceptBooking failed: booking no longer available');
-      ref.invalidate(availableBookingsProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rất tiếc, đơn này vừa có người khác nhận mất rồi'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+    } on AppException catch (e) {
+      debugPrint('[BookingCard] acceptBooking failed: ${e.code}');
+      if (e.code == ErrorCodes.bookingAcceptFailed) {
+        ref.invalidate(availableBookingsProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rất tiếc, đơn này vừa có người khác nhận mất rồi'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
       }
-    } catch (e) {
-      debugPrint('[BookingCard] acceptBooking failed: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
-      }
+      if (context.mounted) showAppErrorSnackBar(context, e);
     }
   }
 
@@ -248,7 +246,7 @@ class BookingCard extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                _vnd.format(booking.price),
+                vndFormat.format(booking.price),
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
               ),
               if (!isWorker) ..._customerWorkerFooter(theme),
@@ -293,7 +291,7 @@ class BookingCard extends ConsumerWidget {
             ],
           ),
           Text(
-            _vnd.format(booking.price),
+            vndFormat.format(booking.price),
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: kPrimary),
           ),
         ],

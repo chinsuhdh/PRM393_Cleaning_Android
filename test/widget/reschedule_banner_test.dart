@@ -1,5 +1,5 @@
 import 'package:cleanai/data/models/booking.dart';
-import 'package:cleanai/ui/booking/widgets/reschedule_banner.dart';
+import 'package:cleanai/ui/client/booking/widgets/display/reschedule_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

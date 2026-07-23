@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/network/dio_client.dart';
+import '../../core/network/app_exception.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../shared/app_snackbar.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
   const ResetPasswordScreen({super.key, required this.email});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
   final _otpController = TextEditingController();
@@ -39,13 +42,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final payload = {
-        'email': _emailController.text.trim(),
-        'otpCode': _otpController.text.trim(),
-        'newPassword': _passwordController.text
-      };
-
-      await DioClient.instance.post('/Auth/reset-password', data: payload);
+      await ref.read(authRepositoryProvider).resetPassword(
+        _emailController.text.trim(),
+        _otpController.text.trim(),
+        _passwordController.text,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,12 +54,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         );
         context.go('/login');
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mã OTP không chính xác hoặc đã hết hạn.')),
-        );
-      }
+    } on AppException catch (e) {
+      if (mounted) showAppErrorSnackBar(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

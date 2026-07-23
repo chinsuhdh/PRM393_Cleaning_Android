@@ -1,8 +1,17 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
-import '../../ui/booking/widgets/live_tracking_map.dart' show formatDistance;
+part 'directions_service.g.dart';
+
+String formatDistance(double meters) =>
+    meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '${meters.round()} m';
+
+const _assumedAverageSpeedKmh = 25.0;
+
+Duration estimatedTravelDuration(double meters) =>
+    Duration(minutes: (meters / 1000 / _assumedAverageSpeedKmh * 60).round());
 
 class DirectionsRoute {
   final List<LatLng> points;
@@ -106,4 +115,5 @@ List<LatLng> decodePolyline(String encoded) {
   return points;
 }
 
-final directionsServiceProvider = Provider<DirectionsService>((ref) => DirectionsService());
+@Riverpod(keepAlive: true)
+DirectionsService directionsService(Ref ref) => DirectionsService();

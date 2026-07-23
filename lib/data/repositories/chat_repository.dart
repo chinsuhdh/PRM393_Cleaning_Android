@@ -1,6 +1,10 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
+import '../../core/network/api_guard.dart';
 import '../../core/network/dio_client.dart';
+
+part 'chat_repository.g.dart';
 
 class ChatMessage {
   final String id;
@@ -36,24 +40,25 @@ class ChatRepository {
 
   ChatRepository(this._dio);
 
-  Future<List<ChatMessage>> getMessages(String bookingId) async {
+  Future<List<ChatMessage>> getMessages(String bookingId) => guardApiCall(() async {
     final response = await _dio.get('/bookings/$bookingId/messages');
     final data = response.data as List;
     return data.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>)).toList();
-  }
+  });
 
-  Future<ChatMessage> sendMessage(String bookingId, String content) async {
+  Future<ChatMessage> sendMessage(String bookingId, String content) => guardApiCall(() async {
     final response = await _dio.post('/bookings/$bookingId/messages', data: {
       'content': content,
     });
     return ChatMessage.fromJson(response.data as Map<String, dynamic>);
-  }
+  });
 
-  Future<void> markAsRead(String bookingId) async {
+  Future<void> markAsRead(String bookingId) => guardApiCall(() async {
     await _dio.post('/bookings/$bookingId/messages/read');
-  }
+  });
 }
 
-final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepository(DioClient.instance);
-});
+@Riverpod(keepAlive: true)
+ChatRepository chatRepository(Ref ref) {
+  return ChatRepository(ref.read(dioProvider));
+}

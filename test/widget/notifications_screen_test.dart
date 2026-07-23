@@ -1,5 +1,5 @@
 import 'package:cleanai/data/repositories/notification_repository.dart';
-import 'package:cleanai/ui/notification/notifications_screen.dart';
+import 'package:cleanai/ui/client/notification/notifications_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/pump_test_app.dart';

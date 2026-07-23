@@ -1,4 +1,4 @@
-import 'package:cleanai/ui/booking/widgets/slot_picker.dart';
+import 'package:cleanai/ui/client/booking/widgets/common/slot_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

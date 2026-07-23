@@ -14,7 +14,7 @@ class CleanAIApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentThemeMode = ref.watch(themeModeProvider);
+    final currentThemeMode = ref.watch(appThemeModeProvider);
 
     return MaterialApp.router(
       title: 'CleanAI',

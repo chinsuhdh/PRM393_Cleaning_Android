@@ -1,4 +1,4 @@
-import 'package:cleanai/core/network/backend_error_message.dart';
+import 'package:cleanai/core/network/app_exception.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,11 +46,9 @@ void main() {
         await harness.dio.get('/thing');
         fail('expected a DioException');
       } on DioException catch (error) {
-        expect(backendErrorCodeFromDioException(error), 'NOT_FOUND');
-        expect(
-          backendMessageFromDioException(error, fallback: 'fallback'),
-          'Không tìm thấy dữ liệu yêu cầu.',
-        );
+        final appException = AppException.fromDioException(error);
+        expect(appException.code, 'NOT_FOUND');
+        expect(appException.message, 'Không tìm thấy dữ liệu yêu cầu.');
       }
     },
   );

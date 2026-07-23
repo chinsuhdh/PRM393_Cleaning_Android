@@ -1,4 +1,4 @@
-import 'package:cleanai/ui/booking/widgets/booking_questions_step.dart';
+import 'package:cleanai/ui/client/booking/widgets/steps/booking_questions_step.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/network/app_exception.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../shared/app_snackbar.dart';
 
-class VerifyOtpScreen extends StatefulWidget {
+class VerifyOtpScreen extends ConsumerStatefulWidget {
   const VerifyOtpScreen({super.key});
 
   @override
-  State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
+  ConsumerState<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
 }
 
-class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
+class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
   bool _isLoading = false;
@@ -35,21 +38,18 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     setState(() => _isLoading = true);
 
-    final success = await verifyAccount(email, otp);
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-
-      if (success) {
+    try {
+      await ref.read(authRepositoryProvider).verifyAccount(email, otp);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Xác thực thành công! Vui lòng đăng nhập.')),
         );
         context.go('/login');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mã OTP sai hoặc đã hết hạn!')),
-        );
       }
+    } on AppException catch (e) {
+      if (mounted) showAppErrorSnackBar(context, e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

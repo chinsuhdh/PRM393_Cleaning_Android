@@ -1,4 +1,0 @@
-services:
-  android:
-    build: .
-    image: buingoctam/cleaning-android:latest

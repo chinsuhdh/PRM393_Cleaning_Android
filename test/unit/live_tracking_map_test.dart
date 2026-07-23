@@ -1,7 +1,8 @@
 import 'package:cleanai/core/constants/booking_enums.dart';
 import 'package:cleanai/data/models/booking.dart';
 import 'package:cleanai/data/models/worker.dart';
-import 'package:cleanai/ui/booking/widgets/live_tracking_map.dart';
+import 'package:cleanai/data/services/directions_service.dart';
+import 'package:cleanai/ui/client/booking/widgets/maps/live_tracking_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
-import '../../core/network/backend_error_message.dart';
+import '../../core/network/app_exception.dart';
 import '../../core/network/dio_client.dart';
 import '../models/chat_message.dart';
+
+part 'ai_repository.g.dart';
 
 typedef ChatBotReply = ({
   String sessionId,
@@ -69,13 +72,15 @@ class AiRepository {
     } on DioException catch (e) {
       debugPrint('[AiRepository] chatWithBot failed: $e');
       if (e.response?.statusCode == 429) {
-        throw Exception(
-          'Bạn đã gửi quá nhiều tin nhắn, vui lòng thử lại sau ít phút.',
+        throw AppException(
+          code: 'AI_RATE_LIMITED',
+          message: 'Bạn đã gửi quá nhiều tin nhắn, vui lòng thử lại sau ít phút.',
+          type: AppErrorType.conflict,
+          statusCode: 429,
+          cause: e,
         );
       }
-      throw Exception(
-        backendMessageFromDioException(e, fallback: 'Lỗi kết nối đến AI Server.'),
-      );
+      throw AppException.fromDioException(e);
     }
   }
 
@@ -105,6 +110,5 @@ class AiRepository {
   }
 }
 
-final aiRepositoryProvider = Provider<AiRepository>(
-  (ref) => AiRepository(ref.read(dioProvider)),
-);
+@Riverpod(keepAlive: true)
+AiRepository aiRepository(Ref ref) => AiRepository(ref.read(dioProvider));

@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 import '../../core/network/dio_client.dart';
-import '../repositories/auth_repository.dart';
+import '../../core/auth/auth_state.dart';
 import '../repositories/booking_repository.dart';
 import '../repositories/dispatch_repository.dart';
+
+part 'dispatch_hub_service.g.dart';
 
 abstract class DispatchHubClient {
   Future<void> connect();
@@ -113,9 +116,10 @@ class SignalrDispatchHubClient implements DispatchHubClient {
   }
 }
 
-final dispatchHubClientProvider = Provider<DispatchHubClient>((ref) {
+@Riverpod(keepAlive: true)
+DispatchHubClient dispatchHubClient(Ref ref) {
   return SignalrDispatchHubClient(ref.watch(dioProvider));
-});
+}
 
 class DispatchLiveFeedController {
   DispatchLiveFeedController(
@@ -170,26 +174,28 @@ class DispatchLiveFeedController {
 }
 
 
-final dispatchLiveFeedProvider = Provider.autoDispose<void>((ref) {
+@riverpod
+void dispatchLiveFeed(Ref ref) {
   final controller = DispatchLiveFeedController(
     ref.watch(dispatchHubClientProvider),
     onFeedChanged: () {
       ref.invalidate(availableBookingsProvider);
       ref.invalidate(workerBookingsProvider);
     },
-    onBeforeRetry: () => ref.read(authProvider.notifier).refreshToken(),
+    onBeforeRetry: () => ref.read(authNotifierProvider.notifier).refreshToken(),
   );
   controller.start();
   ref.onDispose(() {
     controller.stop();
   });
-});
+}
 
-final clientBookingsLiveFeedProvider = Provider.autoDispose<void>((ref) {
+@riverpod
+void clientBookingsLiveFeed(Ref ref) {
   final client = ref.watch(dispatchHubClientProvider);
   void refresh() => ref.invalidate(bookingsProvider);
 
   client.onBookingStatusChanged(refresh);
   client.onReconnected(refresh);
   unawaited(client.connect());
-});
+}

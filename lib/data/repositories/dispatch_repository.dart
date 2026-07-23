@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:riverpod/riverpod.dart';
 
-import '../../core/network/backend_error_message.dart';
+import '../../core/network/api_guard.dart';
 import '../../core/network/dio_client.dart';
+
+part 'dispatch_repository.g.dart';
 
 List<({double lat, double lng})> parseNearbyWorkerLocations(Object? raw) {
   if (raw is! List) return [];
@@ -27,16 +30,14 @@ class ApiDispatchRepository implements DispatchRepository {
   final Dio _dio;
 
   @override
-  Future<void> hideBooking(String bookingId) => _post(
-        '/Bookings/$bookingId/hide',
-        'Không thể ẩn công việc.',
-      );
+  Future<void> hideBooking(String bookingId) => guardApiCall(() async {
+    await _dio.post('/Bookings/$bookingId/hide');
+  });
 
   @override
-  Future<void> retryBroadcast(String bookingId) => _post(
-        '/Bookings/$bookingId/retry',
-        'Không thể tìm lại nhân viên.',
-      );
+  Future<void> retryBroadcast(String bookingId) => guardApiCall(() async {
+    await _dio.post('/Bookings/$bookingId/retry');
+  });
 
   @override
   Future<List<({double lat, double lng})>> getNearbyWorkerLocations(String bookingId) async {
@@ -48,17 +49,9 @@ class ApiDispatchRepository implements DispatchRepository {
       return [];
     }
   }
-
-  Future<void> _post(String path, String fallback) async {
-    try {
-      await _dio.post(path);
-    } on DioException catch (error) {
-      debugPrint('[DispatchRepository] POST $path failed: $error');
-      throw Exception(backendMessageFromDioException(error, fallback: fallback));
-    }
-  }
 }
 
-final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
+@Riverpod(keepAlive: true)
+DispatchRepository dispatchRepository(Ref ref) {
   return ApiDispatchRepository(ref.read(dioProvider));
-});
+}

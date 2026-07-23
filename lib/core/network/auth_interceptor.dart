@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../auth/auth_state.dart';
 
 class AuthInterceptor extends Interceptor {
   final Ref ref;
@@ -12,7 +12,7 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
       try {
-        final success = await ref.read(authProvider.notifier).refreshToken();
+        final success = await ref.read(authNotifierProvider.notifier).refreshToken();
 
         if (success) {
           final options = err.requestOptions;
@@ -20,7 +20,7 @@ class AuthInterceptor extends Interceptor {
           return handler.resolve(newResponse);
         }
       } catch (e) {
-        ref.read(authProvider.notifier).logout();
+        ref.read(authNotifierProvider.notifier).logout();
       }
     }
     return handler.next(err);

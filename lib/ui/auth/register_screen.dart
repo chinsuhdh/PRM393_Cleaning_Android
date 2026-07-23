@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../../core/auth/auth_state.dart';
+import '../../core/network/app_exception.dart';
+import '../shared/app_snackbar.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -36,23 +38,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final success = await ref.read(authProvider.notifier).register(
+      await ref.read(authNotifierProvider.notifier).register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (success && mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực.')),
         );
         context.push('/verify-otp');
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng ký thất bại. Email hoặc SĐT có thể đã tồn tại.')),
-        );
       }
+    } on AppException catch (e) {
+      if (mounted) showAppErrorSnackBar(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

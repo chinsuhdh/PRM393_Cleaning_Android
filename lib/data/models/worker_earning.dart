@@ -1,21 +1,20 @@
-class WorkerEarning {
-  final String id;
-  final String bookingId;
-  final double amount;
-  final String status;
-  final DateTime? earnedAt;
-  final DateTime? paidAt;
-  final String? payoutFailureReason;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const WorkerEarning({
-    required this.id,
-    required this.bookingId,
-    required this.amount,
-    required this.status,
-    this.earnedAt,
-    this.paidAt,
-    this.payoutFailureReason,
-  });
+part 'worker_earning.freezed.dart';
+
+@Freezed(fromJson: false, toJson: false)
+class WorkerEarning with _$WorkerEarning {
+  const WorkerEarning._();
+
+  const factory WorkerEarning({
+    required String id,
+    required String bookingId,
+    required double amount,
+    required String status,
+    DateTime? earnedAt,
+    DateTime? paidAt,
+    String? payoutFailureReason,
+  }) = _WorkerEarning;
 
   bool get isPaid => status == 'paid' || status == 'settled';
 
